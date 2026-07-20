@@ -45,8 +45,9 @@ public class UserServiceImpl implements UserService{
 					.build();
 
 			User savedUser = userRepository.save(user); // 영속화된 savedUser 리턴
-
+			UserDto dto = UserDto.toDto(savedUser);
 			userResultDto.setResult("success");
+			userResultDto.setUserDto(dto);
 
 		} catch(Exception e) {
 			e.printStackTrace();
