@@ -3,6 +3,7 @@ package com.narangnorang.config;
 
 import com.narangnorang.user.entity.User;
 import com.narangnorang.user.entity.UserRole;
+import com.narangnorang.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
