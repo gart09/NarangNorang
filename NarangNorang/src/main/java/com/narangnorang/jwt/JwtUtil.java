@@ -139,7 +139,7 @@ public class JwtUtil {
 							.toList();
 
 					String newToken = createToken(username, roles);
-					loginResultDto.setToken(newToken);
+					//loginResultDto.setToken(newToken);
 				}
 				//if(리프래시 토큰 비교) - 있으면 createToken()으로 AccessToken 발급;
 				//로직 추가 필요
