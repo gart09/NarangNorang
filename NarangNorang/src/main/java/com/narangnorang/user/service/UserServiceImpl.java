@@ -33,11 +33,25 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
+	public boolean existsByEmail(String email) {
+		return userRepository.existsByEmail(email);
+	}
+
+
+
+	@Override
 	@Transactional
 	public UserResultDto insertUser(UserDto userDto) {
 		UserResultDto userResultDto = new UserResultDto();
 		try {
 			List<UserRole> userRoles = List.of(userRoleRepository.findByName("NORMAL"));
+
+
+			// 이메일 중복 검사 로직
+			if(userRepository.existsByEmail(userDto.getEmail())){
+				userResultDto.setResult("duplicatedEmail");
+				return userResultDto;
+			}
 
 			User user = User.builder()
 					.name(userDto.getName())
