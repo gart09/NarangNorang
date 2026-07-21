@@ -15,8 +15,11 @@ public class User {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
+	@Column(nullable = false)
 	private String name;
+	@Column(nullable = false, unique = true)
 	private String email;
+	@Column(nullable = false)
 	private String password;
 
 	@ManyToMany(fetch= FetchType.EAGER)
@@ -24,7 +27,6 @@ public class User {
 			name="user_user_role",
 			joinColumns=@JoinColumn(name="user_id"),
 			inverseJoinColumns=@JoinColumn(name="user_role_id")
-
 	)
 	private List<UserRole> userRoles;
 }
