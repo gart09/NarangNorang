@@ -37,11 +37,9 @@ public class Space {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "max_member")
-    private Long maxMember;
+    private Long maxMemberCount;
 
-    @Column(name = "current_member")
-    private Long currentMember;
+    private Long currentMemberCount;
 
     @OneToMany(mappedBy = "space", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SpaceMember> spaceMembers = new ArrayList<>();

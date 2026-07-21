@@ -17,16 +17,16 @@ import space.entity.Tag;
 public class SpaceSummaryResponseDto {
  private Long id;
  private String name;
- private Long currentMember;
- private Long maxMember;
+ private Long currentMemberCount;
+ private Long maxMemberCount;
  private List<String> tags;
 
  public SpaceSummaryResponseDto from(Space space) {
      return SpaceSummaryResponseDto.builder()
              .id(space.getId())
              .name(space.getName())
-             .currentMember(space.getCurrentMember())
-             .maxMember(space.getMaxMember())
+             .currentMemberCount(space.getCurrentMemberCount())
+             .maxMemberCount(space.getMaxMemberCount())
              .tags(space.getTags().stream().map(Tag::getName).toList())
              .build();
  }

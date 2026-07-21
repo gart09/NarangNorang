@@ -16,7 +16,7 @@ public class SpaceCreateRequestDto {
 	
     private String name;
 
-    private Long maxMember;
+    private Long maxMemberCount;
 
     private List<String> tags;
 
@@ -25,8 +25,8 @@ public class SpaceCreateRequestDto {
                 .roomId(roomId)
                 .ownerId(ownerId)
                 .name(name)
-                .maxMember(maxMember)
-                .currentMember(0L)
+                .maxMemberCount(maxMemberCount)
+                .currentMemberCount(0L)
                 .build();
     }
 }
