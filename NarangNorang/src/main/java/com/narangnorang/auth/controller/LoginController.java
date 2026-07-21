@@ -1,8 +1,8 @@
-package com.narangnorang.user.controller;
+package com.narangnorang.auth.controller;
 
-import com.narangnorang.user.dto.LoginRequestDto;
-import com.narangnorang.user.dto.LoginResultDto;
-import com.narangnorang.user.service.LoginService;
+import com.narangnorang.auth.dto.LoginRequestDto;
+import com.narangnorang.auth.dto.LoginResultDto;
+import com.narangnorang.auth.service.LoginService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,5 +19,10 @@ public class LoginController {
     @PostMapping("/login")
     public LoginResultDto login(@RequestBody LoginRequestDto loginRequestDto) {
         return loginService.login(loginRequestDto);
+    }
+
+    @PostMapping("/checkRefreshToken")
+    public LoginResultDto checkRefreshToken(String refreshToken){
+        return loginService.checkRefreshToken(refreshToken);
     }
 }

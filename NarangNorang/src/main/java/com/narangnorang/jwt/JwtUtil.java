@@ -2,6 +2,8 @@ package com.narangnorang.jwt;
 
 import com.narangnorang.config.MyUserDetailsService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,8 +39,8 @@ public class JwtUtil {
 
 	private SecretKey secretKey; // HS256 서명, 검증 key
 
-	private final long tokenValidDuration = 1000L * 60 * 60 * 24; // 24 시간
-	private final long refreshTokenValidDuration = 1000L * 60 * 60 * 120; // 24 시간
+	private final long tokenValidDuration = 1000L * 30;
+	private final long refreshTokenValidDuration = 1000L * 60 * 60 * 120;
 
 	// JwtUtil 생성 직후 호출
 	@PostConstruct
@@ -50,11 +52,12 @@ public class JwtUtil {
 	}
 
 	// JWT 생성
-	public String createToken(String username, List<String> roles) {
+	public String createToken(Long id, String username, List<String> roles) {
 		Date now = new Date();
 
 		return Jwts.builder()
 				.subject(username)  // payload : 사용자 식별자 (sub)
+				.claim("id", id)
 				.claim("roles", roles) // payload: 사용자 역할 목록, 반복적으로 더 많은 데이터 추가 <= 공개 노출된다.
 				.issuedAt(now)  // payload: 발급 시각 (iat)
 				.expiration(new Date(now.getTime() + tokenValidDuration))
@@ -62,12 +65,13 @@ public class JwtUtil {
 				.compact();
 	}
 
-	public String createRefreshToken(String username, List<String> roles){
+	public String createRefreshToken(Long id, String username, List<String> roles) {
 		Date now = new Date();
 
 		return Jwts.builder()
-				.subject(username)
-				.issuedAt(now)
+				.subject(username)  // payload : 사용자 식별자 (sub)
+				.claim("id", id)
+				.issuedAt(now)  // payload: 발급 시각 (iat)
 				.expiration(new Date(now.getTime() + refreshTokenValidDuration))
 				.signWith(secretKey, Jwts.SIG.HS256)
 				.compact();
@@ -81,6 +85,15 @@ public class JwtUtil {
 				.parseSignedClaims(token)
 				.getPayload()
 				.getSubject();
+	}
+
+	public Long getUserIdFromToken(String token) {
+		Claims claims = Jwts.parser()
+				.verifyWith(secretKey) // 전달되는 token 의 서명 검증
+				.build()
+				.parseSignedClaims(token)
+				.getPayload();
+		return claims.get("id", Long.class);
 	}
 
 	public List<String> getRolesFromToken(String token, SecretKey secretKey) {
@@ -114,7 +127,7 @@ public class JwtUtil {
 
 	// 서명 유효
 	// _1 대비 서명의 유효 포함, Claims 리턴하도록 수정
-	public Claims validateToken(String token, String refreshToken) {
+	public Claims validateToken(String token) {
 		try {
 			// parser 를 통해서 Claims 객체를 얻고, 이를 통해서 검증
 			Claims claims = Jwts.parser()
@@ -123,37 +136,44 @@ public class JwtUtil {
 					.parseSignedClaims(token)
 					.getPayload();
 
-			if( claims.getExpiration() != null && claims.getExpiration().before(new Date())) {
+			if (claims.getExpiration() != null && claims.getExpiration().before(new Date())) {
 				// 현재 토큰의 만료일자가 지금보다 이전 => 만료
-				Claims refreshClaims = Jwts.parser()
-						.verifyWith(secretKey)
-						.build()
-						.parseSignedClaims(refreshToken)
-						.getPayload();
-				if(!claims.getExpiration().before(new Date())){
-					String username = getUsernameFromToken(refreshToken);
-					UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
-					Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
-					List<String> roles = authorities.stream()
-							.map(GrantedAuthority::getAuthority)
-							.toList();
-
-					String newToken = createToken(username, roles);
-					//loginResultDto.setToken(newToken);
-				}
-				//if(리프래시 토큰 비교) - 있으면 createToken()으로 AccessToken 발급;
-				//로직 추가 필요
 				return null;
 			}
-
-
 			return claims; // 유효
 
-		}catch(Exception e) {
+		} catch (Exception e) {
 			return null;
 		}
 	}
 
+	public Claims validateRefreshToken(String refreshToken) {
+		try {
+			// parser 를 통해서 Claims 객체를 얻고, 이를 통해서 검증
+			Claims claims = Jwts.parser()
+					.verifyWith(secretKey)
+					.build()
+					.parseSignedClaims(refreshToken)
+					.getPayload();
+
+			if (claims.getExpiration() != null && claims.getExpiration().before(new Date())) {
+				// 현재 토큰의 만료일자가 지금보다 이전 => 만료
+				// 새로 로그인
+				return null;
+			}
+			return claims; // 유효
+
+		} catch (ExpiredJwtException e) {
+			log.warn("만료된 RefreshToken입니다.");
+			return null;
+		} catch (JwtException | IllegalArgumentException e) {
+			log.warn("유효하지 않은 RefreshToken입니다: {}", e.getMessage());
+			return null;
+		} catch (Exception e) {
+			log.warn("몰라");
+			return null;
+		}
+	}
 	// DB Access 를 통한 2차 검증
 	// token -> username 추출
 	// username, 권한 등을 DB Access 확인 <= MyUserDetailsService.loadUserByUsername()

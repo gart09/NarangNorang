@@ -1,4 +1,4 @@
-package com.narangnorang.user.dto;
+package com.narangnorang.auth.dto;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
