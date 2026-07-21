@@ -31,10 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
 		// #1. 사용자의 요청 request 에 포함된 JWT 문자열 추출
 		String token = jwtUtil.getTokenFromHeader(request);
-		String refreshToken = jwtUtil.getRefreshTokenFromHeader(request);
 
 		// #2. 서명, 만료 검증
-		Claims claims = (token != null ) ? jwtUtil.validateToken(token, refreshToken) : null;
+		Claims claims = (token != null ) ? jwtUtil.validateToken(token) : null;
 
 		// 위 JWT 이증 방식 2
 		if( claims != null ) {
@@ -45,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 			// session 아니라 Filter Chain 처리 동안 사용하는 공용 공간
 			SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 		}
-
+		
 		filterChain.doFilter(request, response);
 	}
 }
