@@ -6,6 +6,7 @@ import com.narangnorang.user.entity.User;
 import com.narangnorang.user.entity.UserRole;
 import com.narangnorang.user.repository.UserRepository;
 import com.narangnorang.user.repository.UserRoleRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,10 +29,11 @@ public class UserServiceImpl implements UserService{
 
 	@Override
 	public Optional<User> findByEmail(String email) {
-		return Optional.empty();
+		return userRepository.findByEmail(email);
 	}
 
 	@Override
+	@Transactional
 	public UserResultDto insertUser(UserDto userDto) {
 		UserResultDto userResultDto = new UserResultDto();
 		try {
@@ -45,7 +47,7 @@ public class UserServiceImpl implements UserService{
 					.build();
 
 			User savedUser = userRepository.save(user); // 영속화된 savedUser 리턴
-			UserDto dto = UserDto.toDto(savedUser);
+			UserDto dto = UserDto.from(savedUser);
 			userResultDto.setResult("success");
 			userResultDto.setUserDto(dto);
 

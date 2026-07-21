@@ -22,11 +22,11 @@ public class UserDto {
 
 	private List<String> userRoles;
 
-	public static UserDto toDto(User user) {
+	public static UserDto from(User user) {
 		List<String> strRoles = null;
 		if (user.getUserRoles() != null) {
 			strRoles = user.getUserRoles().stream()
-					.map(userRole -> userRole.getName())
+					.map(UserRole::getName)
 					.collect(Collectors.toList());
 		}
 
