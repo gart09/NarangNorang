@@ -63,4 +63,10 @@ public class Room {
         customFields.add(customField);
         customField.assignRoom(this);
     }
+
+    public void updateInfo(String name, String description, Integer maxMember) {
+        this.name = name;
+        this.description = description;
+        this.maxMember = maxMember;
+    }
 }
