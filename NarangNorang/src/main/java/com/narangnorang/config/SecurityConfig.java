@@ -48,7 +48,8 @@ public class SecurityConfig {
 				.authorizeHttpRequests( request -> request
 						.requestMatchers(
 								"/users/register",
-								"/users/login"
+								"/users/login",
+								"/users/checkRefreshToken"
 						).permitAll()
 						.anyRequest().authenticated()
 				)

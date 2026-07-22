@@ -18,6 +18,11 @@ public class MyUserDetails implements UserDetails{
 	private final String password;
 
 	private final Collection<? extends GrantedAuthority> authorities;
+
+
+	//사용자 정의 필드
+
+	private final Long id;
 }
 
 

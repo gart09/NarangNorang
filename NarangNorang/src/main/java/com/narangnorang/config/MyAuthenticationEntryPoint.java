@@ -22,7 +22,7 @@ public class MyAuthenticationEntryPoint implements AuthenticationEntryPoint{
 		response.setContentType("application/json");
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 		String jsonStr = """
-				{"result":"fail"} // 임시
+				{"result":"fail"}
 				""";
 		response.getWriter().write(jsonStr);
 
