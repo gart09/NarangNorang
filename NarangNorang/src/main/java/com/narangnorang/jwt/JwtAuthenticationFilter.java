@@ -37,11 +37,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
 		// 위 JWT 이증 방식 2
 		if( claims != null ) {
-			UsernamePasswordAuthenticationToken authenticationToken =
-					jwtUtil.getAuthentication(token);
-
+			UsernamePasswordAuthenticationToken authenticationToken = jwtUtil.getAuthentication(token);
 			authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request)); // 권고 코드
-			// session 아니라 Filter Chain 처리 동안 사용하는 공용 공간
+
 			SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 		}
 		

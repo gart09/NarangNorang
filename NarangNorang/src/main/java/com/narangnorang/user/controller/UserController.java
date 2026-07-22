@@ -19,6 +19,13 @@ public class UserController {
 
 	@PostMapping("/register")
 	public ApiResponse<UserResponseDto> insertUser(@RequestBody UserRequestDto userRequestDto) {
-		return userService.insertUser(userRequestDto);
+		UserResponseDto userResponseDto = userService.insertUser(userRequestDto);
+		ApiResponse<UserResponseDto> apiResponse = new ApiResponse<>();
+		if(userRequestDto == null){
+			apiResponse.setFail("유저 등록 실패");
+			return apiResponse;
+		}
+		apiResponse.setSuccess(userResponseDto);
+		return apiResponse;
 	}
 }

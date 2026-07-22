@@ -19,11 +19,25 @@ public class LoginController {
 
     @PostMapping("/login")
     public ApiResponse<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto) {
-        return loginService.login(loginRequestDto);
+        LoginResponseDto loginResponseDto = loginService.login(loginRequestDto);
+        ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>();
+        if(loginResponseDto == null){
+            apiResponse.setFail("로그인 실패");
+            return apiResponse;
+        }
+        apiResponse.setSuccess(loginResponseDto);
+        return apiResponse;
     }
 
     @PostMapping("/checkRefreshToken")
     public ApiResponse<LoginResponseDto> checkRefreshToken(String refreshToken){
-        return loginService.checkRefreshToken(refreshToken);
+        LoginResponseDto loginResponseDto = loginService.checkRefreshToken(refreshToken);
+        ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>();
+        if(loginResponseDto == null){
+            apiResponse.setFail("리프레시토큰 체크 실패");
+            return apiResponse;
+        }
+        apiResponse.setSuccess(loginResponseDto);
+        return apiResponse;
     }
 }

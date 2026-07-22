@@ -1,5 +1,6 @@
 package com.narangnorang.memberprofilecard.entity;
 
+import com.narangnorang.room.entity.Room;
 import com.narangnorang.user.entity.User;
 import jakarta.persistence.*;
 import lombok.Getter;

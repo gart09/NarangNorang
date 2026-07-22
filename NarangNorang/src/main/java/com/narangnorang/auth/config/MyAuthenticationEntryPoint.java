@@ -1,4 +1,4 @@
-package com.narangnorang.config;
+package com.narangnorang.auth.config;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

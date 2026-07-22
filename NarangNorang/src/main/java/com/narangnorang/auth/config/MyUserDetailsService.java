@@ -1,4 +1,4 @@
-package com.narangnorang.config;
+package com.narangnorang.auth.config;
 
 
 import com.narangnorang.user.entity.User;
@@ -38,7 +38,7 @@ public class MyUserDetailsService implements UserDetailsService{
 					.map(name -> "ROLE_" + name)
 					.map(SimpleGrantedAuthority::new)
 					.toList();
-			return com.narangnorang.config.MyUserDetails.builder()
+			return MyUserDetails.builder()
 					.username(user.getEmail())  	// Spring Security 계약 필드
 					.password(user.getPassword()) 	// Spring Security 계약 필드
 					.authorities(authorities) 		// Spring Security 계약 필드

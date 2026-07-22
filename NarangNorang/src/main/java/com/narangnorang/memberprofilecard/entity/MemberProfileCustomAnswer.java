@@ -1,5 +1,6 @@
 package com.narangnorang.memberprofilecard.entity;
 
+import com.narangnorang.room.entity.RoomProfileCustomField;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
