@@ -1,4 +1,4 @@
-package memberprofilecard.entity;
+package com.narangnorang.memberprofilecard.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
