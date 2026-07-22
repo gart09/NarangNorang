@@ -8,5 +8,5 @@ import java.util.List;
 public interface RoomProfileCustomFieldRepository
         extends JpaRepository<RoomProfileCustomField, Long> {
 
-    List<RoomProfileCustomField> findAllByRoom_IdOrderByIdAsc(Long roomId);
+    List<RoomProfileCustomField> findAllByRoomIdOrderByIdAsc(Long roomId);
 }

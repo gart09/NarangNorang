@@ -44,7 +44,7 @@ public class RoomProfileCustomField {
     private boolean required;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "field_type", nullable = false, length = 32)
+    @Column(name = "option_type", nullable = false, length = 32)
     private FieldType fieldType;
 
     @UpdateTimestamp
