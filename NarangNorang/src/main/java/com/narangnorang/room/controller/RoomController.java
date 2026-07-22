@@ -1,15 +1,5 @@
 package com.narangnorang.room.controller;
 
-import com.narangnorang.auth.ApiResponse;
-import com.narangnorang.config.MyUserDetails;
-import com.narangnorang.room.dto.request.RoomCreateRequestDto;
-import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
-import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
-import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
-import com.narangnorang.room.dto.response.RoomJoinResponseDto;
-import com.narangnorang.room.dto.response.RoomResponseDto;
-import com.narangnorang.room.service.RoomService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +9,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.narangnorang.auth.config.MyUserDetails;
+import com.narangnorang.common.ApiResponse;
+import com.narangnorang.room.dto.request.RoomCreateRequestDto;
+import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
+import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
+import com.narangnorang.room.dto.response.RoomJoinResponseDto;
+import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
+import com.narangnorang.room.dto.response.RoomResponseDto;
+import com.narangnorang.room.service.RoomService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/rooms")
@@ -42,7 +44,7 @@ public class RoomController {
 
     @GetMapping("/{roomId}")
     public ApiResponse<RoomResponseDto> getRoom(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @AuthenticationPrincipal MyUserDetails userDetails
     ) {
         RoomResponseDto result = roomService.getRoom(
@@ -55,7 +57,7 @@ public class RoomController {
 
     @GetMapping("/join/{roomCode}")
     public ApiResponse<RoomJoinResponseDto> getRoomForJoin(
-            @PathVariable String roomCode,
+            @PathVariable("roomCode") String roomCode,
             @AuthenticationPrincipal MyUserDetails userDetails
     ) {
         RoomJoinResponseDto result = roomService.getRoomForJoin(
@@ -68,7 +70,7 @@ public class RoomController {
 
     @PatchMapping("/{roomId}")
     public ApiResponse<RoomResponseDto> updateRoom(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @RequestBody RoomUpdateRequestDto requestDto,
             @AuthenticationPrincipal MyUserDetails userDetails
     ) {
@@ -83,8 +85,8 @@ public class RoomController {
 
     @PatchMapping("/{roomId}/custom-fields/{fieldId}")
     public ApiResponse<RoomProfileCustomFieldResponseDto> updateCustomField(
-            @PathVariable Long roomId,
-            @PathVariable Long fieldId,
+            @PathVariable("roomId") Long roomId,
+            @PathVariable("fieldId") Long fieldId,
             @RequestBody RoomProfileCustomFieldUpdateRequestDto requestDto,
             @AuthenticationPrincipal MyUserDetails userDetails
     ) {
@@ -100,7 +102,7 @@ public class RoomController {
 
     @DeleteMapping("/{roomId}")
     public ApiResponse<Void> deleteRoom(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @AuthenticationPrincipal MyUserDetails userDetails
     ) {
         roomService.deleteRoom(roomId, userDetails.getId());

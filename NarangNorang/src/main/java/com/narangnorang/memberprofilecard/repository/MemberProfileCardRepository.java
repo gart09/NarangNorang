@@ -12,4 +12,8 @@ public interface MemberProfileCardRepository extends JpaRepository<MemberProfile
 
 	@Query("SELECT m.name FROM MemberProfileCard m WHERE m.user.id = :userId")
 	String findNameById(@Param("userId") Long id);
+	
+	boolean existsByUserIdAndRoomId(Long userId, Long roomId);
+
+    long countByRoomId(Long roomId);
 }
