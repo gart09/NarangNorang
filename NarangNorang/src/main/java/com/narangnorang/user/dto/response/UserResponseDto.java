@@ -1,5 +1,6 @@
-package com.narangnorang.user.dto;
+package com.narangnorang.user.dto.response;
 
+import com.narangnorang.user.dto.request.UserRequestDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResultDto {
+public class UserResponseDto {
 	private String result;
-	private UserDto userDto;
+	private UserRequestDto userRequestDto;
 }

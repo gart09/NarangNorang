@@ -1,4 +1,4 @@
-package com.narangnorang.user.dto;
+package com.narangnorang.user.dto.request;
 
 import com.narangnorang.user.entity.User;
 import com.narangnorang.user.entity.UserRole;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDto {
+public class UserRequestDto {
 	private Long id;
 	private String name;
 	private String email;
@@ -22,7 +22,7 @@ public class UserDto {
 
 	private List<String> userRoles;
 
-	public static UserDto from(User user) {
+	public static UserRequestDto from(User user) {
 		List<String> strRoles = null;
 		if (user.getUserRoles() != null) {
 			strRoles = user.getUserRoles().stream()
@@ -30,7 +30,7 @@ public class UserDto {
 					.collect(Collectors.toList());
 		}
 
-		return new UserDto(
+		return new UserRequestDto(
 				user.getId(),
 				user.getName(),
 				user.getEmail(),
