@@ -34,48 +34,52 @@ public class ChatServiceImpl implements ChatService{
 
 	@Override
 	@Transactional
-	public ApiResponse<ChatResponseDto> saveChat(ChatRequestDto chatRequestDto) {
+	public ChatResponseDto saveChat(ChatRequestDto chatRequestDto) {
 		try {
+			Long userId = chatRequestDto.getSenderId();
+			Long targetId = chatRequestDto.getTargetId();
+			String targetType = chatRequestDto.getTargetType();
+
+			boolean hasPermission = memberProfileCardRepository.findByUserIdAndRoomId(userId, targetId).isPresent();
+			switch (targetType) {
+				case "room":
+					if(hasPermission == false){
+						throw new EntityNotFoundException("해당 유저는 접근 권한이 없습니다."); //TODO: 사용자예외처리필요
+					}
+				case "space":
+					break;
+			}
 			Chat savedChat = chatRepository.save(chatRequestDto.toEntity());
 			ChatResponseDto savedDto = ChatResponseDto.from(savedChat);
+
 			String memberName = memberProfileCardRepository.findNameById(savedChat.getSenderId());
 			if(memberName == null)
 				throw new EntityNotFoundException("해당 ID를 가진 회원의 이름을 찾을 수 없습니다: " + savedChat.getSenderId());
 
 			savedDto.setSenderName(memberName);
-
-			ApiResponse<ChatResponseDto> apiResponse = new ApiResponse<>();
-			apiResponse.setSuccess(savedDto);
-
 			log.info("채팅 저장 완료. 타입: {}, 번호: {}, 발신자이름: {}, 내용: {}", savedDto.getTargetType(), savedDto.getTargetId(), savedDto.getSenderName(), savedDto.getContent());
 
-			return apiResponse;
+			return savedDto;
 		} catch (DataAccessException e) {
 			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+			log.info("채팅 저장에 실패했습니다. 오류: {}", e.getMessage());
 
-			ApiResponse<ChatResponseDto> apiResponse = new ApiResponse<>();
-			apiResponse.setFail("채팅 저장에 실패했습니다. 오류: " + e.getMessage());
-
-			return apiResponse;
+			return null;
 		} catch (Exception e) {
 			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
 
-			ApiResponse<ChatResponseDto> apiResponse = new ApiResponse<>();
-			apiResponse.setFail("서버 내부 오류가 발생했습니다. 오류: " + e.getMessage());
+			log.info("서버 내부 오류가 발생했습니다. 오류: {}", e.getMessage());
 
-			return apiResponse;
+			return null;
 		}
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public ApiResponse<ChatHistoryResponseDto> getChatHistory(String targetType, Long targetId, Pageable pageable) {
+	public ChatHistoryResponseDto getChatHistory(String targetType, Long targetId, Pageable pageable) {
 		Slice<Chat> chatSlice = chatRepository.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(targetType, targetId, pageable);
 
-		ChatHistoryResponseDto chatHistoryResponseDto = ChatHistoryResponseDto.from(chatSlice);
-		ApiResponse<ChatHistoryResponseDto> apiResponse = new ApiResponse<>();
-		apiResponse.setSuccess(chatHistoryResponseDto);
-		return apiResponse;
+		return ChatHistoryResponseDto.from(chatSlice);
 	}
 
 	@Override

@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 @Entity
 @Builder
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Chat {

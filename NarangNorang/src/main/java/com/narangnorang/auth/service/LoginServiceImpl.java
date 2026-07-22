@@ -37,8 +37,7 @@ public class LoginServiceImpl implements LoginService {
 	private final Long refreshTokenValidDurationSeconds = 60L * 60 * 120;
 
 	@Override
-	public ApiResponse<LoginResponseDto> login(LoginRequestDto loginRequestDto) {
-		ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>();
+	public LoginResponseDto login(LoginRequestDto loginRequestDto) {
 		try {
 			PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -80,22 +79,21 @@ public class LoginServiceImpl implements LoginService {
 					.token(token)
 					.refreshToken(refreshToken.getTokenKey())
 					.build();
-			apiResponse.setSuccess(loginResponseDto);
 
-			return apiResponse;
+			return loginResponseDto;
 		} catch (AuthenticationException e) {
-			apiResponse.setFail("Login failed for " + loginRequestDto.getEmail());
-			return apiResponse;
+			log.info("Login failed for {}", loginRequestDto.getEmail());
+			return null;
 		}
 	}
 
 	@Override
-	public ApiResponse<LoginResponseDto> checkRefreshToken(String refreshToken) {
-		ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>();
+	public LoginResponseDto checkRefreshToken(String refreshToken) {
 		try {
 			if (jwtUtil.validateRefreshToken(refreshToken) == null) {
-				apiResponse.setFail("Invalid refresh token");
-				return apiResponse;
+				log.info("Invalid refresh token");
+
+				return null;
 			}
 
 			Long userId = jwtUtil.getUserIdFromToken(refreshToken);
@@ -125,17 +123,15 @@ public class LoginServiceImpl implements LoginService {
 						.refreshToken(refreshToken)
 						.build();
 
-				apiResponse.setSuccess(loginResponseDto);
-
-				return apiResponse;
+				return loginResponseDto;
 
 			} else {
-				apiResponse.setFail("RefreshToken mismatch or not found for " + refreshToken);
-				return apiResponse;
+				log.info("RefreshToken mismatch or not found for {}", refreshToken);
+				return null;
 			}
 		} catch (Exception e) {
-			apiResponse.setFail("Get AccessToken failed: " + e.getMessage());
-			return apiResponse;
+			log.info("Get AccessToken failed: {}", e.getMessage());
+			return null;
 		}
 	}
 }

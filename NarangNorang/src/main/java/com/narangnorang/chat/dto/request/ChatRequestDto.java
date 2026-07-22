@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class ChatRequestDto {
 	private String targetType;
 	private Long targetId;

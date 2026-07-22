@@ -6,6 +6,6 @@ import com.narangnorang.common.ApiResponse;
 
 public interface LoginService {
 
-    ApiResponse<LoginResponseDto> login(LoginRequestDto loginRequestDto);
-    ApiResponse<LoginResponseDto> checkRefreshToken(String refreshToken);
+    LoginResponseDto login(LoginRequestDto loginRequestDto);
+    LoginResponseDto checkRefreshToken(String refreshToken);
 }

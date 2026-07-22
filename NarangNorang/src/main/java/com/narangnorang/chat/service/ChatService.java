@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 
 public interface ChatService {
-	ApiResponse<ChatResponseDto> saveChat(ChatRequestDto chatRequestDto);
-	ApiResponse<ChatHistoryResponseDto> getChatHistory(String targetType, Long targetId, Pageable pageable);
+	ChatResponseDto saveChat(ChatRequestDto chatRequestDto);
+	ChatHistoryResponseDto getChatHistory(String targetType, Long targetId, Pageable pageable);
 	boolean checkPermission(Long userId, String targetType, Long targetId);
 }

@@ -9,6 +9,7 @@ import com.narangnorang.user.repository.UserRepository;
 import com.narangnorang.user.repository.UserRoleRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService{
 
 	private final UserRepository userRepository;
@@ -42,16 +44,15 @@ public class UserServiceImpl implements UserService{
 
 	@Override
 	@Transactional
-	public ApiResponse<UserResponseDto> insertUser(UserRequestDto userRequestDto) {
-		ApiResponse<UserResponseDto> apiResponse = new ApiResponse<>();
+	public UserResponseDto insertUser(UserRequestDto userRequestDto) {
 		try {
 			List<UserRole> userRoles = List.of(userRoleRepository.findByName("NORMAL"));
 
 
 			// 이메일 중복 검사 로직
 			if(userRepository.existsByEmail(userRequestDto.getEmail())){
-				apiResponse.setFail("duplicatedEmail");
-				return apiResponse;
+				log.info("이메일이 중복되었습니다.");
+				return null;
 			}
 
 			User user = User.builder()
@@ -63,14 +64,13 @@ public class UserServiceImpl implements UserService{
 
 			User savedUser = userRepository.save(user);
 			UserResponseDto userResponseDto = UserResponseDto.from(savedUser);
-			apiResponse.setSuccess(userResponseDto);
-
+			return userResponseDto;
 		} catch(Exception e) {
 			e.printStackTrace();
 			// 현재 insert 후 예외가 발생할 확률 없으나 습관. 패턴 기준으로 rollback 처리
 			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-			apiResponse.setFail("Exception Occurred");
+			log.info("Exception Occurred");
+			return null;
 		}
-		return apiResponse;
 	}
 }

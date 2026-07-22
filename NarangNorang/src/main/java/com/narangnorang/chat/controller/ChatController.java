@@ -37,12 +37,18 @@ public class ChatController {
 
 		log.info("메시지 들어옴: {}", chatRequestDto);
 
-		ApiResponse<ChatResponseDto> apiResponse = chatService.saveChat(chatRequestDto);
+		ChatResponseDto chatResponseDto = chatService.saveChat(chatRequestDto);
+		ApiResponse<ChatResponseDto> apiResponse = new ApiResponse<>();
+		if(chatResponseDto == null) {
+			apiResponse.setFail("채팅 저장 실패");
+			return apiResponse;
+		}
+		apiResponse.setSuccess(chatResponseDto);
 
 		String destination = "";
-		if ("ROOM".equals(chatRequestDto.getTargetType())) {
+		if ("room".equals(chatRequestDto.getTargetType())) {
 			destination = "/sub/room/" + chatRequestDto.getTargetId();
-		} else if ("SPACE".equals(chatRequestDto.getTargetType())) {
+		} else if ("space".equals(chatRequestDto.getTargetType())) {
 			destination = "/sub/space/" + chatRequestDto.getTargetId();
 		}
 
@@ -59,8 +65,24 @@ public class ChatController {
 	public ApiResponse<ChatHistoryResponseDto> getChatHistory(
 			@PathVariable String targetType,
 			@PathVariable Long targetId,
-			@PageableDefault(size = PAGESIZE) Pageable pageable){
+			@PageableDefault(size = PAGESIZE) Pageable pageable,
+			@AuthenticationPrincipal MyUserDetails myUserDetails){
 
-		return chatService.getChatHistory(targetType, targetId, pageable);
+		ApiResponse<ChatHistoryResponseDto> apiResponse = new ApiResponse<>();
+
+		Long userId = myUserDetails.getId();
+
+		if(chatService.checkPermission(userId, targetType, targetId) == false){
+			apiResponse.setFail("권한이 없는 방/스페이스의 목록을 가져오려 했습니다.");
+			return apiResponse;
+		}
+
+		ChatHistoryResponseDto chatHistoryResponseDto = chatService.getChatHistory(targetType, targetId, pageable);
+		if(chatHistoryResponseDto == null){
+			apiResponse.setFail("채팅 조회 실패");
+			return apiResponse;
+		}
+		apiResponse.setSuccess(chatHistoryResponseDto);
+		return apiResponse;
 	}
 }
