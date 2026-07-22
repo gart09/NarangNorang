@@ -1,6 +1,6 @@
 package com.narangnorang.room.dto.request;
 
-import com.narangnorang.room.entity.FieldType;
+import com.narangnorang.room.entity.OptionType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +17,6 @@ public class RoomProfileCustomFieldUpdateRequestDto {
 
     private String fieldName;
     private boolean required;
-    private FieldType fieldType;
+    private OptionType optionType;
     private List<RoomProfileCustomFieldOptionUpdateRequestDto> options;
 }

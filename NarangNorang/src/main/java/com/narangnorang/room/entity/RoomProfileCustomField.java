@@ -45,7 +45,7 @@ public class RoomProfileCustomField {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "option_type", nullable = false, length = 32)
-    private FieldType fieldType;
+    private OptionType optionType;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
@@ -64,10 +64,10 @@ public class RoomProfileCustomField {
         this.room = room;
     }
 
-    public void update(String fieldName, boolean required, FieldType fieldType) {
+    public void update(String fieldName, boolean required, OptionType optionType) {
         this.fieldName = fieldName;
         this.required = required;
-        this.fieldType = fieldType;
+        this.optionType = optionType;
     }
 
     public void addOption(RoomProfileCustomFieldOption option) {

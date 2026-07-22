@@ -1,6 +1,6 @@
 package com.narangnorang.room.entity;
 
-public enum FieldType {
+public enum OptionType {
     TEXT,
     NUMBER,
     SINGLE_SELECT,

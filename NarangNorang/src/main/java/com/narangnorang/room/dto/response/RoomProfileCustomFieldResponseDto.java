@@ -1,6 +1,6 @@
 package com.narangnorang.room.dto.response;
 
-import com.narangnorang.room.entity.FieldType;
+import com.narangnorang.room.entity.OptionType;
 import com.narangnorang.room.entity.RoomProfileCustomField;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +15,7 @@ public class RoomProfileCustomFieldResponseDto {
     private Long id;
     private String fieldName;
     private boolean required;
-    private FieldType fieldType;
+    private OptionType optionType;
     private List<RoomProfileCustomFieldOptionResponseDto> options;
     private LocalDateTime updatedAt;
 
@@ -24,7 +24,7 @@ public class RoomProfileCustomFieldResponseDto {
                 .id(customField.getId())
                 .fieldName(customField.getFieldName())
                 .required(customField.isRequired())
-                .fieldType(customField.getFieldType())
+                .optionType(customField.getOptionType())
                 .options(customField.getOptions().stream()
                         .map(RoomProfileCustomFieldOptionResponseDto::from)
                         .toList())
