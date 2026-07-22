@@ -1,5 +1,6 @@
 package com.narangnorang.memberprofilecard.entity;
 
+import com.narangnorang.user.entity.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,8 +22,14 @@ public class MemberProfileCard {
 	private String name;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
-	private Long userId;
-	private Long roomId;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id")
+	private User user;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name= "room_id")
+	private Room room;
 
 	@OneToMany(mappedBy = "memberProfileCard", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<MemberProfileCustomAnswer> answers = new ArrayList<>();

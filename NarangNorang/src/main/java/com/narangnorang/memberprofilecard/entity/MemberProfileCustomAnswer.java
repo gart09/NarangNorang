@@ -18,7 +18,7 @@ public class MemberProfileCustomAnswer {
 	private String value;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@Column(name = "field_id")
+	@JoinColumn(name = "field_id")
 	private RoomProfileCustomField roomProfileCustomField;
 
 	@ManyToOne(fetch = FetchType.LAZY)
