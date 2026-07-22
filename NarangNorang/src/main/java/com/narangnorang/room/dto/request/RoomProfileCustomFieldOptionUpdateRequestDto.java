@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class RoomProfileCustomFieldOptionUpdateRequestDto {
 
     private Long id;
+
     private String optionValue;
     private Integer displayOrder;
 }

@@ -8,6 +8,7 @@ import com.narangnorang.room.dto.request.RoomProfileCustomFieldOptionUpdateReque
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
 import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
+import com.narangnorang.room.dto.response.RoomJoinResponseDto;
 import com.narangnorang.room.dto.response.RoomResponseDto;
 import com.narangnorang.room.entity.OptionType;
 import com.narangnorang.room.entity.Room;
@@ -47,8 +48,8 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional
-    public RoomResponseDto createRoom(RoomCreateRequestDto requestDto, String email) {
-        User owner = findUser(email);
+    public RoomResponseDto createRoom(RoomCreateRequestDto requestDto, Long userId) {
+        User owner = findUser(userId);
         validateMaxMember(requestDto.getMaxMember(), 0L);
 
         Room room = Room.builder()
@@ -71,9 +72,9 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public RoomResponseDto getRoom(Long roomId, String email) {
+    public RoomResponseDto getRoom(Long roomId, Long userId) {
         Room room = findRoom(roomId);
-        User user = findUser(email);
+        User user = findUser(userId);
         validateRoomMember(room, user);
 
         long currentMember = memberProfileCardRepository.countByRoomId(room.getId());
@@ -81,14 +82,29 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    public RoomJoinResponseDto getRoomForJoin(String roomCode, Long userId) {
+        User user = findUser(userId);
+        Room room = roomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new IllegalArgumentException("룸 코드를 확인해 주세요."));
+
+        boolean member = memberProfileCardRepository.existsByUserIdAndRoomId(
+                user.getId(),
+                room.getId()
+        );
+        long currentMember = memberProfileCardRepository.countByRoomId(room.getId());
+
+        return RoomJoinResponseDto.from(room, currentMember, member);
+    }
+
+    @Override
     @Transactional
     public RoomResponseDto updateRoom(
             Long roomId,
             RoomUpdateRequestDto requestDto,
-            String email
+            Long userId
     ) {
         Room room = findRoom(roomId);
-        User user = findUser(email);
+        User user = findUser(userId);
 
         validateOwner(room, user);
         long currentMember = memberProfileCardRepository.countByRoomId(room.getId());
@@ -104,10 +120,10 @@ public class RoomServiceImpl implements RoomService {
             Long roomId,
             Long fieldId,
             RoomProfileCustomFieldUpdateRequestDto requestDto,
-            String email
+            Long userId
     ) {
         Room room = findRoom(roomId);
-        User user = findUser(email);
+        User user = findUser(userId);
 
         validateOwner(room, user);
 
@@ -129,14 +145,16 @@ public class RoomServiceImpl implements RoomService {
             customField.getOptions().clear();
         }
 
+        customFieldRepository.flush();
+
         return RoomProfileCustomFieldResponseDto.from(customField);
     }
 
     @Override
     @Transactional
-    public void deleteRoom(Long roomId, String email) {
+    public void deleteRoom(Long roomId, Long userId) {
         Room room = findRoom(roomId);
-        User user = findUser(email);
+        User user = findUser(userId);
 
         validateOwner(room, user);
         roomRepository.delete(room);
@@ -227,8 +245,8 @@ public class RoomServiceImpl implements RoomService {
                 .orElseThrow(() -> new IllegalArgumentException("룸을 찾을 수 없습니다."));
     }
 
-    private User findUser(String email) {
-        return userRepository.findByEmail(email)
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
     }
 
