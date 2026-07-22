@@ -38,7 +38,7 @@ public class JwtUtil {
 
 	private SecretKey secretKey; // HS256 서명, 검증 key
 
-	private final long tokenValidDuration = 1000L * 30;
+	private final long tokenValidDuration = 1000L * 60 * 60;
 	private final long refreshTokenValidDuration = 1000L * 60 * 60 * 120;
 
 	// JwtUtil 생성 직후 호출

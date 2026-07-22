@@ -34,7 +34,7 @@ public class SpaceController {
 	@GetMapping
 	public ApiResponse<List<SpaceSummaryResponseDto>> getSpaceList(
 			@PathVariable("roomId") Long roomId,
-			@RequestParam(required = false) List<String> tags) {
+			@RequestParam(name = "tags", required = false) List<String> tags) {
 
 		ApiResponse<List<SpaceSummaryResponseDto>> response = new ApiResponse<>();
 		response.setSuccess(spaceService.getSpaceList(roomId, tags));
