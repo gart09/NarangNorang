@@ -61,16 +61,17 @@ public class SpaceServiceImpl implements SpaceService{
 	public SpaceProfileCardResponseDto createSpace(Long roomId, Long ownerId, SpaceCreateRequestDto spaceCreateRequestDto) {
 		
 		Space space = spaceCreateRequestDto.toSpaceEntity(roomId, ownerId);
+		spaceRepository.save(space);
+		
 		SpaceProfileCard card = spaceCreateRequestDto.toProfileCardEntity(space);
+        spaceProfileCardRepository.save(card);
+        
 		List<Tag> tags = spaceCreateRequestDto.getTags().stream()
 		        .map(tagName -> Tag.builder()
 					                .space(space)
 					                .name(tagName)
 					                .build())
-					        		.toList();
-		
-		spaceRepository.save(space);
-        spaceProfileCardRepository.save(card);
+					        		.toList();	
         tagRepository.saveAll(tags);
         
         
