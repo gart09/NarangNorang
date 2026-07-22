@@ -44,7 +44,6 @@ public class UserServiceImpl implements UserService{
 	@Transactional
 	public ApiResponse<UserResponseDto> insertUser(UserRequestDto userRequestDto) {
 		ApiResponse<UserResponseDto> apiResponse = new ApiResponse<>();
-		UserResponseDto userResponseDto = new UserResponseDto();
 		try {
 			List<UserRole> userRoles = List.of(userRoleRepository.findByName("NORMAL"));
 
@@ -62,10 +61,8 @@ public class UserServiceImpl implements UserService{
 					.userRoles(userRoles)
 					.build();
 
-			User savedUser = userRepository.save(user); // 영속화된 savedUser 리턴
-			UserRequestDto dto = UserRequestDto.from(savedUser);
-			userResponseDto.setResult("success");
-			userResponseDto.setUserRequestDto(dto);
+			User savedUser = userRepository.save(user);
+			UserResponseDto userResponseDto = UserResponseDto.from(savedUser);
 			apiResponse.setSuccess(userResponseDto);
 
 		} catch(Exception e) {

@@ -1,0 +1,66 @@
+package com.narangnorang.chat.controller;
+
+import com.narangnorang.auth.config.MyUserDetails;
+import com.narangnorang.chat.dto.request.ChatRequestDto;
+import com.narangnorang.chat.dto.response.ChatHistoryResponseDto;
+import com.narangnorang.chat.dto.response.ChatResponseDto;
+import com.narangnorang.chat.service.ChatService;
+import com.narangnorang.common.ApiResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/chat")
+@Slf4j
+public class ChatController {
+
+	private final int PAGESIZE = 50;
+	private final ChatService chatService;
+	private final SimpMessageSendingOperations messagingTemplate;
+
+	@PostMapping("/send")
+	public ApiResponse<ChatResponseDto> sendMessage(
+			@RequestBody ChatRequestDto chatRequestDto,
+			@AuthenticationPrincipal MyUserDetails myUserDetails){
+
+		Long userId = myUserDetails.getId();
+		chatRequestDto.setSenderId(userId);
+
+		log.info("메시지 들어옴: {}", chatRequestDto);
+
+		ApiResponse<ChatResponseDto> apiResponse = chatService.saveChat(chatRequestDto);
+
+		String destination = "";
+		if ("ROOM".equals(chatRequestDto.getTargetType())) {
+			destination = "/sub/room/" + chatRequestDto.getTargetId();
+		} else if ("SPACE".equals(chatRequestDto.getTargetType())) {
+			destination = "/sub/space/" + chatRequestDto.getTargetId();
+		}
+
+		if (!destination.isEmpty() && apiResponse.getResult() != null) {
+			messagingTemplate.convertAndSend(destination, apiResponse.getResult());
+		} else {
+			log.warn("채팅 저장 실패 혹은 Result가 null이어서 브로드캐스트 생략");
+		}
+
+		return apiResponse;
+	}
+
+	@GetMapping("/{targetType}/{targetId}")
+	public ApiResponse<ChatHistoryResponseDto> getChatHistory(
+			@PathVariable String targetType,
+			@PathVariable Long targetId,
+			@PageableDefault(size = PAGESIZE) Pageable pageable){
+
+		return chatService.getChatHistory(targetType, targetId, pageable);
+	}
+}

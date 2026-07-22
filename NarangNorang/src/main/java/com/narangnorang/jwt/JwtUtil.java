@@ -1,6 +1,6 @@
 package com.narangnorang.jwt;
 
-import com.narangnorang.config.MyUserDetailsService;
+import com.narangnorang.auth.config.MyUserDetailsService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -12,14 +12,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -116,11 +115,19 @@ public class JwtUtil {
 	// 프론트와 상호 약속된 방식에 따라 프론트가 request 에 저장한 토큰을 꺼내는 작어
 	// http header 에 X-AUTH-TOKEN 이름
 	public String getTokenFromHeader(HttpServletRequest request) {
-		return request.getHeader("X-AUTH-TOKEN");
+		String bearerToken = request.getHeader("Authorization");
+		if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+			return bearerToken.substring(7);
+		}
+		return null;
 	}
 
 	public String getRefreshTokenFromHeader(HttpServletRequest request) {
-		return request.getHeader("X-AUTH-REFRESH-TOKEN");
+		String refreshToken = request.getHeader("Refresh-Token");
+		if (StringUtils.hasText(refreshToken)) {
+			return refreshToken;
+		}
+		return null;
 	}
 
 	// X-AUTH-TOKEN 대신 Authorization Bearer+빈칸하나 (앞자리 7자리 자르고 얻는 방법)
@@ -137,12 +144,13 @@ public class JwtUtil {
 					.getPayload();
 
 			if (claims.getExpiration() != null && claims.getExpiration().before(new Date())) {
-				// 현재 토큰의 만료일자가 지금보다 이전 => 만료
+				log.info("validateToken 중 만료 발생, 기한: {}", claims.getExpiration());
 				return null;
 			}
 			return claims; // 유효
 
 		} catch (Exception e) {
+			log.info("validateToken 중 Exception e: {} 발생", e.getMessage());
 			return null;
 		}
 	}
@@ -180,15 +188,8 @@ public class JwtUtil {
 	public UsernamePasswordAuthenticationToken getAuthentication(String token) {
 		UserDetails userDetails = myUserDetailsService.loadUserByUsername(getUsernameFromToken(token));
 		return new UsernamePasswordAuthenticationToken(
-				userDetails.getUsername(),
+				userDetails,
 				"",
 				userDetails.getAuthorities());
 	}
 }
-
-
-
-
-
-
-

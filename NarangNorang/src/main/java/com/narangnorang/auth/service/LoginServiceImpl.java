@@ -41,7 +41,6 @@ public class LoginServiceImpl implements LoginService {
 		ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>();
 		try {
 			PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-			String encryptedPassword = passwordEncoder.encode(loginRequestDto.getPassword());
 
 			Authentication authentication = authenticationManager.authenticate(
 					new UsernamePasswordAuthenticationToken(
@@ -78,7 +77,6 @@ public class LoginServiceImpl implements LoginService {
 			log.info("Login succeeded for {}", email);
 
 			LoginResponseDto loginResponseDto = LoginResponseDto.builder()
-					.result("success")
 					.token(token)
 					.refreshToken(refreshToken.getTokenKey())
 					.build();
@@ -123,7 +121,6 @@ public class LoginServiceImpl implements LoginService {
 				log.info("Using RefreshToken, Get AccessToken Success for {}", email);
 
 				LoginResponseDto loginResponseDto = LoginResponseDto.builder()
-						.result("success")
 						.token(newAccessToken)
 						.refreshToken(refreshToken)
 						.build();

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>채팅 테스트 페이지</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; gap: 20px; padding: 20px; }
+        .client { border: 1px solid #ccc; padding: 15px; width: 45%; border-radius: 8px; }
+        .chat-box { border: 1px solid #eee; height: 300px; overflow-y: auto; margin-bottom: 10px; padding: 10px; background: #fafafa;}
+        .log-box { border: 1px solid #eee; height: 150px; overflow-y: auto; margin-bottom: 10px; padding: 10px; background: #222; color: #0f0; font-family: monospace; font-size: 12px; word-break: break-all;}
+        input, button { margin: 5px 0; padding: 8px; }
+    </style>
+</head>
+<body>
+<div style="width: 100%; text-align: center; margin-bottom: 20px; position: absolute; top: 0; left: 0;">
+    <h2>웹소켓 채팅 및 토큰 갱신 통합 테스트</h2>
+</div>
+<div style="margin-top: 50px; display: flex; gap: 20px; width: 100%;">
+    <!-- Client 1 -->
+    <div class="client" id="client1">
+        <h3>User 1 (user1@test.com)</h3>
+        <button onclick="login(1, 'user1@test.com', '1234')">1. 로그인</button>
+        <button onclick="checkTokensAndConnect(1)">2. 웹소켓 연결 (토큰 검증/재발급)</button>
+        <button onclick="disconnect(1)">웹소켓 연결 해제</button>
+
+        <hr>
+        <input type="text" id="roomId1" placeholder="채팅방 번호 (예: 1)" value="1">
+        <button onclick="subscribeRoom(1)">3. 방 입장 (Subscribe)</button>
+
+        <hr>
+        <input type="text" id="message1" placeholder="메시지 입력">
+        <button onclick="sendMessage(1)">4. 전송</button>
+        <button onclick="getChatHistory(1)">5. 이전 채팅 내역 불러오기 (GET)</button>
+
+        <h4>채팅 (수신된 브로드캐스트)</h4>
+        <div class="chat-box" id="chatBox1"></div>
+        <h4>실행 로그</h4>
+        <div class="log-box" id="logBox1"></div>
+    </div>
+
+    <!-- Client 2 -->
+    <div class="client" id="client2">
+        <h3>User 2 (user2@test.com)</h3>
+        <button onclick="login(2, 'user2@test.com', '1234')">1. 로그인</button>
+        <button onclick="checkTokensAndConnect(2)">2. 웹소켓 연결 (토큰 검증/재발급)</button>
+        <button onclick="disconnect(2)">웹소켓 연결 해제</button>
+
+        <hr>
+        <input type="text" id="roomId2" placeholder="채팅방 번호 (예: 1)" value="1">
+        <button onclick="subscribeRoom(2)">3. 방 입장 (Subscribe)</button>
+
+        <hr>
+        <input type="text" id="message2" placeholder="메시지 입력">
+        <button onclick="sendMessage(2)">4. 전송</button>
+        <button onclick="getChatHistory(2)">5. 이전 채팅 내역 불러오기 (GET)</button>
+
+        <h4>채팅 (수신된 브로드캐스트)</h4>
+        <div class="chat-box" id="chatBox2"></div>
+        <h4>실행 로그</h4>
+        <div class="log-box" id="logBox2"></div>
+    </div>
+</div>
+
+<script>
+    const clients = {
+        1: { stompClient: null, accessToken: null, refreshToken: null, currentRoomId: null, subscription: null },
+        2: { stompClient: null, accessToken: null, refreshToken: null, currentRoomId: null, subscription: null }
+    };
+
+    function addLog(clientId, message) {
+        const logBox = document.getElementById(`logBox${clientId}`);
+        logBox.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${message}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function addChat(clientId, message) {
+        const chatBox = document.getElementById(`chatBox${clientId}`);
+        chatBox.innerHTML += `<div>${message}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function login(clientId, email, password) {
+        try {
+            addLog(clientId, `로그인 시도: ${email}`);
+            const response = await axios.post('/users/login', { email: email, password: password });
+
+            // Spring Boot의 ApiResponse가 200 OK로 오더라도, 내부 success 필드가 true인지 확인
+            if (response.data.success === true || response.data.result) {
+                const resultData = response.data.result || response.data;
+                clients[clientId].accessToken = resultData.token;
+                clients[clientId].refreshToken = resultData.refreshToken;
+                addLog(clientId, `로그인 성공! Token 저장됨.`);
+            } else {
+                addLog(clientId, `로그인 실패 (응답 거절): ${response.data.message || '알 수 없는 에러'}`);
+            }
+        } catch (error) {
+            addLog(clientId, `로그인 에러: ${error.message}`);
+        }
+    }
+
+    function isTokenExpired(token) {
+        if (!token) return true;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return (payload.exp * 1000) < Date.now();
+        } catch (e) {
+            return true;
+        }
+    }
+
+    async function checkTokensAndConnect(clientId) {
+        let accessToken = clients[clientId].accessToken;
+        let refreshToken = clients[clientId].refreshToken;
+
+        if (!accessToken) {
+            addLog(clientId, "토큰이 없습니다. 먼저 성공적으로 로그인해주세요.");
+            return;
+        }
+
+        addLog(clientId, "AccessToken 만료 여부 확인 중...");
+
+        if (isTokenExpired(accessToken)) {
+            addLog(clientId, "AccessToken이 만료되었습니다. RefreshToken을 확인합니다.");
+
+            if (isTokenExpired(refreshToken)) {
+                addLog(clientId, "RefreshToken도 만료되었습니다. 다시 로그인해주세요.");
+                return;
+            }
+
+            addLog(clientId, "RefreshToken이 유효합니다. 새 AccessToken을 발급받습니다.");
+            try {
+                // [수정 완료] Axios POST 문법 맞춤 (data 자리에 null, config에 헤더)
+                const response = await axios.post('/users/checkRefreshToken', null, {
+                    headers: {
+                        'Refresh-Token': clients[clientId].refreshToken
+                    }
+                });
+
+                if (response.data.success === true || response.data.result) {
+                    const resultData = response.data.result || response.data;
+                    clients[clientId].accessToken = resultData.token;
+                    clients[clientId].refreshToken = resultData.refreshToken;
+                    addLog(clientId, "새 AccessToken 발급 성공.");
+                    accessToken = clients[clientId].accessToken;
+                } else {
+                    addLog(clientId, `토큰 재발급 실패: ${response.data.message}`);
+                    return;
+                }
+            } catch (error) {
+                addLog(clientId, `토큰 재발급 에러: ${error.message}`);
+                return;
+            }
+        } else {
+            addLog(clientId, "AccessToken이 아직 유효합니다.");
+        }
+
+        connectWebSocket(clientId, accessToken);
+    }
+
+    function connectWebSocket(clientId, accessToken) {
+        addLog(clientId, "웹소켓 연결 시도 중...");
+        const socket = new SockJS('/ws');
+        const stompClient = Stomp.over(socket);
+
+        clients[clientId].stompClient = stompClient;
+
+        const headers = {
+            'Authorization': `Bearer ${accessToken}`
+        };
+
+        stompClient.connect(headers, function(frame) {
+            addLog(clientId, '웹소켓 연결 성공: ' + frame);
+        }, function(error) {
+            addLog(clientId, '웹소켓 연결 에러: ' + error);
+        });
+    }
+
+    function disconnect(clientId) {
+        const stompClient = clients[clientId].stompClient;
+        if (stompClient !== null) {
+            stompClient.disconnect();
+        }
+        clients[clientId].stompClient = null;
+        addLog(clientId, "웹소켓 연결이 해제되었습니다.");
+    }
+
+    function subscribeRoom(clientId) {
+        const roomId = document.getElementById(`roomId${clientId}`).value;
+        const stompClient = clients[clientId].stompClient;
+
+        if (!stompClient || !stompClient.connected) {
+            addLog(clientId, "웹소켓이 연결되어 있지 않습니다.");
+            return;
+        }
+
+        if (clients[clientId].subscription) {
+            clients[clientId].subscription.unsubscribe();
+        }
+
+        const destination = `/sub/room/${roomId}`;
+        addLog(clientId, `${destination} 구독 시도 중...`);
+
+        clients[clientId].subscription = stompClient.subscribe(destination, function(message) {
+            addLog(clientId, `메시지 브로드캐스트 수신됨`);
+            try {
+                const body = JSON.parse(message.body);
+                // [수정 완료] senderName 우선 출력
+                const senderName = body.senderName || body.senderId || '알수없음';
+                addChat(clientId, `[방 ${roomId}] ${senderName}: ${body.content}`);
+            } catch(e) {
+                addChat(clientId, `[방 ${roomId}] 수신: ${message.body}`);
+            }
+        });
+
+        clients[clientId].currentRoomId = roomId;
+        addLog(clientId, `${destination} 구독 요청 전송 완료! (권한 체크는 서버 로그 참조)`);
+    }
+
+    async function sendMessage(clientId) {
+        const roomId = clients[clientId].currentRoomId;
+        const content = document.getElementById(`message${clientId}`).value;
+
+        if (!roomId) {
+            addLog(clientId, "입장한 방이 없습니다.");
+            return;
+        }
+        if (!content) {
+            addLog(clientId, "메시지를 입력하세요.");
+            return;
+        }
+
+        const chatRequestDto = {
+            targetType: "ROOM",
+            targetId: parseInt(roomId),
+            content: content
+        };
+
+        addLog(clientId, `메시지 전송 시도: ${content}`);
+
+        try {
+            const headers = {
+                'Authorization': `Bearer ${clients[clientId].accessToken}`
+            };
+            const response = await axios.post('/chat/send', chatRequestDto, { headers: headers });
+
+            if (response.data.success === true || response.data.result) {
+                addLog(clientId, `API 응답: 메시지 DB 저장 및 전송 성공`);
+                document.getElementById(`message${clientId}`).value = '';
+            } else {
+                addLog(clientId, `전송 실패: ${response.data.message}`);
+            }
+        } catch (error) {
+            addLog(clientId, `전송 에러: ${error.message}`);
+        }
+    }
+
+    // [수정 완료] getChatHistory 함수 닫는 괄호 추가 및 DTO 필드 매칭
+    async function getChatHistory(clientId) {
+        const roomId = document.getElementById(`roomId${clientId}`).value;
+
+        if (!roomId) {
+            addLog(clientId, "조회할 방 번호가 없습니다.");
+            return;
+        }
+
+        const targetType = "ROOM";
+        const url = `/chat/${targetType}/${roomId}?page=0&size=50`;
+
+        addLog(clientId, `이전 채팅 내역 요청: GET ${url}`);
+
+        try {
+            const headers = {
+                'Authorization': `Bearer ${clients[clientId].accessToken}`
+            };
+            const response = await axios.get(url, { headers: headers });
+
+            if (response.data.success === true || response.data.result) {
+                addLog(clientId, `채팅 내역 조회 성공!`);
+
+                const historyDto = response.data.result || response.data.success;
+
+                // [수정 완료] 백엔드 ChatHistoryResponseDto의 필드명 'chats' 사용
+                const chatList = historyDto.chats;
+
+                if (!chatList || chatList.length === 0) {
+                    addLog(clientId, "조회된 이전 채팅이 없습니다.");
+                    return;
+                }
+
+                const chatBox = document.getElementById(`chatBox${clientId}`);
+                chatBox.innerHTML = '<div style="color:#888; text-align:center; font-size:12px;">--- 이전 대화 내역 ---</div>';
+
+                chatList.reverse().forEach(chat => {
+                    const senderName = chat.senderName || chat.senderId || '알수없음';
+                    chatBox.innerHTML += `<div>[방 ${roomId}] ${senderName}: ${chat.content}</div>`;
+                });
+
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } else {
+                addLog(clientId, `조회 실패: ${response.data.message}`);
+            }
+        } catch (error) {
+            addLog(clientId, `조회 에러: ${error.message}`);
+        }
+    }
+</script>
+</body>
+</html>

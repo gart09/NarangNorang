@@ -1,4 +1,4 @@
-package com.narangnorang.config;
+package com.narangnorang.auth.config;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,13 +24,3 @@ public class MyUserDetails implements UserDetails{
 
 	private final Long id;
 }
-
-
-
-
-
-
-
-
-
-
