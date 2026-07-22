@@ -1,7 +1,8 @@
 package com.narangnorang.user.service;
 
-import com.narangnorang.user.dto.UserDto;
-import com.narangnorang.user.dto.UserResultDto;
+import com.narangnorang.common.ApiResponse;
+import com.narangnorang.user.dto.request.UserRequestDto;
+import com.narangnorang.user.dto.response.UserResponseDto;
 import com.narangnorang.user.entity.User;
 import com.narangnorang.user.entity.UserRole;
 import com.narangnorang.user.repository.UserRepository;
@@ -41,36 +42,38 @@ public class UserServiceImpl implements UserService{
 
 	@Override
 	@Transactional
-	public UserResultDto insertUser(UserDto userDto) {
-		UserResultDto userResultDto = new UserResultDto();
+	public ApiResponse<UserResponseDto> insertUser(UserRequestDto userRequestDto) {
+		ApiResponse<UserResponseDto> apiResponse = new ApiResponse<>();
+		UserResponseDto userResponseDto = new UserResponseDto();
 		try {
 			List<UserRole> userRoles = List.of(userRoleRepository.findByName("NORMAL"));
 
 
 			// 이메일 중복 검사 로직
-			if(userRepository.existsByEmail(userDto.getEmail())){
-				userResultDto.setResult("duplicatedEmail");
-				return userResultDto;
+			if(userRepository.existsByEmail(userRequestDto.getEmail())){
+				apiResponse.setFail("duplicatedEmail");
+				return apiResponse;
 			}
 
 			User user = User.builder()
-					.name(userDto.getName())
-					.email(userDto.getEmail())
-					.password(passwordEncoder.encode(userDto.getPassword()))
+					.name(userRequestDto.getName())
+					.email(userRequestDto.getEmail())
+					.password(passwordEncoder.encode(userRequestDto.getPassword()))
 					.userRoles(userRoles)
 					.build();
 
 			User savedUser = userRepository.save(user); // 영속화된 savedUser 리턴
-			UserDto dto = UserDto.from(savedUser);
-			userResultDto.setResult("success");
-			userResultDto.setUserDto(dto);
+			UserRequestDto dto = UserRequestDto.from(savedUser);
+			userResponseDto.setResult("success");
+			userResponseDto.setUserRequestDto(dto);
+			apiResponse.setSuccess(userResponseDto);
 
 		} catch(Exception e) {
 			e.printStackTrace();
 			// 현재 insert 후 예외가 발생할 확률 없으나 습관. 패턴 기준으로 rollback 처리
 			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-			userResultDto.setResult("fail");
+			apiResponse.setFail("Exception Occurred");
 		}
-		return userResultDto;
+		return apiResponse;
 	}
 }

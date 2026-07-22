@@ -1,4 +1,4 @@
-package com.narangnorang.auth;
+package com.narangnorang.common;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

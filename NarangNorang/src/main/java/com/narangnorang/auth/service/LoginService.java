@@ -1,10 +1,11 @@
 package com.narangnorang.auth.service;
 
-import com.narangnorang.auth.dto.LoginRequestDto;
-import com.narangnorang.auth.dto.LoginResultDto;
+import com.narangnorang.auth.dto.request.LoginRequestDto;
+import com.narangnorang.auth.dto.response.LoginResponseDto;
+import com.narangnorang.common.ApiResponse;
 
 public interface LoginService {
 
-    LoginResultDto login(LoginRequestDto loginRequestDto);
-    LoginResultDto checkRefreshToken(String refreshToken);
+    ApiResponse<LoginResponseDto> login(LoginRequestDto loginRequestDto);
+    ApiResponse<LoginResponseDto> checkRefreshToken(String refreshToken);
 }
