@@ -1,8 +1,8 @@
 package com.narangnorang.user.service;
 
 import com.narangnorang.common.ApiResponse;
-import com.narangnorang.user.dto.UserDto;
-import com.narangnorang.user.dto.UserResultDto;
+import com.narangnorang.user.dto.request.UserRequestDto;
+import com.narangnorang.user.dto.response.UserResponseDto;
 import com.narangnorang.user.entity.User;
 
 import java.util.Optional;
@@ -10,5 +10,5 @@ import java.util.Optional;
 public interface UserService {
 	Optional<User> findByEmail(String email);
 	boolean existsByEmail(String email);
-	ApiResponse<UserResultDto> insertUser(UserDto userDto);
+	ApiResponse<UserResponseDto> insertUser(UserRequestDto userRequestDto);
 }

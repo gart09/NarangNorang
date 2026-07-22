@@ -4,8 +4,8 @@ import com.narangnorang.auth.Repository.RefreshTokenRepository;
 import com.narangnorang.auth.entity.RefreshToken;
 import com.narangnorang.common.ApiResponse;
 import com.narangnorang.jwt.JwtUtil;
-import com.narangnorang.auth.dto.LoginRequestDto;
-import com.narangnorang.auth.dto.LoginResultDto;
+import com.narangnorang.auth.dto.request.LoginRequestDto;
+import com.narangnorang.auth.dto.response.LoginResponseDto;
 import com.narangnorang.user.entity.User;
 import com.narangnorang.user.entity.UserRole;
 import com.narangnorang.user.repository.UserRepository;
@@ -37,8 +37,8 @@ public class LoginServiceImpl implements LoginService {
 	private final Long refreshTokenValidDurationSeconds = 60L * 60 * 120;
 
 	@Override
-	public ApiResponse<LoginResultDto> login(LoginRequestDto loginRequestDto) {
-		ApiResponse<LoginResultDto> apiResponse = new ApiResponse<>();
+	public ApiResponse<LoginResponseDto> login(LoginRequestDto loginRequestDto) {
+		ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>();
 		try {
 			PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 			String encryptedPassword = passwordEncoder.encode(loginRequestDto.getPassword());
@@ -77,12 +77,12 @@ public class LoginServiceImpl implements LoginService {
 
 			log.info("Login succeeded for {}", email);
 
-			LoginResultDto loginResultDto = LoginResultDto.builder()
+			LoginResponseDto loginResponseDto = LoginResponseDto.builder()
 					.result("success")
 					.token(token)
 					.refreshToken(refreshToken.getTokenKey())
 					.build();
-			apiResponse.setSuccess(loginResultDto);
+			apiResponse.setSuccess(loginResponseDto);
 
 			return apiResponse;
 		} catch (AuthenticationException e) {
@@ -92,8 +92,8 @@ public class LoginServiceImpl implements LoginService {
 	}
 
 	@Override
-	public ApiResponse<LoginResultDto> checkRefreshToken(String refreshToken) {
-		ApiResponse<LoginResultDto> apiResponse = new ApiResponse<>();
+	public ApiResponse<LoginResponseDto> checkRefreshToken(String refreshToken) {
+		ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>();
 		try {
 			if (jwtUtil.validateRefreshToken(refreshToken) == null) {
 				apiResponse.setFail("Invalid refresh token");
@@ -122,13 +122,13 @@ public class LoginServiceImpl implements LoginService {
 				String newAccessToken = jwtUtil.createToken(id, email, roles);
 				log.info("Using RefreshToken, Get AccessToken Success for {}", email);
 
-				LoginResultDto loginResultDto = LoginResultDto.builder()
+				LoginResponseDto loginResponseDto = LoginResponseDto.builder()
 						.result("success")
 						.token(newAccessToken)
 						.refreshToken(refreshToken)
 						.build();
 
-				apiResponse.setSuccess(loginResultDto);
+				apiResponse.setSuccess(loginResponseDto);
 
 				return apiResponse;
 

@@ -1,8 +1,8 @@
 package com.narangnorang.user.controller;
 
 import com.narangnorang.common.ApiResponse;
-import com.narangnorang.user.dto.UserDto;
-import com.narangnorang.user.dto.UserResultDto;
+import com.narangnorang.user.dto.request.UserRequestDto;
+import com.narangnorang.user.dto.response.UserResponseDto;
 import com.narangnorang.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +18,7 @@ public class UserController {
 	private final UserService userService;
 
 	@PostMapping("/register")
-	public ApiResponse<UserResultDto> insertUser(@RequestBody UserDto userDto) {
-		return userService.insertUser(userDto);
+	public ApiResponse<UserResponseDto> insertUser(@RequestBody UserRequestDto userRequestDto) {
+		return userService.insertUser(userRequestDto);
 	}
 }

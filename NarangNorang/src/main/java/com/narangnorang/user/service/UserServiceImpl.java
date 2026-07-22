@@ -1,8 +1,8 @@
 package com.narangnorang.user.service;
 
 import com.narangnorang.common.ApiResponse;
-import com.narangnorang.user.dto.UserDto;
-import com.narangnorang.user.dto.UserResultDto;
+import com.narangnorang.user.dto.request.UserRequestDto;
+import com.narangnorang.user.dto.response.UserResponseDto;
 import com.narangnorang.user.entity.User;
 import com.narangnorang.user.entity.UserRole;
 import com.narangnorang.user.repository.UserRepository;
@@ -42,31 +42,31 @@ public class UserServiceImpl implements UserService{
 
 	@Override
 	@Transactional
-	public ApiResponse<UserResultDto> insertUser(UserDto userDto) {
-		ApiResponse<UserResultDto> apiResponse = new ApiResponse<>();
-		UserResultDto userResultDto = new UserResultDto();
+	public ApiResponse<UserResponseDto> insertUser(UserRequestDto userRequestDto) {
+		ApiResponse<UserResponseDto> apiResponse = new ApiResponse<>();
+		UserResponseDto userResponseDto = new UserResponseDto();
 		try {
 			List<UserRole> userRoles = List.of(userRoleRepository.findByName("NORMAL"));
 
 
 			// 이메일 중복 검사 로직
-			if(userRepository.existsByEmail(userDto.getEmail())){
+			if(userRepository.existsByEmail(userRequestDto.getEmail())){
 				apiResponse.setFail("duplicatedEmail");
 				return apiResponse;
 			}
 
 			User user = User.builder()
-					.name(userDto.getName())
-					.email(userDto.getEmail())
-					.password(passwordEncoder.encode(userDto.getPassword()))
+					.name(userRequestDto.getName())
+					.email(userRequestDto.getEmail())
+					.password(passwordEncoder.encode(userRequestDto.getPassword()))
 					.userRoles(userRoles)
 					.build();
 
 			User savedUser = userRepository.save(user); // 영속화된 savedUser 리턴
-			UserDto dto = UserDto.from(savedUser);
-			userResultDto.setResult("success");
-			userResultDto.setUserDto(dto);
-			apiResponse.setSuccess(userResultDto);
+			UserRequestDto dto = UserRequestDto.from(savedUser);
+			userResponseDto.setResult("success");
+			userResponseDto.setUserRequestDto(dto);
+			apiResponse.setSuccess(userResponseDto);
 
 		} catch(Exception e) {
 			e.printStackTrace();

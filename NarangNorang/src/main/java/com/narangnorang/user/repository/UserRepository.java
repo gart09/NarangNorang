@@ -1,7 +1,5 @@
 package com.narangnorang.user.repository;
 
-import com.narangnorang.user.dto.UserDto;
-import com.narangnorang.user.dto.UserResultDto;
 import com.narangnorang.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 

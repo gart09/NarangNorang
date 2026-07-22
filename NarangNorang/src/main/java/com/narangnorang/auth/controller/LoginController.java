@@ -1,7 +1,7 @@
 package com.narangnorang.auth.controller;
 
-import com.narangnorang.auth.dto.LoginRequestDto;
-import com.narangnorang.auth.dto.LoginResultDto;
+import com.narangnorang.auth.dto.request.LoginRequestDto;
+import com.narangnorang.auth.dto.response.LoginResponseDto;
 import com.narangnorang.auth.service.LoginService;
 import com.narangnorang.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +18,12 @@ public class LoginController {
     private final LoginService loginService;
 
     @PostMapping("/login")
-    public ApiResponse<LoginResultDto> login(@RequestBody LoginRequestDto loginRequestDto) {
+    public ApiResponse<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto) {
         return loginService.login(loginRequestDto);
     }
 
     @PostMapping("/checkRefreshToken")
-    public ApiResponse<LoginResultDto> checkRefreshToken(String refreshToken){
+    public ApiResponse<LoginResponseDto> checkRefreshToken(String refreshToken){
         return loginService.checkRefreshToken(refreshToken);
     }
 }
