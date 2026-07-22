@@ -1,5 +1,6 @@
 package com.narangnorang.room.entity;
 
+import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
 import com.narangnorang.user.entity.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -58,6 +59,10 @@ public class Room {
     @Builder.Default
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomProfileCustomField> customFields = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "room", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<MemberProfileCard> memberProfileCards = new ArrayList<>();
 
     public void addCustomField(RoomProfileCustomField customField) {
         customFields.add(customField);
