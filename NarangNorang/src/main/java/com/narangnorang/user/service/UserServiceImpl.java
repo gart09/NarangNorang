@@ -1,5 +1,6 @@
 package com.narangnorang.user.service;
 
+import com.narangnorang.common.ApiResponse;
 import com.narangnorang.user.dto.UserDto;
 import com.narangnorang.user.dto.UserResultDto;
 import com.narangnorang.user.entity.User;
@@ -41,7 +42,8 @@ public class UserServiceImpl implements UserService{
 
 	@Override
 	@Transactional
-	public UserResultDto insertUser(UserDto userDto) {
+	public ApiResponse<UserResultDto> insertUser(UserDto userDto) {
+		ApiResponse<UserResultDto> apiResponse = new ApiResponse<>();
 		UserResultDto userResultDto = new UserResultDto();
 		try {
 			List<UserRole> userRoles = List.of(userRoleRepository.findByName("NORMAL"));
@@ -49,8 +51,8 @@ public class UserServiceImpl implements UserService{
 
 			// 이메일 중복 검사 로직
 			if(userRepository.existsByEmail(userDto.getEmail())){
-				userResultDto.setResult("duplicatedEmail");
-				return userResultDto;
+				apiResponse.setFail("duplicatedEmail");
+				return apiResponse;
 			}
 
 			User user = User.builder()
@@ -64,13 +66,14 @@ public class UserServiceImpl implements UserService{
 			UserDto dto = UserDto.from(savedUser);
 			userResultDto.setResult("success");
 			userResultDto.setUserDto(dto);
+			apiResponse.setSuccess(userResultDto);
 
 		} catch(Exception e) {
 			e.printStackTrace();
 			// 현재 insert 후 예외가 발생할 확률 없으나 습관. 패턴 기준으로 rollback 처리
 			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-			userResultDto.setResult("fail");
+			apiResponse.setFail("Exception Occurred");
 		}
-		return userResultDto;
+		return apiResponse;
 	}
 }

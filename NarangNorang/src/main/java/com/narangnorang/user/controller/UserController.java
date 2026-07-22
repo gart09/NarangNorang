@@ -1,5 +1,6 @@
 package com.narangnorang.user.controller;
 
+import com.narangnorang.common.ApiResponse;
 import com.narangnorang.user.dto.UserDto;
 import com.narangnorang.user.dto.UserResultDto;
 import com.narangnorang.user.service.UserService;
@@ -17,7 +18,7 @@ public class UserController {
 	private final UserService userService;
 
 	@PostMapping("/register")
-	public UserResultDto insertUser(@RequestBody UserDto userDto) {
+	public ApiResponse<UserResultDto> insertUser(@RequestBody UserDto userDto) {
 		return userService.insertUser(userDto);
 	}
 }
