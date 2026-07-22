@@ -10,5 +10,5 @@ import java.util.Optional;
 public interface UserService {
 	Optional<User> findByEmail(String email);
 	boolean existsByEmail(String email);
-	ApiResponse<UserResponseDto> insertUser(UserRequestDto userRequestDto);
+	UserResponseDto insertUser(UserRequestDto userRequestDto);
 }

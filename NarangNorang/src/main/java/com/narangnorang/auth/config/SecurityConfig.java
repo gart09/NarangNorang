@@ -1,4 +1,4 @@
-package com.narangnorang.config;
+package com.narangnorang.auth.config;
 
 import com.narangnorang.jwt.JwtAuthenticationFilter;
 import com.narangnorang.jwt.JwtUtil;
@@ -37,7 +37,7 @@ public class SecurityConfig {
 	@Bean
 	SecurityFilterChain filterChain(
 			HttpSecurity http,
-			com.narangnorang.config.MyAuthenticationEntryPoint entryPoint
+			MyAuthenticationEntryPoint entryPoint
 	) throws Exception{
 		return http
 				// basicLogin, formLogin 사용 X, csrf X, session X
@@ -49,7 +49,10 @@ public class SecurityConfig {
 						.requestMatchers(
 								"/users/register",
 								"/users/login",
-								"/users/checkRefreshToken"
+								"/users/checkRefreshToken",
+								"/",
+								"/index.html",
+								"/ws/**"
 						).permitAll()
 						.anyRequest().authenticated()
 				)

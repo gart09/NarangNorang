@@ -15,33 +15,12 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserRequestDto {
-	private Long id;
 	private String name;
 	private String email;
 	private String password;
 
-	private List<String> userRoles;
-
-	public static UserRequestDto from(User user) {
-		List<String> strRoles = null;
-		if (user.getUserRoles() != null) {
-			strRoles = user.getUserRoles().stream()
-					.map(UserRole::getName)
-					.collect(Collectors.toList());
-		}
-
-		return new UserRequestDto(
-				user.getId(),
-				user.getName(),
-				user.getEmail(),
-				user.getPassword(),
-				strRoles
-		);
-	}
-
 	public User toEntity(List<UserRole> userRoles) {
 		return User.builder()
-				.id(this.id)
 				.name(this.name)
 				.email(this.email)
 				.password(this.password)
