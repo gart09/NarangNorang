@@ -151,9 +151,19 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 				.map(RoomProfileCustomField::getFieldName)
 				.toList();
 
+		List<String> nullFields = requiredFieldMap.values().stream()
+				.filter(field -> fieldMap.containsKey(field.getId()))
+				.filter(field -> fieldMap.get(field.getId()) == null) 
+				.map(RoomProfileCustomField::getFieldName)
+				.toList();
+
 		if(missingFields.isEmpty() == false){
 			String joinedFieldNames = String.join(", ", missingFields);
 			throw new IllegalArgumentException("필수 입력 항목이 누락됐습니다. 누락된 항목: " + joinedFieldNames);
+		}
+		if(nullFields.isEmpty() == false){
+			String joinedFieldNames = String.join(", ", missingFields);
+			throw new IllegalArgumentException("필수 입력 항목이 Null입니다. Null인 항목: " + joinedFieldNames);
 		}
 	}
 }
