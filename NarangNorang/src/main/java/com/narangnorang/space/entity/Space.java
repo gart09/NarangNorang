@@ -58,6 +58,8 @@ public class Space {
     }
     
     public void updateCurrentMember(Long currentMemberCount) {
+    	if(currentMemberCount > maxMemberCount)
+    		throw new IllegalStateException("정원 초과입니다.");
         this.currentMemberCount = currentMemberCount;
     }
     
