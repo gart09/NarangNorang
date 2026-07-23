@@ -9,6 +9,7 @@ import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardUpdateRe
 import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
 import com.narangnorang.memberprofilecard.entity.MemberProfileCustomAnswer;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
+import com.narangnorang.room.entity.OptionType;
 import com.narangnorang.room.entity.Room;
 import com.narangnorang.room.entity.RoomProfileCustomField;
 import com.narangnorang.room.repository.RoomProfileCustomFieldRepository;
@@ -20,10 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,9 +46,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 
 		Map<Long, RoomProfileCustomField> fieldMap = getFieldMap(requestDto.getAnswers());
 
-		//필수 항목 포함 안할 시 예외 발생
-		checkRequiredField(room, fieldMap);
-
+		checkRequiredField(room, requestDto.getAnswers());
 
 		MemberProfileCard savedCard = memberProfileCardRepository.save(requestDto.toEntity(user, room, fieldMap));
 
@@ -81,30 +77,30 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 			throw new IllegalArgumentException("해당 유저는 해당 멤버프로필카드를 수정할 권한이 없습니다.");
 		}
 
+		Room room = memberProfileCard.getRoom();
+
+		checkRequiredField(room, requestDto.getAnswers());
+
+
+		Set<Long> requestedFieldIds = requestDto.getAnswers().keySet();
+		List<RoomProfileCustomField> roomProfileCustomFields = roomProfileCustomFieldRepository.findAllById(requestedFieldIds);
+		Map<Long, RoomProfileCustomField> roomProfileCustomFieldMap = roomProfileCustomFields.stream()
+				.collect(Collectors.toMap(RoomProfileCustomField::getId, field -> field));
+
 		if(requestDto.isMemberProfileCardUpdated() == true){
-
-			Set<Long> requestedFieldIds = requestDto.getAnswers().keySet();
-			List<RoomProfileCustomField> validFields = roomProfileCustomFieldRepository.findAllById(requestedFieldIds);
-			if (validFields.size() != requestedFieldIds.size()) {
-				throw new IllegalArgumentException("유효하지 않은 프로필 항목 ID가 포함되어 있습니다.");
-			}
-
-			Map<Long, RoomProfileCustomField> validFieldMap = validFields.stream()
-					.collect(Collectors.toMap(RoomProfileCustomField::getId, field -> field));
-
-			checkRequiredField(memberProfileCard.getRoom(), validFieldMap);
 
 			List<MemberProfileCustomAnswer> newAnswers = requestDto.getAnswers().entrySet().stream()
 					.map(entry -> MemberProfileCustomAnswer.builder()
 							.memberProfileCard(memberProfileCard)
-							.roomProfileCustomField(validFieldMap.get(entry.getKey()))
+							.roomProfileCustomField(roomProfileCustomFieldMap.get(entry.getKey()))
 							.value(entry.getValue())
 							.build())
 					.toList();
 			memberProfileCard.updateAnswersWithNewField(newAnswers);
 		}
-		else
+		else {
 			memberProfileCard.updateAnswers(requestDto.getAnswers());
+		}
 
 		memberProfileCard.updateName(requestDto.getName());
 		memberProfileCard.updateDate();
@@ -138,32 +134,51 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 				));
 	}
 
-	private void checkRequiredField(Room room, Map<Long, RoomProfileCustomField> fieldMap){
-		Map<Long, RoomProfileCustomField> requiredFieldMap = room.getCustomFields().stream()
-				.filter(RoomProfileCustomField::isRequired)
-				.collect(Collectors.toMap(
-						RoomProfileCustomField::getId,
-						Function.identity()
-				));
+	private void checkRequiredField(Room room, Map<Long, String> answers){
 
-		List<String> missingFields = requiredFieldMap.values().stream()
-				.filter(field -> {
-					Long fieldId = field.getId();
+		Set<Long> requestedFieldIds = answers.keySet();
 
-					if(fieldMap.containsKey(fieldId) == false)
-						return true;
-
-					String value = fieldMap.get(fieldId).getFieldName();
-					return value.isBlank();
-				})
+		//1. 필수값 누락 확인
+		List<RoomProfileCustomField> requiredField = roomProfileCustomFieldRepository.findAllByRoomIdAndRequiredTrue(room.getId());
+		List<String> missingRequiredFieldNames = requiredField.stream()
+				.filter(field -> !requestedFieldIds.contains(field.getId()))
 				.map(RoomProfileCustomField::getFieldName)
 				.toList();
 
-		if(missingFields.isEmpty() == false){
-			String joinedFieldNames = String.join(", ", missingFields);
-			throw new IllegalArgumentException("필수 입력 항목이 누락됐습니다. 누락된 항목: " + joinedFieldNames);
+		if(missingRequiredFieldNames.isEmpty() == false){
+			throw new IllegalArgumentException("필수 입력 항목이 누락됐습니다." + missingRequiredFieldNames);
+		}
+
+		//2. 필수 필드값인데 필드값이 빈 칸인지 확인
+		List<String> blanckedRequiredFieldNames = answers.entrySet().stream()
+				.filter(entry -> requestedFieldIds.contains(entry.getKey()))
+				.filter(entry -> entry.getValue().isBlank())
+				.map(entry -> {
+					RoomProfileCustomField field = roomProfileCustomFieldRepository.findById(entry.getKey()).orElseThrow();
+					return field.getFieldName();
+				})
+				.toList();
+
+		if(blanckedRequiredFieldNames.isEmpty() == false){
+			throw new IllegalArgumentException("필수 항목은 빈 칸 혹은 공백이 될 수 없습니다." + blanckedRequiredFieldNames);
+		}
+
+		//3. 항목 선택 값인데 DB에 있는 항목 값이 아닌 다른 값이 들어오는 경우
+		List<Map<String, String>> unmatchedSelectTypeFieldNames = answers.entrySet().stream()
+				.filter(entry -> roomProfileCustomFieldRepository.existsByIdAndOptionTypeIn(
+						entry.getKey(), List.of(OptionType.SINGLE_SELECT, OptionType.MULTI_SELECT)))
+				.filter(entry -> roomProfileCustomFieldRepository.findSelectTypeOptionsByFieldId(
+						entry.getKey()).contains(entry.getValue()) == false)
+				.map(entry -> {
+					RoomProfileCustomField field = roomProfileCustomFieldRepository.findById(entry.getKey()).orElseThrow();
+					Map<String, String> map = new HashMap<>();
+					map.put(field.getFieldName(), entry.getValue());
+					return map;
+				})
+				.toList();
+
+		if(unmatchedSelectTypeFieldNames.isEmpty() == false){
+			throw new IllegalArgumentException("선택 가능하지 않은 항목입니다. " + unmatchedSelectTypeFieldNames);
 		}
 	}
-
-
 }
