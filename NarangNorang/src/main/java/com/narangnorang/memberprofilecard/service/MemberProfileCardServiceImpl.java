@@ -47,22 +47,9 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 		}
 
 		Map<Long, RoomProfileCustomField> fieldMap = getFieldMap(requestDto.getAnswers());
-		Map<Long, RoomProfileCustomField> requiredFieldMap = room.getCustomFields().stream()
-				.filter(RoomProfileCustomField::isRequired)
-				.collect(Collectors.toMap(
-						RoomProfileCustomField::getId,
-						Function.identity()
-				));
 
-		List<String> missingFields = requiredFieldMap.values().stream()
-				.filter(field -> !fieldMap.containsKey(field.getId()))
-				.map(RoomProfileCustomField::getFieldName)
-				.toList();
-
-		if(missingFields.isEmpty() == false){
-			String joinedFieldNames = String.join(", ", missingFields);
-			throw new IllegalArgumentException("필수 입력 항목이 누락됐습니다. 누락된 항목: " + joinedFieldNames);
-		}
+		//필수 항목 포함 안할 시 예외 발생
+		checkRequiredField(room, fieldMap);
 
 
 		MemberProfileCard savedCard = memberProfileCardRepository.save(requestDto.toEntity(user, room, fieldMap));
@@ -104,6 +91,8 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 
 			Map<Long, RoomProfileCustomField> validFieldMap = validFields.stream()
 					.collect(Collectors.toMap(RoomProfileCustomField::getId, field -> field));
+
+			checkRequiredField(memberProfileCard.getRoom(), validFieldMap);
 
 			List<MemberProfileCustomAnswer> newAnswers = requestDto.getAnswers().entrySet().stream()
 					.map(entry -> MemberProfileCustomAnswer.builder()
@@ -147,5 +136,24 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 						RoomProfileCustomField::getId,
 						Function.identity()
 				));
+	}
+
+	private void checkRequiredField(Room room, Map<Long, RoomProfileCustomField> fieldMap){
+		Map<Long, RoomProfileCustomField> requiredFieldMap = room.getCustomFields().stream()
+				.filter(RoomProfileCustomField::isRequired)
+				.collect(Collectors.toMap(
+						RoomProfileCustomField::getId,
+						Function.identity()
+				));
+
+		List<String> missingFields = requiredFieldMap.values().stream()
+				.filter(field -> !fieldMap.containsKey(field.getId()))
+				.map(RoomProfileCustomField::getFieldName)
+				.toList();
+
+		if(missingFields.isEmpty() == false){
+			String joinedFieldNames = String.join(", ", missingFields);
+			throw new IllegalArgumentException("필수 입력 항목이 누락됐습니다. 누락된 항목: " + joinedFieldNames);
+		}
 	}
 }
