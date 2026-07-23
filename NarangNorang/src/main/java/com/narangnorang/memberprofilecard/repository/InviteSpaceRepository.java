@@ -23,7 +23,12 @@ public interface InviteSpaceRepository extends JpaRepository<InviteSpace, Long> 
     List<InviteSpace> findBySpaceIdAndStatus(@Param("spaceId") Long spaceId, @Param("status") InviteStatus status);
 
     // 본인이 받은 초대/신청 목록 (target = 본인)
-    List<InviteSpace> findByTargetIdAndStatus(Long targetId, InviteStatus status);
-    
-
+    @Query("""
+            SELECT i FROM InviteSpace i
+            JOIN FETCH i.space
+            JOIN FETCH i.memberProfileCard
+            WHERE i.targetId = :targetId AND i.status = :status
+            """)
+    List<InviteSpace> findByTargetIdAndStatus(@Param("targetId") Long targetId, @Param("status") InviteSpace.InviteStatus status);
 }
+    
