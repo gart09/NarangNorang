@@ -147,13 +147,15 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 				));
 
 		List<String> missingFields = requiredFieldMap.values().stream()
-				.filter(field -> !fieldMap.containsKey(field.getId()))
-				.map(RoomProfileCustomField::getFieldName)
-				.toList();
+				.filter(field -> {
+					Long fieldId = field.getId();
 
-		List<String> nullFields = requiredFieldMap.values().stream()
-				.filter(field -> fieldMap.containsKey(field.getId()))
-				.filter(field -> fieldMap.get(field.getId()) == null) 
+					if(fieldMap.containsKey(fieldId) == false)
+						return true;
+
+					String value = fieldMap.get(fieldId).getFieldName();
+					return value.isBlank();
+				})
 				.map(RoomProfileCustomField::getFieldName)
 				.toList();
 
@@ -161,9 +163,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 			String joinedFieldNames = String.join(", ", missingFields);
 			throw new IllegalArgumentException("필수 입력 항목이 누락됐습니다. 누락된 항목: " + joinedFieldNames);
 		}
-		if(nullFields.isEmpty() == false){
-			String joinedFieldNames = String.join(", ", missingFields);
-			throw new IllegalArgumentException("필수 입력 항목이 Null입니다. Null인 항목: " + joinedFieldNames);
-		}
 	}
+
+
 }
