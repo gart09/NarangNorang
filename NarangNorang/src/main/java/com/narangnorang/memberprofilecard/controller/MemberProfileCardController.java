@@ -32,7 +32,7 @@ public class MemberProfileCardController {
 		return success(responseDto);
 	}
 
-	@GetMapping("/filter")
+	@PostMapping("/filter")
 	public ApiResponse<List<MemberProfileCardReadResponseDto>> getMemberProfileCard(
 			@RequestBody MemberProfileCardReadRequestDto requestDto,
 			@AuthenticationPrincipal MyUserDetails userDetails){
