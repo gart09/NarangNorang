@@ -1,14 +1,18 @@
 package com.narangnorang.auth.controller;
 
-import com.narangnorang.auth.dto.request.LoginRequestDto;
-import com.narangnorang.auth.dto.response.LoginResponseDto;
-import com.narangnorang.auth.service.LoginService;
-import com.narangnorang.common.ApiResponse;
-import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.narangnorang.auth.config.MyUserDetails;
+import com.narangnorang.auth.dto.request.LoginRequestDto;
+import com.narangnorang.auth.dto.response.LoginResponseDto;
+import com.narangnorang.auth.service.LoginService;
+import com.narangnorang.common.ApiResponse;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/users")
@@ -38,6 +42,15 @@ public class LoginController {
             return apiResponse;
         }
         apiResponse.setSuccess(loginResponseDto);
+        return apiResponse;
+    }
+    
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@AuthenticationPrincipal MyUserDetails userDetails) {
+    	loginService.logout(userDetails.getId());
+
+        ApiResponse<Void> apiResponse = new ApiResponse<>();
+        apiResponse.setSuccess(null);
         return apiResponse;
     }
 }

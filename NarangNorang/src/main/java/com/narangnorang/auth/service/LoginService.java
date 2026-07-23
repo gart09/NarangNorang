@@ -8,4 +8,5 @@ public interface LoginService {
 
     LoginResponseDto login(LoginRequestDto loginRequestDto);
     LoginResponseDto checkRefreshToken(String refreshToken);
+    void logout(Long userId);
 }
