@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Space API 테스트</title>
+<style>
+  body { font-family: sans-serif; max-width: 700px; margin: 20px auto; line-height: 1.6; }
+  fieldset { margin-bottom: 24px; padding: 12px 16px; }
+  legend { font-weight: bold; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 13px; color: #333; margin-bottom: 2px; }
+  .field small { display: block; color: #888; font-size: 11px; margin-bottom: 2px; }
+  input { width: 100%; box-sizing: border-box; padding: 4px 6px; }
+  input[type="password"] { width: auto; }
+  pre { background: #f5f5f5; padding: 8px; white-space: pre-wrap; word-break: break-all; }
+  .notice { background: #fff8e1; padding: 8px 12px; border: 1px solid #ffd54f; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="notice">
+  이 파일은 <b>src/main/resources/static/</b> 폴더에 넣고, 서버 실행 후<br>
+  <b>http://localhost:8080/space-api-test.html</b> 로 접속해서 써야 CORS 문제 없이 동작합니다.<br>
+  ① 먼저 로그인 → ② accessToken이 자동으로 채워지면 → ③ 이후 스페이스 API들을 순서 상관없이 테스트하면 됩니다.
+</div>
+
+<fieldset>
+  <legend>1. 로그인</legend>
+  <div class="field">
+    <label>이메일</label>
+    <input id="loginEmail" value="kim@test.com">
+  </div>
+  <div class="field">
+    <label>비밀번호</label>
+    <input id="loginPassword" type="password" value="123456">
+  </div>
+  <button onclick="login()">로그인</button>
+  <div style="margin-top:8px;">accessToken: <span id="accessToken">-</span></div>
+  <div>refreshToken: <span id="refreshToken">-</span></div>
+  <pre id="loginResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>2. 스페이스 생성 — Space + SpaceProfileCard + Tag 동시 생성</legend>
+
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <small>스페이스를 만들 룸의 id. DB에 미리 룸이 있어야 함</small>
+    <input id="createRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>스페이스 이름 (문자열)</label>
+    <input id="createName" value="알고리즘 스터디">
+  </div>
+  <div class="field">
+    <label>정원 (숫자)</label>
+    <small>모집 최대 인원수</small>
+    <input id="createMaxMemberCount" value="5">
+  </div>
+  <div class="field">
+    <label>태그 (문자열, 쉼표로 구분)</label>
+    <small>예: Java,Spring — 비워두면 빈 배열로 전송됨</small>
+    <input id="createTags" value="Java,Spring">
+  </div>
+  <div class="field">
+    <label>기술스택 (문자열, 쉼표로 구분)</label>
+    <small>예: Java,MySQL</small>
+    <input id="createTechStack" value="Java,MySQL">
+  </div>
+  <div class="field">
+    <label>선호 시작시간 (날짜+시간, 형식: YYYY-MM-DDTHH:mm:ss)</label>
+    <input id="createPreferredStartTime" value="2026-08-01T19:00:00">
+  </div>
+  <div class="field">
+    <label>선호 종료시간 (날짜+시간, 형식: YYYY-MM-DDTHH:mm:ss)</label>
+    <input id="createPreferredEndTime" value="2026-08-01T21:00:00">
+  </div>
+  <div class="field">
+    <label>커스텀필드 (JSON 형식 — key: 배열)</label>
+    <small>예: {"포지션":["백엔드"]} — 큰따옴표 필수, 비워두면 null로 전송됨</small>
+    <input id="createCustomField" value='{"포지션":["백엔드"]}'>
+  </div>
+
+  <button onclick="createSpace()">생성</button>
+  <pre id="createResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>3. 스페이스 목록 조회</legend>
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="listRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>태그 필터 (문자열, 쉼표로 구분 — 선택사항)</label>
+    <small>비워두면 해당 룸의 전체 스페이스 조회, 값 입력 시 그 태그를 가진 스페이스만 조회</small>
+    <input id="listTags" placeholder="예: Java,Spring (비워도 됨)">
+  </div>
+  <button onclick="getSpaceList()">조회</button>
+  <pre id="listResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>4. 스페이스 상세 조회</legend>
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="detailRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>spaceId (숫자)</label>
+    <small>조회할 스페이스의 id — 목록 조회 결과에서 확인 가능</small>
+    <input id="detailSpaceId" value="1">
+  </div>
+  <button onclick="getSpaceDetail()">조회</button>
+  <pre id="detailResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>5. 스페이스 수정</legend>
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="updateRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>spaceId (숫자)</label>
+    <input id="updateSpaceId" value="1">
+  </div>
+  <div class="field">
+    <label>새 이름 (문자열)</label>
+    <small>비워두면 이름이 null로 덮어써질 수 있으니, 수정 안 할 값도 기존 값 그대로 입력 권장</small>
+    <input id="updateName" placeholder="예: 백엔드 심화 스터디">
+  </div>
+  <div class="field">
+    <label>새 정원 (숫자)</label>
+    <input id="updateMaxMemberCount" placeholder="예: 8">
+  </div>
+  <div class="field">
+    <label>새 태그 (문자열, 쉼표로 구분)</label>
+    <small>비워두면 태그를 수정하지 않음(요청에서 제외됨). 값을 넣으면 기존 태그를 전부 교체함</small>
+    <input id="updateTags" placeholder="예: Java,Spring,MySQL">
+  </div>
+  <div class="field">
+    <label>새 기술스택 (문자열, 쉼표로 구분)</label>
+    <input id="updateTechStack" placeholder="예: Java,Docker">
+  </div>
+  <button onclick="updateSpace()">수정</button>
+  <pre id="updateResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>6. 스페이스 삭제</legend>
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="deleteRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>spaceId (숫자)</label>
+    <small>삭제하면 SpaceProfileCard, Tag, SpaceMember도 함께 삭제됨 (되돌릴 수 없음)</small>
+    <input id="deleteSpaceId" value="1">
+  </div>
+  <button onclick="deleteSpace()">삭제</button>
+  <pre id="deleteResult"></pre>
+</fieldset>
+
+<script>
+// 같은 origin(http://localhost:8080)에서 이 파일을 열면 상대경로만으로 충분함
+function getBaseUrl() {
+    return '';   // 상대경로 사용 (CORS 회피)
+}
+
+// ★ 실제 로그인 엔드포인트 경로에 맞게 수정
+const LOGIN_PATH = '/users/login';
+
+function getAccessToken() {
+    return document.getElementById('accessToken').textContent;
+}
+
+function authHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + getAccessToken()
+    };
+}
+
+function splitOrNull(str) {
+    if (!str || str.trim() === '') return null;
+    return str.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+async function login() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    const res = await fetch(getBaseUrl() + LOGIN_PATH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    document.getElementById('loginResult').textContent = JSON.stringify(data, null, 2);
+
+    // 응답 구조: ApiResponse { success, result, message, source }
+    // result 안에 token, refreshToken이 있다고 가정 — 실제 필드명 다르면 아래만 수정
+    if (data.success && data.result) {
+        document.getElementById('accessToken').textContent = data.result.token || data.result.accessToken || '-';
+        document.getElementById('refreshToken').textContent = data.result.refreshToken || '-';
+    } else {
+        document.getElementById('accessToken').textContent = '-';
+        document.getElementById('refreshToken').textContent = '-';
+        alert('로그인 실패: ' + (data.message || '알 수 없는 오류'));
+    }
+}
+
+async function createSpace() {
+    const roomId = document.getElementById('createRoomId').value;
+
+    let customField = null;
+    const customFieldRaw = document.getElementById('createCustomField').value.trim();
+    if (customFieldRaw) {
+        try {
+            customField = JSON.parse(customFieldRaw);
+        } catch (e) {
+            alert('customField JSON 형식이 올바르지 않습니다: ' + e.message);
+            return;
+        }
+    }
+
+    const body = {
+        name: document.getElementById('createName').value,
+        maxMemberCount: Number(document.getElementById('createMaxMemberCount').value),
+        tags: splitOrNull(document.getElementById('createTags').value) || [],
+        techStack: splitOrNull(document.getElementById('createTechStack').value) || [],
+        preferredStartTime: document.getElementById('createPreferredStartTime').value || null,
+        preferredEndTime: document.getElementById('createPreferredEndTime').value || null,
+        customField: customField
+    };
+
+    const res = await fetch(getBaseUrl() + '/rooms/' + roomId + '/spaces', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    document.getElementById('createResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function getSpaceList() {
+    const roomId = document.getElementById('listRoomId').value;
+    const tags = splitOrNull(document.getElementById('listTags').value);
+
+    let url = getBaseUrl() + '/rooms/' + roomId + '/spaces';
+    if (tags) {
+        url += '?' + tags.map(t => 'tags=' + encodeURIComponent(t)).join('&');
+    }
+
+    const res = await fetch(url, {
+        method: 'GET',
+        headers: authHeaders()
+    });
+    const data = await res.json();
+    document.getElementById('listResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function getSpaceDetail() {
+    const roomId = document.getElementById('detailRoomId').value;
+    const spaceId = document.getElementById('detailSpaceId').value;
+
+    const res = await fetch(getBaseUrl() + '/rooms/' + roomId + '/spaces/' + spaceId, {
+        method: 'GET',
+        headers: authHeaders()
+    });
+    const data = await res.json();
+    document.getElementById('detailResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function updateSpace() {
+    const roomId = document.getElementById('updateRoomId').value;
+    const spaceId = document.getElementById('updateSpaceId').value;
+
+    const body = {
+        name: document.getElementById('updateName').value || null,
+        maxMemberCount: document.getElementById('updateMaxMemberCount').value
+            ? Number(document.getElementById('updateMaxMemberCount').value)
+            : null,
+        tags: splitOrNull(document.getElementById('updateTags').value),
+        techStack: splitOrNull(document.getElementById('updateTechStack').value)
+    };
+
+    const res = await fetch(getBaseUrl() + '/rooms/' + roomId + '/spaces/' + spaceId, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    document.getElementById('updateResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function deleteSpace() {
+    const roomId = document.getElementById('deleteRoomId').value;
+    const spaceId = document.getElementById('deleteSpaceId').value;
+
+    const res = await fetch(getBaseUrl() + '/rooms/' + roomId + '/spaces/' + spaceId, {
+        method: 'DELETE',
+        headers: authHeaders()
+    });
+    const data = await res.json();
+    document.getElementById('deleteResult').textContent = JSON.stringify(data, null, 2);
+}
+</script>
+
+</body>
+</html>

@@ -52,7 +52,8 @@ public class SecurityConfig {
 								"/users/checkRefreshToken",
 								"/",
 								"/index.html",
-								"/ws/**"
+								"/ws/**",
+								"/space-api-test.html"
 						).permitAll()
 						.anyRequest().authenticated()
 				)
