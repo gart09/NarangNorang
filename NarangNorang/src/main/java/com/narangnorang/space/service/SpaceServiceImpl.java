@@ -140,6 +140,15 @@ public class SpaceServiceImpl implements SpaceService{
 
 	    return SpaceProfileCardResponseDto.from(space, card, tagNames);
 	}
+
+	
+	// 룸 내 태그 목록 조회
+	@Override
+	public List<String> getRoomTagNames(Long roomId) {
+		return tagRepository.findTagNamesByRoomId(roomId);
+	}
+	
+	
 	
 	
 }

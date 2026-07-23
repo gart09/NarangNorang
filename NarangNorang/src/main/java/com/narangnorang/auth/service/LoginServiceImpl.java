@@ -1,16 +1,9 @@
 package com.narangnorang.auth.service;
 
-import com.narangnorang.auth.Repository.RefreshTokenRepository;
-import com.narangnorang.auth.entity.RefreshToken;
-import com.narangnorang.common.ApiResponse;
-import com.narangnorang.jwt.JwtUtil;
-import com.narangnorang.auth.dto.request.LoginRequestDto;
-import com.narangnorang.auth.dto.response.LoginResponseDto;
-import com.narangnorang.user.entity.User;
-import com.narangnorang.user.entity.UserRole;
-import com.narangnorang.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,10 +13,19 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import com.narangnorang.auth.Repository.RefreshTokenRepository;
+import com.narangnorang.auth.dto.request.LoginRequestDto;
+import com.narangnorang.auth.dto.response.LoginResponseDto;
+import com.narangnorang.auth.entity.RefreshToken;
+import com.narangnorang.jwt.JwtUtil;
+import com.narangnorang.user.entity.User;
+import com.narangnorang.user.entity.UserRole;
+import com.narangnorang.user.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -133,5 +135,12 @@ public class LoginServiceImpl implements LoginService {
 			log.info("Get AccessToken failed: {}", e.getMessage());
 			return null;
 		}
+	}
+
+	@Override
+	@Transactional
+	public void logout(Long userId) {
+		refreshTokenRepository.deleteByUserId(userId);
+	    log.info("Logout succeeded for userId={}", userId);
 	}
 }
