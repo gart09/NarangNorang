@@ -40,15 +40,34 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 	@Override
 	public MemberProfileCardCreateResponseDto createMemberProfileCard(Long userId, MemberProfileCardCreateRequestDto requestDto) {
 		User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-		Room room = roomRepository.findById(requestDto.getRoomId()).orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
+		Room room = roomRepository.findByRoomCode(requestDto.getRoomCode()).orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
+
+		if(memberProfileCardRepository.existsByUserIdAndRoomId(user.getId(), room.getId())){
+			throw new IllegalArgumentException("이미 존재하는 프로필카드입니다.");
+		}
 
 		Map<Long, RoomProfileCustomField> fieldMap = getFieldMap(requestDto.getAnswers());
+		Map<Long, RoomProfileCustomField> requiredFieldMap = room.getCustomFields().stream()
+				.filter(RoomProfileCustomField::isRequired)
+				.collect(Collectors.toMap(
+						RoomProfileCustomField::getId,
+						Function.identity()
+				));
+
+		List<String> missingFields = requiredFieldMap.values().stream()
+				.filter(field -> !fieldMap.containsKey(field.getId()))
+				.map(RoomProfileCustomField::getFieldName)
+				.toList();
+
+		if(missingFields.isEmpty() == false){
+			String joinedFieldNames = String.join(", ", missingFields);
+			throw new IllegalArgumentException("필수 입력 항목이 누락됐습니다. 누락된 항목: " + joinedFieldNames);
+		}
 
 
 		MemberProfileCard savedCard = memberProfileCardRepository.save(requestDto.toEntity(user, room, fieldMap));
-		MemberProfileCardCreateResponseDto memberProfileCardCreateResponseDto = MemberProfileCardCreateResponseDto.from(savedCard);
 
-		return memberProfileCardCreateResponseDto;
+		return MemberProfileCardCreateResponseDto.from(savedCard);
 	}
 
 	@Override
@@ -99,6 +118,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 			memberProfileCard.updateAnswers(requestDto.getAnswers());
 
 		memberProfileCard.updateName(requestDto.getName());
+		memberProfileCard.updateDate();
 
 
 		//@Transactional로 자동으로 변경 감지하고 저장하므로 save()는 호출 불필요

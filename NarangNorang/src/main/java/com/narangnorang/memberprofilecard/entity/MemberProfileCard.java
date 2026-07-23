@@ -68,4 +68,8 @@ public class MemberProfileCard {
 		if(newAnswers != null && newAnswers.isEmpty() == false)
 			this.answers.addAll(newAnswers);
 	}
+
+	public void updateDate(){
+		this.updatedAt = LocalDateTime.now();
+	}
 }

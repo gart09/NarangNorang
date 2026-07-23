@@ -27,7 +27,7 @@ import java.util.List;
 					.id(memberProfileCard.getId())
 					.name(memberProfileCard.getName())
 					.createdAt(memberProfileCard.getCreatedAt())
-					.updatedAt(LocalDateTime.now())
+					.updatedAt(memberProfileCard.getUpdatedAt())
 					.userId(memberProfileCard.getUser().getId())
 					.roomId(memberProfileCard.getRoom().getId())
 					.answers(memberProfileCard.getAnswers().stream().map(MemberProfileCustomAnswerResponseDto::from).toList())

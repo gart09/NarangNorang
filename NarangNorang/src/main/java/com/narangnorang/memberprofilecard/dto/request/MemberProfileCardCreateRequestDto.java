@@ -20,7 +20,7 @@ import java.util.Map;
 @AllArgsConstructor
 public class MemberProfileCardCreateRequestDto {
 		private String name;
-		private Long roomId;
+		private String roomCode;
 		private Map<Long, String> answers;
 
 		public MemberProfileCard toEntity(User user, Room room, Map<Long, RoomProfileCustomField> fieldMap){

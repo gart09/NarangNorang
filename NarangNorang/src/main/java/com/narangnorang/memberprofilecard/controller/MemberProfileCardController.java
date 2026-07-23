@@ -52,7 +52,7 @@ public class MemberProfileCardController {
 
 	@DeleteMapping("/{memberProfileCardId}")
 	public ApiResponse<Void> deleteMemberProfileCard(
-			@PathVariable Long memberProfileCardId,
+			@PathVariable("memberProfileCardId") Long memberProfileCardId,
 			@AuthenticationPrincipal MyUserDetails userDetails){
 		Long userId = userDetails.getId();
 
