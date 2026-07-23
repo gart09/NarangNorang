@@ -18,7 +18,12 @@ public interface SpaceService {
 	//스페이스 생성
 	SpaceProfileCardResponseDto createSpace(Long roomId, Long ownerId, SpaceCreateRequestDto spaceCreateRequestDto);
 	
+	// 스페이스 업데이트
 	SpaceProfileCardResponseDto updateSpaceCard(Long spaceId, Long userId, SpaceUpdateRequestDto spaceUpdateRequestDto);
 	
+	// 스페이스 제거 
 	void deleteSpace(Long spaceId, Long userId);
+	
+	// 룸 내의 태그 목록 조회
+	List<String> getRoomTagNames(Long roomId);
 }
