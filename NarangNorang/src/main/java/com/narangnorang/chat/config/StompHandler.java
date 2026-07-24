@@ -1,5 +1,8 @@
 package com.narangnorang.chat.config;
 
+import com.narangnorang.chat.entity.Chat;
+import com.narangnorang.chat.exception.ChatErrorCode;
+import com.narangnorang.chat.exception.ChatException;
 import com.narangnorang.chat.service.ChatService;
 import com.narangnorang.jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
@@ -40,7 +43,7 @@ public class StompHandler implements ChannelInterceptor {
 				Claims claims = jwtUtil.validateToken(jwt);
 
 				if (claims == null) {
-					throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
+					throw new ChatException(ChatErrorCode.INVALID_TOKEN);
 				}
 
 				Long userId = claims.get("id", Long.class);
@@ -57,7 +60,7 @@ public class StompHandler implements ChannelInterceptor {
 				log.info("웹소켓 연결 성공 - JWT 검증 완료, 사용자: {}", claims.getSubject());
 			} else {
 				log.error("웹소켓 연결 실패 - JWT 토큰이 없습니다.");
-				throw new IllegalArgumentException("인증 토큰이 누락되었습니다.");
+				throw new ChatException(ChatErrorCode.INVALID_TOKEN);
 			}
 		}
 		else if(StompCommand.SUBSCRIBE.equals(accessor.getCommand())){
@@ -70,7 +73,7 @@ public class StompHandler implements ChannelInterceptor {
 				userId = (Long) sessionAttributes.get("userId");
 			}
 			if (userId == null) {
-				throw new IllegalStateException("세션에서 사용자 정보를 찾을 수 없습니다.");
+				throw new ChatException(ChatErrorCode.USER_NOT_FOUND_IN_SESSION);
 			}
 			boolean hasPermission = false;
 			log.info("구독 요청 - 유저id: {}, 목적지: {}", userId, destination);
@@ -87,13 +90,13 @@ public class StompHandler implements ChannelInterceptor {
 					hasPermission = chatService.checkPermission(userId, targetType, targetId);
 				} catch (NumberFormatException e) {
 					log.warn("올바르지 않은 targetId 형식: {}", paths[3]);
-					throw new IllegalArgumentException("채팅방 번호 형식이 올바르지 않습니다.");
+					throw new ChatException(ChatErrorCode.INVALID_CHATROOM_TYPE, paths[3]);
 				}
 			}
 
 			if (!hasPermission) {
 				log.error("권한 없는 방 접근 시도: {}", destination);
-				throw new IllegalArgumentException("이 채팅방에 입장할 권한이 없습니다.");
+				throw new ChatException(ChatErrorCode.USER_NOT_PERMITTED, "userId: " + userId + ", 경로: " + destination);
 			}
 			log.info("입장 허락.");
 		}
