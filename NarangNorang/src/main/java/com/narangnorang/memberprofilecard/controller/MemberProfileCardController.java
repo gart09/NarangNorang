@@ -9,6 +9,7 @@ import com.narangnorang.memberprofilecard.dto.request.MemberProfileCardUpdateReq
 import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardCreateResponseDto;
 import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardReadResponseDto;
 import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardUpdateResponseDto;
+import com.narangnorang.memberprofilecard.dto.response.RoomsListResponseDto;
 import com.narangnorang.memberprofilecard.service.MemberProfileCardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -58,6 +59,12 @@ public class MemberProfileCardController {
 
 		memberProfileCardService.deleteMemberProfileCard(userId, memberProfileCardId);
 		return success(null);
+	}
+
+	@GetMapping("/roomsList")
+	public ApiResponse<RoomsListResponseDto> getRoomsList(
+			@AuthenticationPrincipal MyUserDetails userDetails){
+		return success(memberProfileCardService.getRoomsList(userDetails.getId()));
 	}
 
 

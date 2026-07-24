@@ -41,6 +41,7 @@ public class MyUserDetailsService implements UserDetailsService{
 			return MyUserDetails.builder()
 					.username(user.getEmail())  	// Spring Security 계약 필드
 					.password(user.getPassword()) 	// Spring Security 계약 필드
+					.name(user.getName())
 					.authorities(authorities) 		// Spring Security 계약 필드
 					.id(user.getId())
 					.build();
