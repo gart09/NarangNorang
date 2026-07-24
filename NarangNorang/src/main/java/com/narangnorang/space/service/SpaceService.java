@@ -32,4 +32,5 @@ public interface SpaceService {
 	
 	// 스페이스 위임
 	public void transferOwner(Long roomId, Long spaceId, Long currentOwnerId, Long newOwnerId);
+
 }
