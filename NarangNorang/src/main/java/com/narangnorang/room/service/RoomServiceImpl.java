@@ -3,6 +3,7 @@ package com.narangnorang.room.service;
 import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -16,7 +17,6 @@ import com.narangnorang.room.dto.request.RoomProfileCustomFieldCreateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldOptionCreateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldOptionUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldsUpdateRequestDto;
-import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
 import com.narangnorang.room.dto.response.RoomJoinResponseDto;
 import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
@@ -25,7 +25,6 @@ import com.narangnorang.room.entity.OptionType;
 import com.narangnorang.room.entity.Room;
 import com.narangnorang.room.entity.RoomProfileCustomField;
 import com.narangnorang.room.entity.RoomProfileCustomFieldOption;
-import com.narangnorang.room.repository.RoomProfileCustomFieldOptionRepository;
 import com.narangnorang.room.repository.RoomProfileCustomFieldRepository;
 import com.narangnorang.room.repository.RoomRepository;
 import com.narangnorang.space.repository.SpaceRepository;
@@ -46,7 +45,6 @@ public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository;
     private final RoomProfileCustomFieldRepository customFieldRepository;
-    private final RoomProfileCustomFieldOptionRepository optionRepository;
     private final UserRepository userRepository;
     private final MemberProfileCardRepository memberProfileCardRepository;
     private final SpaceRepository spaceRepository;
@@ -124,61 +122,6 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional
-    public RoomProfileCustomFieldResponseDto updateCustomField(
-            Long roomId,
-            Long fieldId,
-            RoomProfileCustomFieldUpdateRequestDto requestDto,
-            Long userId
-    ) {
-        Room room = findRoom(roomId);
-        User user = findUser(userId);
-
-        validateOwner(room, user);
-
-        RoomProfileCustomField customField = customFieldRepository.findById(fieldId)
-                .orElseThrow(() -> new IllegalArgumentException("커스텀 필드를 찾을 수 없습니다."));
-
-        validateFieldBelongsToRoom(customField, roomId);
-        validateOptions(requestDto.getOptionType(), requestDto.getOptions());
-
-        customField.update(
-                requestDto.getFieldName(),
-                requestDto.isRequired(),
-                requestDto.getOptionType()
-        );
-
-        if (isSelectType(requestDto.getOptionType())) {
-            updateOptions(customField, requestDto.getOptions());
-        } else {
-            customField.getOptions().clear();
-        }
-
-        customFieldRepository.flush();
-
-        return RoomProfileCustomFieldResponseDto.from(customField);
-    }
-
-    @Override
-    @Transactional
-    public RoomProfileCustomFieldResponseDto createCustomField(
-            Long roomId,
-            RoomProfileCustomFieldCreateRequestDto requestDto,
-            Long userId
-    ) {
-        Room room = findRoom(roomId);
-        User user = findUser(userId);
-
-        validateOwner(room, user);
-
-        RoomProfileCustomField customField = buildCustomField(requestDto);
-        room.addCustomField(customField);
-        customFieldRepository.save(customField);
-
-        return RoomProfileCustomFieldResponseDto.from(customField);
-    }
-
-    @Override
-    @Transactional
     public List<RoomProfileCustomFieldResponseDto> updateCustomFields(
             Long roomId,
             RoomProfileCustomFieldsUpdateRequestDto requestDto,
@@ -211,18 +154,7 @@ public class RoomServiceImpl implements RoomService {
                     .orElseThrow(() -> new IllegalArgumentException("커스텀 필드를 찾을 수 없습니다."));
 
             validateFieldBelongsToRoom(customField, roomId);
-
-            customField.update(
-                    fieldDto.getFieldName(),
-                    fieldDto.isRequired(),
-                    fieldDto.getOptionType()
-            );
-
-            if (isSelectType(fieldDto.getOptionType())) {
-                updateOptions(customField, fieldDto.getOptions());
-            } else {
-                customField.getOptions().clear();
-            }
+            validateFieldUnchanged(customField, fieldDto);
         }
 
         List<RoomProfileCustomField> fieldsToDelete = room.getCustomFields().stream()
@@ -240,23 +172,6 @@ public class RoomServiceImpl implements RoomService {
         return room.getCustomFields().stream()
                 .map(RoomProfileCustomFieldResponseDto::from)
                 .toList();
-    }
-
-    @Override
-    @Transactional
-    public void deleteCustomField(Long roomId, Long fieldId, Long userId) {
-        Room room = findRoom(roomId);
-        User user = findUser(userId);
-
-        validateOwner(room, user);
-
-        RoomProfileCustomField customField = customFieldRepository.findById(fieldId)
-                .orElseThrow(() -> new IllegalArgumentException("커스텀 필드를 찾을 수 없습니다."));
-
-        validateFieldBelongsToRoom(customField, roomId);
-
-        memberProfileCustomAnswerRepository.deleteByRoomProfileCustomFieldId(fieldId);
-        room.removeCustomField(customField);
     }
 
     @Override
@@ -356,34 +271,53 @@ public class RoomServiceImpl implements RoomService {
                 || optionType == OptionType.MULTI_SELECT;
     }
 
-    private void updateOptions(
+    private void validateFieldUnchanged(
             RoomProfileCustomField customField,
-            List<RoomProfileCustomFieldOptionUpdateRequestDto> optionDtos
+            RoomProfileCustomFieldBulkUpdateRequestDto fieldDto
     ) {
+        boolean fieldChanged =
+                !Objects.equals(customField.getFieldName(), fieldDto.getFieldName())
+                || customField.isRequired() != fieldDto.isRequired()
+                || customField.getOptionType() != fieldDto.getOptionType();
+
+        if (fieldChanged) {
+            throw new IllegalArgumentException(
+                    "기존 커스텀 필드는 수정할 수 없습니다. 삭제 후 새로 추가해 주세요."
+            );
+        }
+
+        List<RoomProfileCustomFieldOptionUpdateRequestDto> optionDtos =
+                fieldDto.getOptions() == null ? List.of() : fieldDto.getOptions();
+
+        if (customField.getOptions().size() != optionDtos.size()) {
+            throw new IllegalArgumentException(
+                    "기존 커스텀 필드는 수정할 수 없습니다. 삭제 후 새로 추가해 주세요."
+            );
+        }
+
         Set<Long> requestedOptionIds = new HashSet<>();
 
         for (RoomProfileCustomFieldOptionUpdateRequestDto optionDto : optionDtos) {
-            if (optionDto.getId() == null) {
-                RoomProfileCustomFieldOption newOption = RoomProfileCustomFieldOption.builder()
-                        .optionValue(optionDto.getOptionValue())
-                        .displayOrder(optionDto.getDisplayOrder())
-                        .build();
-
-                customField.addOption(newOption);
-                continue;
+            if (optionDto.getId() == null || !requestedOptionIds.add(optionDto.getId())) {
+                throw new IllegalArgumentException(
+                        "기존 커스텀 필드는 수정할 수 없습니다. 삭제 후 새로 추가해 주세요."
+                );
             }
 
-            RoomProfileCustomFieldOption option = optionRepository.findById(optionDto.getId())
-                    .orElseThrow(() -> new IllegalArgumentException("선택지를 찾을 수 없습니다."));
+            RoomProfileCustomFieldOption option = customField.getOptions().stream()
+                    .filter(currentOption -> currentOption.getId().equals(optionDto.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "기존 커스텀 필드는 수정할 수 없습니다. 삭제 후 새로 추가해 주세요."
+                    ));
 
-            validateOptionBelongsToField(option, customField.getId());
-            option.update(optionDto.getOptionValue(), optionDto.getDisplayOrder());
-            requestedOptionIds.add(option.getId());
+            if (!Objects.equals(option.getOptionValue(), optionDto.getOptionValue())
+                    || !Objects.equals(option.getDisplayOrder(), optionDto.getDisplayOrder())) {
+                throw new IllegalArgumentException(
+                        "기존 커스텀 필드는 수정할 수 없습니다. 삭제 후 새로 추가해 주세요."
+                );
+            }
         }
-
-        customField.getOptions().removeIf(option ->
-                option.getId() != null && !requestedOptionIds.contains(option.getId())
-        );
     }
 
     private Room findRoom(Long roomId) {
@@ -426,15 +360,6 @@ public class RoomServiceImpl implements RoomService {
     private void validateFieldBelongsToRoom(RoomProfileCustomField customField, Long roomId) {
         if (!customField.getRoom().getId().equals(roomId)) {
             throw new IllegalArgumentException("해당 룸의 커스텀 필드가 아닙니다.");
-        }
-    }
-
-    private void validateOptionBelongsToField(
-            RoomProfileCustomFieldOption option,
-            Long fieldId
-    ) {
-        if (!option.getCustomField().getId().equals(fieldId)) {
-            throw new IllegalArgumentException("해당 커스텀 필드의 선택지가 아닙니다.");
         }
     }
 

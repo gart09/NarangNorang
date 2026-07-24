@@ -15,9 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.narangnorang.auth.config.MyUserDetails;
 import com.narangnorang.common.ApiResponse;
 import com.narangnorang.room.dto.request.RoomCreateRequestDto;
-import com.narangnorang.room.dto.request.RoomProfileCustomFieldCreateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldsUpdateRequestDto;
-import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
 import com.narangnorang.room.dto.response.RoomJoinResponseDto;
 import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
@@ -87,38 +85,6 @@ public class RoomController {
         return success(result);
     }
 
-    @PostMapping("/{roomId}/customFields")
-    public ApiResponse<RoomProfileCustomFieldResponseDto> createCustomField(
-            @PathVariable("roomId") Long roomId,
-            @RequestBody RoomProfileCustomFieldCreateRequestDto requestDto,
-            @AuthenticationPrincipal MyUserDetails userDetails
-    ) {
-        RoomProfileCustomFieldResponseDto result = roomService.createCustomField(
-                roomId,
-                requestDto,
-                userDetails.getId()
-        );
-
-        return success(result);
-    }
-
-    @PatchMapping("/{roomId}/customFields/{fieldId}")
-    public ApiResponse<RoomProfileCustomFieldResponseDto> updateCustomField(
-            @PathVariable("roomId") Long roomId,
-            @PathVariable("fieldId") Long fieldId,
-            @RequestBody RoomProfileCustomFieldUpdateRequestDto requestDto,
-            @AuthenticationPrincipal MyUserDetails userDetails
-    ) {
-        RoomProfileCustomFieldResponseDto result = roomService.updateCustomField(
-                roomId,
-                fieldId,
-                requestDto,
-                userDetails.getId()
-        );
-
-        return success(result);
-    }
-
     @PatchMapping("/{roomId}/customFields")
     public ApiResponse<List<RoomProfileCustomFieldResponseDto>> updateCustomFields(
             @PathVariable("roomId") Long roomId,
@@ -132,21 +98,6 @@ public class RoomController {
         );
 
         return success(result);
-    }
-
-    @DeleteMapping("/{roomId}/customFields/{fieldId}")
-    public ApiResponse<Void> deleteCustomField(
-            @PathVariable("roomId") Long roomId,
-            @PathVariable("fieldId") Long fieldId,
-            @AuthenticationPrincipal MyUserDetails userDetails
-    ) {
-        roomService.deleteCustomField(
-                roomId,
-                fieldId,
-                userDetails.getId()
-        );
-
-        return success(null);
     }
 
     @DeleteMapping("/{roomId}")
