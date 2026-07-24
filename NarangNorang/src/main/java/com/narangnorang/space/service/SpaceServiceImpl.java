@@ -238,6 +238,7 @@ public class SpaceServiceImpl implements SpaceService{
 	}
 	
 	
+	
 	// 스페이스 및 룸 검증
 	private void validateManagePermission(Space space, Long roomId, Long userId) {
 		if (!space.getRoomId().equals(roomId)) {
