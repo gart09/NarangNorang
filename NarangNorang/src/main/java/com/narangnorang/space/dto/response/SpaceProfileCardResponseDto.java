@@ -20,6 +20,7 @@ import com.narangnorang.space.entity.Tag;
 public class SpaceProfileCardResponseDto {
     private String name;
     private String owner;
+    private Long ownerId;
     private List<String> techStack;
     private LocalDateTime preferredStartTime;
     private LocalDateTime preferredEndTime;
@@ -32,6 +33,7 @@ public class SpaceProfileCardResponseDto {
         return SpaceProfileCardResponseDto.builder()
                 .name(card.getName())
                 .owner(card.getOwner())
+                .ownerId(space.getOwnerId())
                 .techStack(card.getTechStack())
                 .preferredStartTime(card.getPreferredStartTime())
                 .preferredEndTime(card.getPreferredEndTime())

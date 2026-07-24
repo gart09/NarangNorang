@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나랑노랑 — NarangNorang (연동)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<style>
+  :root{
+    --paper:#FFF6DE; --marigold:#F6B93B; --marigold-deep:#E39A15; --marigold-soft:rgba(246,185,59,.16);
+    --ink:#2B2118; --ink-soft:#6B5D48; --line:#EAD9A8; --panel:#FFFFFF;
+    --coral:#FF7A54; --sage:#4C9A6A; --danger:#D9614C; --shadow:0 10px 26px rgba(43,33,24,.10); --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans KR',sans-serif;line-height:1.55;}
+  h1,h2,h3{font-family:'Fraunces',serif;}
+  button{font-family:inherit;cursor:pointer;}
+  a{color:inherit;}
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{background:var(--marigold);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 0 var(--marigold-deep);flex-wrap:wrap;gap:10px;}
+  .brand{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .brand-mark{width:36px;height:36px;border-radius:10px;background:var(--ink);display:flex;align-items:center;justify-content:center;color:var(--marigold);font-weight:700;font-size:15px;font-family:'Fraunces',serif;}
+  .brand-name{font-family:'Fraunces',serif;font-size:20px;font-weight:700;}
+  .breadcrumb{font-size:13px;color:rgba(43,33,24,.65);margin-top:1px;}
+  .breadcrumb a{font-weight:600;cursor:pointer;}
+  .top-right{display:flex;align-items:center;gap:10px;}
+  .room-code{font-family:monospace;font-size:12px;font-weight:700;background:var(--ink);color:var(--marigold);padding:6px 10px;border-radius:8px;letter-spacing:1px;}
+  .avatar-chip{width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--marigold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid rgba(255,255,255,.6);cursor:pointer;}
+  .btn{border:1.5px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 16px;border-radius:10px;font-size:13.5px;font-weight:700;}
+  .btn:hover{border-color:var(--marigold-deep);}
+  .btn-primary{background:var(--ink);border-color:var(--ink);color:var(--marigold);}
+  .btn-danger{background:transparent;border-color:var(--danger);color:var(--danger);}
+  .btn-sm{padding:6px 12px;font-size:12.5px;border-radius:8px;}
+  .btn-block{width:100%;}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+  .page{flex:1;padding:36px 26px 60px;max-width:1040px;margin:0 auto;width:100%;}
+  .page-narrow{max-width:440px;}
+  .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--marigold-deep);font-weight:800;margin-bottom:6px;}
+  .page-title{font-size:28px;font-weight:700;margin:0 0 6px;}
+  .page-desc{color:var(--ink-soft);font-size:14px;margin:0 0 26px;}
+  .hero{background:var(--marigold);border-radius:20px;padding:40px 36px;margin-bottom:30px;box-shadow:var(--shadow);}
+  .hero h1{font-size:30px;margin:0 0 8px;}
+  .hero p{color:rgba(43,33,24,.72);font-size:14.5px;max-width:480px;margin:0 0 22px;}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin:34px 0 14px;}
+  .section-head h2{font-size:17px;margin:0;}
+  .section-head .count{color:var(--ink-soft);font-size:12.5px;}
+  .plaque-list{display:flex;flex-direction:column;gap:10px;}
+  .plaque{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;}
+  .plaque:hover{border-color:var(--marigold-deep);}
+  .plaque-code{font-family:monospace;font-size:12px;font-weight:700;color:var(--ink);background:var(--marigold-soft);padding:5px 9px;border-radius:6px;letter-spacing:1px;}
+  .plaque-info{flex:1;min-width:0;}
+  .plaque-info .name{font-weight:700;font-size:14.5px;}
+  .plaque-info .meta{color:var(--ink-soft);font-size:12px;margin-top:2px;}
+  .empty{color:var(--ink-soft);font-size:13.5px;padding:26px;text-align:center;border:1.5px dashed var(--line);border-radius:14px;}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}
+  .idx-card{background:var(--panel);border-radius:14px;padding:18px 16px 16px;position:relative;box-shadow:var(--shadow);border:1px solid var(--line);cursor:pointer;}
+  .idx-card .card-tag-space{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--marigold-deep);background:var(--marigold-soft);padding:3px 8px;border-radius:999px;margin-bottom:8px;}
+  .idx-card .card-name{font-family:'Fraunces',serif;font-weight:700;font-size:16px;}
+  .idx-card .rule{border-top:1px dashed var(--line);margin:10px 0;}
+  .idx-card .card-intro{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;}
+  .idx-card .card-tags{display:flex;flex-wrap:wrap;gap:5px;}
+  .tag{font-size:10.5px;font-weight:700;background:rgba(76,154,106,.14);color:#2d6b46;padding:3px 9px;border-radius:999px;border:1px solid rgba(76,154,106,.3);}
+  .tag.alt{background:var(--marigold-soft);color:var(--marigold-deep);border-color:rgba(246,185,59,.4);}
+  .idx-card .card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:11px;color:var(--ink-soft);}
+  .tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--line);margin-bottom:22px;}
+  .tab{padding:10px 16px;font-size:13.5px;font-weight:700;color:var(--ink-soft);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;}
+  .tab.active{color:var(--marigold-deep);border-bottom-color:var(--marigold-deep);}
+  .form-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px;box-shadow:var(--shadow);}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+  .field input, .field textarea, .field select{width:100%;background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ink);font-size:14px;font-family:inherit;}
+  .field input:focus, .field textarea:focus, .field select:focus{outline:none;border-color:var(--marigold-deep);}
+  .field-hint{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
+  .form-msg{font-size:13px;padding:10px 12px;border-radius:10px;margin-bottom:16px;font-weight:600;}
+  .form-msg.error{background:rgba(217,97,76,.1);color:var(--danger);border:1px solid rgba(217,97,76,.3);}
+  .notice-banner{background:var(--marigold-soft);border:1px solid var(--marigold);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;margin-bottom:20px;}
+  .warn-banner{background:rgba(217,97,76,.08);border:1px solid rgba(217,97,76,.35);border-radius:12px;padding:12px 14px;font-size:12.5px;font-weight:600;margin-bottom:20px;color:var(--danger);}
+  .member-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:8px;}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--marigold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+  .info{flex:1;min-width:0;}
+  .name{font-weight:700;font-size:14px;}
+  .badge{font-size:9px;font-weight:800;color:var(--marigold-deep);background:var(--marigold-soft);padding:2px 7px;border-radius:999px;margin-left:6px;}
+  .tagline{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .row-actions{display:flex;gap:6px;flex-shrink:0;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(43,33,24,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .modal{background:var(--panel);border-radius:18px;padding:28px;max-width:460px;width:100%;max-height:82vh;overflow-y:auto;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+  .close-x{position:absolute;top:16px;right:16px;background:var(--paper);border:none;width:28px;height:28px;border-radius:50%;font-size:14px;color:var(--ink-soft);}
+  .chat-layout{display:flex;flex:1;min-height:0;height:calc(100vh - 65px);}
+  .rail{width:240px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:20px 16px;overflow-y:auto;}
+  .rail-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:0 4px 10px;}
+  .chat{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .chat-head{padding:16px 26px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .chat-head h2{margin:0;font-size:17px;}
+  .chat-head .sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .chat-scroll{flex:1;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:14px;}
+  .msg-row{display:flex;gap:10px;max-width:70%;}
+  .msg-row.mine{align-self:flex-end;flex-direction:row-reverse;}
+  .msg-avatar{width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--marigold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+  .msg-body{display:flex;flex-direction:column;gap:4px;}
+  .msg-row.mine .msg-body{align-items:flex-end;}
+  .msg-meta{display:flex;gap:6px;align-items:baseline;font-size:11.5px;color:var(--ink-soft);}
+  .msg-meta .name{font-weight:700;color:var(--ink);}
+  .bubble{position:relative;background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:4px 14px 14px 14px;font-size:14px;box-shadow:var(--shadow);}
+  .msg-row.mine .bubble{background:var(--marigold);border-color:var(--marigold-deep);color:var(--ink);border-radius:14px 4px 14px 14px;}
+  .composer{flex-shrink:0;padding:16px 26px 20px;background:var(--panel);border-top:1px solid var(--line);}
+  .composer-box{display:flex;align-items:flex-end;gap:10px;background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:8px 10px 8px 16px;}
+  .composer-box textarea{flex:1;border:none;background:transparent;resize:none;outline:none;font-family:inherit;font-size:14px;color:var(--ink);padding:8px 0;max-height:120px;}
+  .send-btn{border:none;background:var(--ink);color:var(--marigold);width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .send-btn[disabled]{opacity:.4;}
+  .ws-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block;margin-right:6px;}
+  .ws-dot.on{background:var(--sage);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--marigold);padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  .toast.show{opacity:1;}
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--marigold-deep);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  ::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   설정 — 백엔드 주소만 바꿔주면 됨
+===================================================================== */
+const API_BASE = 'http://localhost:8080';
+
+/* =====================================================================
+   상태
+===================================================================== */
+const state = {
+  page:'login', params:{},
+  accessToken:null, refreshToken:null,
+  me:null,               // {id, email} — JWT 디코딩 결과, 이름 정보는 서버에 없음
+  loginError:'', signupError:'', joinError:'',
+  knownRooms: [],         // 목록 API가 없어서 세션 동안 참여/생성한 룸만 기억
+  cache:{ room:null, spaces:null, spaceDetail:null, roomMembers:null, invites:null, memberNames:{} },
+  loading:false,
+  ws:{ client:null, sub:null },
+};
+
+// 새로고침 후에도 로그인 유지 — accessToken/refreshToken을 localStorage에 저장
+const TOKEN_STORAGE_KEY = 'narangnorang_tokens';
+function persistTokens(){
+  try{
+    localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify({ accessToken: state.accessToken, refreshToken: state.refreshToken }));
+  }catch(e){ /* 프리뷰 샌드박스 등으로 storage가 막혀 있으면 조용히 무시 — 실제 배포 환경에서는 정상 동작함 */ }
+}
+function restoreTokens(){
+  try{
+    const raw = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if(!raw) return false;
+    const { accessToken, refreshToken } = JSON.parse(raw);
+    if(!accessToken) return false;
+    state.accessToken = accessToken;
+    state.refreshToken = refreshToken;
+    const payload = decodeJwt(accessToken);
+    if(!payload) return false;
+    state.me = { id: payload.id, email: payload.sub };
+    return true;
+  }catch(e){ return false; }
+}
+function clearPersistedTokens(){
+  try{ localStorage.removeItem(TOKEN_STORAGE_KEY); }catch(e){}
+}
+
+/* =====================================================================
+   API 유틸
+===================================================================== */
+function decodeJwt(token){
+  try{
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    return payload;
+  }catch(e){ return null; }
+}
+
+async function apiFetch(path, opts={}){
+  opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  if(state.accessToken) opts.headers['Authorization'] = 'Bearer ' + state.accessToken;
+
+  let res = await fetch(API_BASE + path, opts);
+
+  // 401이면 refreshToken으로 재발급 시도 후 1회 재요청
+  if(res.status===401 && state.refreshToken){
+    const refreshed = await tryRefresh();
+    if(refreshed){
+      opts.headers['Authorization'] = 'Bearer ' + state.accessToken;
+      res = await fetch(API_BASE + path, opts);
+    }
+  }
+
+  let json = null;
+  try{ json = await res.json(); }catch(e){ /* 204 No Content 등 */ }
+
+  if(!res.ok || (json && json.success===false)){
+    const msg = (json && json.message) || `요청 실패 (HTTP ${res.status})`;
+    throw new Error(msg);
+  }
+  return json ? json.result : null;
+}
+
+async function tryRefresh(){
+  try{
+    const res = await fetch(API_BASE + '/users/checkRefreshToken', {
+      method:'POST',
+      headers:{ 'Refresh-Token': state.refreshToken }
+    });
+    const json = await res.json();
+    if(json.success && json.result){
+      state.accessToken = json.result.token;
+      state.refreshToken = json.result.refreshToken;
+      persistTokens();
+      return true;
+    }
+  }catch(e){}
+  // 리프레시 실패 -> 로그아웃 처리
+  doLogout(true);
+  return false;
+}
+
+/* =====================================================================
+   화면 공통
+===================================================================== */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function navigate(page, params={}){
+  state.page=page; state.params=params; state.modal=null; render(); window.scrollTo(0,0);
+  // innerHTML로 삽입한 <script>는 브라우저가 실행하지 않으므로, 채팅 페이지 진입 시 여기서 직접 초기화
+  if(page==='room-chat') initChat('room', params.roomId);
+  if(page==='space-chat') initChat('space', params.spaceId);
+}
+function openModal(type, payload){ state.modal={type,payload}; render(); }
+function closeModal(){ state.modal=null; render(); }
+function esc(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function initials(name){ return name ? name[0] : '?'; }
+
+async function withLoading(fn){
+  state.loading = true; render();
+  try{ await fn(); }
+  catch(e){ showToast(e.message || '오류가 발생했어요.'); }
+  finally{ state.loading = false; render(); }
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    ${state.page!=='login' && state.page!=='signup' ? renderTopbar() : ''}
+    ${renderPage()}
+    ${state.modal ? renderModal() : ''}
+  `;
+}
+
+function renderTopbar(){
+  const room = state.cache.room;
+  let crumb = '나랑노랑';
+  if(['room','room-chat','space','space-chat','space-create'].includes(state.page) && room){
+    crumb = `<a onclick="navigate('main')">나랑노랑</a> / <a onclick="navigate('room',{roomId:'${room.id}'})">${esc(room.name)}</a>`;
+    if(state.page==='room-chat') crumb += ' / 룸 채팅';
+    if((state.page==='space'||state.page==='space-chat') && state.cache.spaceDetail){
+      crumb += ` / ${esc(state.cache.spaceDetail.name)}`;
+      if(state.page==='space-chat') crumb += ' / 스페이스 채팅';
+    }
+  }
+  return `
+  <div class="topbar">
+    <div>
+      <div class="brand" onclick="navigate('main')">
+        <div class="brand-mark">NN</div><div class="brand-name">나랑노랑</div>
+      </div>
+      <div class="breadcrumb">${crumb}</div>
+    </div>
+    <div class="top-right">
+      ${room && ['room','room-chat'].includes(state.page) ? `<span class="room-code">${esc(room.roomCode)}</span>` : ''}
+      <div class="avatar-chip" title="${esc(myDisplayName())} · 로그아웃" onclick="doLogout()">${initials(myDisplayName())}</div>
+    </div>
+  </div>`;
+}
+function myDisplayName(){
+  const id = state.me?.id;
+  if(id!=null && state.cache.memberNames && state.cache.memberNames[id]) return state.cache.memberNames[id];
+  return state.me?.email || '';
+}
+
+function renderPage(){
+  if(state.loading) return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  switch(state.page){
+    case 'login': return renderLogin();
+    case 'signup': return renderSignup();
+    case 'main': return renderMain();
+    case 'room-create': return renderRoomCreate();
+    case 'room-join': return renderRoomJoin();
+    case 'room-join-card': return renderRoomJoinCard();
+    case 'room': return renderRoom();
+    case 'space-create': return renderSpaceCreate();
+    case 'space': return renderSpace();
+    case 'room-chat': return renderChat('room', state.params.roomId);
+    case 'space-chat': return renderChat('space', state.params.spaceId);
+    case 'invites-inbox': return renderInvitesInbox();
+    default: return `<div class="page"><div class="empty">페이지를 찾을 수 없어요.</div></div>`;
+  }
+}
+
+/* =====================================================================
+   인증
+===================================================================== */
+function renderLogin(){
+  return `
+  <div class="page page-narrow" style="padding-top:80px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div class="brand-mark" style="margin:0 auto 14px;width:48px;height:48px;font-size:19px;">NN</div>
+      <h1 class="page-title" style="font-size:24px;">나랑노랑</h1>
+      <p class="page-desc" style="margin:0;">룸에서 스페이스로, 팀원을 찾아보세요</p>
+    </div>
+    <div class="form-card">
+      ${state.loginError ? `<div class="form-msg error">${esc(state.loginError)}</div>` : ''}
+      <div class="field"><label>이메일</label><input id="li-email" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>비밀번호</label><input id="li-pw" type="password" placeholder="비밀번호"></div>
+      <button class="btn btn-primary btn-block" onclick="onLogin()">로그인</button>
+      <div style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--ink-soft);">
+        계정이 없나요? <a onclick="navigate('signup')" style="color:var(--marigold-deep);font-weight:700;cursor:pointer;">회원가입</a>
+      </div>
+    </div>
+  </div>`;
+}
+function onLogin(){
+  const email = document.getElementById('li-email').value.trim();
+  const password = document.getElementById('li-pw').value;
+  if(!email || !password){ state.loginError='이메일과 비밀번호를 입력해주세요.'; render(); return; }
+  withLoading(async ()=>{
+    const result = await apiFetch('/users/login', { method:'POST', body: JSON.stringify({email, password}) });
+    state.accessToken = result.token;
+    state.refreshToken = result.refreshToken;
+    const payload = decodeJwt(result.token);
+    state.me = { id: payload?.id, email: payload?.sub || email };
+    state.loginError='';
+    persistTokens();
+    showToast('로그인됐어요.');
+    navigate('main');
+  }).catch(()=>{});
+}
+function doLogout(silent){
+  const done = ()=>{
+    state.accessToken=null; state.refreshToken=null; state.me=null; state.knownRooms=[];
+    state.cache = { room:null, spaces:null, spaceDetail:null, roomMembers:null, invites:null, memberNames:{} };
+    clearPersistedTokens();
+    if(!silent) showToast('로그아웃 됐어요.');
+    navigate('login');
+  };
+  if(state.accessToken){
+    apiFetch('/users/logout', { method:'POST' }).finally(done);
+  } else { done(); }
+}
+
+function renderSignup(){
+  return `
+  <div class="page page-narrow" style="padding-top:80px;">
+    <div class="eyebrow">Join Narang-Norang</div>
+    <h1 class="page-title">회원가입</h1>
+    <div class="form-card">
+      ${state.signupError ? `<div class="form-msg error">${esc(state.signupError)}</div>` : ''}
+      <div class="field"><label>이름</label><input id="su-name" type="text"></div>
+      <div class="field"><label>이메일</label><input id="su-email" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>비밀번호</label><input id="su-pw" type="password" placeholder="6자 이상"></div>
+      <button class="btn btn-primary btn-block" onclick="onSignup()">가입하기</button>
+      <div style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--ink-soft);">
+        이미 계정이 있나요? <a onclick="navigate('login')" style="color:var(--marigold-deep);font-weight:700;cursor:pointer;">로그인</a>
+      </div>
+    </div>
+  </div>`;
+}
+function onSignup(){
+  const name = document.getElementById('su-name').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const password = document.getElementById('su-pw').value;
+  if(!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length<6){
+    state.signupError='이름, 이메일, 6자 이상 비밀번호를 확인해주세요.'; render(); return;
+  }
+  withLoading(async ()=>{
+    await apiFetch('/users/register', { method:'POST', body: JSON.stringify({name, email, password}) });
+    state.signupError='';
+    showToast('회원가입이 완료됐어요. 로그인해주세요.');
+    navigate('login');
+  }).catch(e=>{ state.signupError = e.message; render(); });
+}
+
+/* =====================================================================
+   메인 (룸 목록) — 서버에 목록 API가 없어 세션 내 knownRooms만 표시
+===================================================================== */
+function renderMain(){
+  return `
+  <div class="page">
+    <div class="hero">
+      <div class="eyebrow" style="color:rgba(43,33,24,.6);">Narang-Norang</div>
+      <h1>룸에서 만나고, 스페이스에서 팀이 되어요</h1>
+      <p>초대 코드로 룸에 참여하거나, 새로운 룸을 만들어 팀원을 모아보세요.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="navigate('room-create')">+ 룸 만들기</button>
+        <button class="btn" onclick="navigate('room-join')">초대 코드로 참여하기</button>
+      </div>
+    </div>
+    <div class="warn-banner">⚠️ 내 룸 전체 목록을 조회하는 API가 아직 없어요. 지금은 이 브라우저 세션에서 생성/참여한 룸만 아래에 보여요 — 새로고침하면 초기화돼요. 목록 API가 생기면 여기를 실제 서버 조회로 바꿀게요.</div>
+    <div class="section-head"><h2>이번 세션에서 연 룸</h2><span class="count">${state.knownRooms.length}개</span></div>
+    ${state.knownRooms.length ? `<div class="plaque-list">${state.knownRooms.map(r=>`
+      <div class="plaque" onclick="openRoom('${r.id}')">
+        <span class="plaque-code">${esc(r.roomCode)}</span>
+        <div class="plaque-info"><div class="name">${esc(r.name)}</div></div>
+      </div>`).join('')}</div>`
+      : `<div class="empty">아직 이 세션에서 연 룸이 없어요.</div>`}
+  </div>`;
+}
+
+/* =====================================================================
+   룸 생성
+===================================================================== */
+function renderRoomCreate(){
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">New Room</div>
+    <h1 class="page-title">룸 생성하기</h1>
+    <div class="form-card">
+      <div class="field"><label>룸 이름</label><input id="rc-name" type="text"></div>
+      <div class="field"><label>룸 소개</label><textarea id="rc-desc" rows="3"></textarea></div>
+      <div class="field"><label>최대 인원</label><input id="rc-max" type="number" min="1"></div>
+      <div class="field-hint" style="margin-bottom:10px;">멤버가 참여할 때 작성할 프로필 카드 항목을 정해주세요. (나중에 상세 화면에서도 수정할 수 있어요)</div>
+      <div id="rc-cf-rows"></div>
+      <button class="btn btn-sm" style="margin-bottom:16px;" onclick="document.getElementById('rc-cf-rows').insertAdjacentHTML('beforeend', customFieldRowHtml())">+ 카드 항목 추가</button>
+      <button class="btn btn-primary btn-block" onclick="onCreateRoom()">룸 만들기</button>
+    </div>
+  </div>`;
+}
+function onCreateRoom(){
+  const name = document.getElementById('rc-name').value.trim();
+  if(!name){ showToast('룸 이름을 입력해주세요.'); return; }
+  const description = document.getElementById('rc-desc').value.trim();
+  const maxMemberRaw = document.getElementById('rc-max').value;
+  const maxMember = parseInt(maxMemberRaw);
+  if(!maxMemberRaw || isNaN(maxMember) || maxMember < 1){ showToast('최대 인원은 1명 이상 필수로 입력해야 해요.'); return; }
+  // RoomCreateRequestDto.customFields는 RoomProfileCustomFieldCreateRequestDto 형태(id 없음)
+  let cfError = null;
+  const customFields = Array.from(document.querySelectorAll('#rc-cf-rows .cf-row')).map(row=>{
+    const fieldName = row.querySelector('.cf-name').value.trim();
+    if(!fieldName) return null;
+    const optionType = row.querySelector('.cf-type').value;
+    const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
+    const optionValues = row.querySelector('.cf-options').value.split(',').map(s=>s.trim()).filter(Boolean);
+    if(isSelect && optionValues.length===0){ cfError = 'SELECT 타입 항목은 선택지를 1개 이상 입력해야 해요.'; return null; }
+    if(!isSelect && optionValues.length>0){ cfError = 'TEXT/NUMBER/DATE 타입에는 선택지를 입력할 수 없어요 — 지워주세요.'; return null; }
+    return {
+      fieldName, required: row.querySelector('.cf-required').checked, optionType,
+      options: isSelect ? optionValues.map((v,i)=>({optionValue:v, displayOrder:i})) : []
+    };
+  }).filter(Boolean);
+  if(cfError){ showToast(cfError); return; }
+  withLoading(async ()=>{
+    const room = await apiFetch('/rooms', { method:'POST', body: JSON.stringify({name, description, maxMember, customFields}) });
+    state.knownRooms.push(room);
+    state.cache.room = room;
+    showToast('룸이 생성됐어요. 이어서 내 프로필 카드를 작성해주세요.');
+    // ⚠️ RoomServiceImpl.createRoom이 오너용 MemberProfileCard를 만들어주지 않아서,
+    //    오너도 멤버 참여와 동일한 카드 작성 화면을 거치게 함(카드가 없으면 스페이스 생성이 막힘)
+    navigate('room-join-card', {roomId: room.id, roomCode: room.roomCode});
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   룸 참여 (① GET /rooms/join/{code} 로 참여 처리 → ② 카드 작성)
+===================================================================== */
+function renderRoomJoin(){
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">Join Room</div>
+    <h1 class="page-title">초대 코드로 참여하기</h1>
+    <div class="form-card">
+      ${state.joinError ? `<div class="form-msg error">${esc(state.joinError)}</div>` : ''}
+      <div class="field"><label>초대 코드</label><input id="jr-code" type="text" style="text-transform:uppercase;"></div>
+      <button class="btn btn-primary btn-block" onclick="onJoinRoom()">참여하기</button>
+    </div>
+  </div>`;
+}
+function onJoinRoom(){
+  const code = document.getElementById('jr-code').value.trim().toUpperCase();
+  if(!code){ state.joinError='초대 코드를 입력해주세요.'; render(); return; }
+  withLoading(async ()=>{
+    // ① 참여 처리
+    const joinResult = await apiFetch('/rooms/join/' + code, { method:'GET' });
+    state.joinError='';
+    const room = joinResult.room;
+    if(!state.knownRooms.find(r=>r.id===room.id)) state.knownRooms.push(room);
+    state.cache.room = room;
+    if(joinResult.member){
+      // 이미 카드까지 있는 기존 멤버
+      navigate('room', {roomId: room.id});
+    } else {
+      navigate('room-join-card', {roomId: room.id, roomCode: code});
+    }
+  }).catch(e=>{ state.joinError = e.message; render(); });
+}
+function renderRoomJoinCard(){
+  const room = state.cache.room;
+  if(!room) return `<div class="page"><div class="empty">룸 정보를 불러오지 못했어요.</div></div>`;
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">${esc(room.name)}</div>
+    <h1 class="page-title">프로필 카드 작성</h1>
+    <p class="page-desc">룸을 이용하려면 프로필 카드를 작성해야 해요.</p>
+    <div class="form-card">
+      <div class="field"><label>이름</label><input id="jc-name" type="text" value="${esc(state.me?.email||'')}"></div>
+      ${(room.customFields||[]).map(f=>`
+        <div class="field">
+          <label>${esc(f.fieldName)}${f.required?' *':''}</label>
+          ${renderCustomFieldInput(f, 'jc-field-'+f.id)}
+        </div>`).join('')}
+      <button class="btn btn-primary btn-block" onclick="onSubmitJoinCard()">카드 저장하고 시작하기</button>
+    </div>
+  </div>`;
+}
+function renderCustomFieldInput(f, id){
+  if(f.optionType==='TEXT') return `<input id="${id}" type="text">`;
+  if(f.optionType==='NUMBER') return `<input id="${id}" type="number">`;
+  if(f.optionType==='DATE') return `<input id="${id}" type="date">`;
+  if(f.optionType==='SINGLE_SELECT') return `<select id="${id}"><option value="">선택해주세요</option>${(f.options||[]).map(o=>`<option value="${esc(o.optionValue)}">${esc(o.optionValue)}</option>`).join('')}</select>`;
+  if(f.optionType==='MULTI_SELECT') return `<select id="${id}" multiple size="${Math.min((f.options||[]).length,4)||3}">${(f.options||[]).map(o=>`<option value="${esc(o.optionValue)}">${esc(o.optionValue)}</option>`).join('')}</select>`;
+  return `<input id="${id}" type="text">`;
+}
+function onSubmitJoinCard(){
+  const { roomId, roomCode } = state.params;
+  const room = state.cache.room;
+  const name = document.getElementById('jc-name').value.trim();
+  const answers = {};
+  (room.customFields||[]).forEach(f=>{
+    const el = document.getElementById('jc-field-'+f.id);
+    if(el) answers[f.id] = el.value;
+  });
+  withLoading(async ()=>{
+    // ② 프로필 카드 생성 — 트랜잭션이 룸참여(①)와 분리되어 있어 순차 호출
+    await apiFetch('/memberProfileCard/create', { method:'POST', body: JSON.stringify({ name, roomCode, answers }) });
+    showToast('룸 참여가 완료됐어요.');
+    navigate('room', {roomId});
+  }).catch(e=>{
+    showToast('카드 저장 실패: ' + e.message + ' (룸 참여는 이미 완료된 상태예요)');
+  });
+}
+function openRoom(roomId){ navigate('room', {roomId}); }
+
+/* =====================================================================
+   룸 상세
+===================================================================== */
+async function loadRoom(roomId){
+  const room = await apiFetch('/rooms/' + roomId, { method:'GET' });
+  state.cache.room = room;
+  if(!state.knownRooms.find(r=>r.id===room.id)) state.knownRooms.push(room);
+  return room;
+}
+function renderRoom(){
+  const roomId = state.params.roomId;
+  const tab = state.params.tab || 'spaces';
+  if(!state.cache.room || String(state.cache.room.id)!==String(roomId)){
+    withLoading(async ()=>{
+      await loadRoom(roomId);
+      if(tab==='members') await loadRoomMembers(roomId);
+      else { await loadSpaces(roomId); await loadRoomTags(roomId); }
+    }).catch(()=>{});
+    return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  }
+  const room = state.cache.room;
+  return `
+  <div class="page">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div>
+        <span class="plaque-code">${esc(room.roomCode)}</span>
+        <h1 class="page-title" style="margin-top:10px;">${esc(room.name)}</h1>
+        <p class="page-desc" style="margin-bottom:6px;">${esc(room.description)||'소개가 아직 없어요.'}</p>
+        <div class="field-hint">오너 ${esc(room.ownerName)} · 멤버 ${room.currentMember}${room.maxMember?'/'+room.maxMember:''}명</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-primary" onclick="navigate('room-chat',{roomId:'${room.id}'})">💬 룸 채팅</button>
+        <button class="btn btn-sm" onclick="navigate('invites-inbox',{roomId:'${room.id}'})">내 초대함</button>
+        ${room.ownerId===state.me?.id ? `
+          <button class="btn btn-sm" onclick="openModal('room-edit',{})">룸 정보 수정</button>
+          <button class="btn btn-sm" onclick="openModal('custom-fields',{})">카드 형식 관리</button>
+          <button class="btn btn-sm btn-danger" onclick="onDeleteRoom('${room.id}')">룸 삭제</button>
+        ` : ''}
+      </div>
+    </div>
+    <div class="tabs" style="margin-top:26px;">
+      <button class="tab ${tab==='spaces'?'active':''}" onclick="switchRoomTab('spaces')">스페이스</button>
+      <button class="tab ${tab==='members'?'active':''}" onclick="switchRoomTab('members')">멤버</button>
+    </div>
+    ${tab==='members' ? renderRoomMembersTab() : renderRoomSpacesTab()}
+  </div>`;
+}
+function onDeleteRoom(roomId){
+  if(!confirm('룸을 삭제할까요? 되돌릴 수 없어요.')) return;
+  withLoading(async ()=>{
+    await apiFetch('/rooms/' + roomId, { method:'DELETE' });
+    state.knownRooms = state.knownRooms.filter(r=>String(r.id)!==String(roomId));
+    showToast('룸이 삭제됐어요.');
+    navigate('main');
+  }).catch(()=>{});
+}
+function switchRoomTab(tab){
+  state.params = {...state.params, tab};
+  withLoading(async ()=>{
+    if(tab==='members') await loadRoomMembers(state.params.roomId);
+    else { await loadSpaces(state.params.roomId); await loadRoomTags(state.params.roomId); }
+  }).catch(()=>{});
+}
+async function loadRoomMembers(roomId){
+  // 룸 멤버 목록 API가 없어 MemberProfileCard 필터(roomId만 지정)로 대체
+  state.cache.roomMembers = await apiFetch('/memberProfileCard/filter', { method:'POST', body: JSON.stringify({ roomId: Number(roomId) }) });
+  buildMemberNameMap(state.cache.roomMembers);
+}
+// 룸 내 표시 이름은 User 이름이 아니라 해당 룸의 MemberProfileCard.name 기준
+function buildMemberNameMap(cards){
+  const map = {};
+  (cards||[]).forEach(c => { map[c.userId] = c.name; });
+  state.cache.memberNames = map;
+  return map;
+}
+async function ensureMemberNames(roomId){
+  if(Object.keys(state.cache.memberNames||{}).length) return state.cache.memberNames;
+  const cards = await apiFetch('/memberProfileCard/filter', { method:'POST', body: JSON.stringify({ roomId: Number(roomId) }) });
+  return buildMemberNameMap(cards);
+}
+function nameOf(userId){
+  return (state.cache.memberNames && state.cache.memberNames[userId]) || ('유저 ' + userId);
+}
+function renderRoomMembersTab(){
+  const members = state.cache.roomMembers || [];
+  return `
+  <div class="warn-banner">⚠️ 룸 멤버 전용 조회 API가 없어서, 멤버 프로필 카드 필터 결과로 대체 표시하고 있어요.</div>
+  <div class="section-head"><h2>멤버</h2><span class="count">${members.length}명</span></div>
+  ${members.length ? members.map(m=>`
+    <div class="member-row">
+      <div class="avatar">${esc(initials(m.name))}</div>
+      <div class="info"><span class="name">${esc(m.name)}</span><div class="tagline">카드 작성됨</div></div>
+      <div class="row-actions"><button class="btn btn-sm" onclick="openModal('profile-card',{card:${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}})">카드 보기</button></div>
+    </div>`).join('') : `<div class="empty">멤버 카드가 없어요.</div>`}`;
+}
+async function loadSpaces(roomId, tags){
+  let path = '/rooms/' + roomId + '/spaces';
+  if(tags && tags.length) path += '?' + tags.map(t=>'tags=' + encodeURIComponent(t)).join('&');
+  state.cache.spaces = await apiFetch(path, { method:'GET' });
+}
+async function loadRoomTags(roomId){
+  state.cache.roomTags = await apiFetch('/rooms/' + roomId + '/tags', { method:'GET' });
+}
+function toggleTagFilter(tag){
+  state.params.activeTags = state.params.activeTags || [];
+  const i = state.params.activeTags.indexOf(tag);
+  if(i>-1) state.params.activeTags.splice(i,1); else state.params.activeTags.push(tag);
+  withLoading(async ()=> loadSpaces(state.params.roomId, state.params.activeTags)).catch(()=>{});
+}
+function renderRoomSpacesTab(){
+  const spaces = state.cache.spaces || [];
+  const room = state.cache.room;
+  const tags = state.cache.roomTags || [];
+  const active = state.params.activeTags || [];
+  return `
+  <div class="section-head">
+    <h2>스페이스</h2>
+    <button class="btn btn-primary btn-sm" onclick="navigate('space-create',{roomId:'${room.id}'})">+ 스페이스 만들기</button>
+  </div>
+  ${tags.length ? `<div class="card-tags" style="margin-bottom:16px;">${tags.map(t=>`
+    <span class="tag ${active.includes(t)?'alt':''}" style="cursor:pointer;" onclick="toggleTagFilter('${esc(t)}')">${esc(t)}</span>`).join('')}</div>` : ''}
+  ${spaces.length ? `<div class="card-grid">${spaces.map(s=>`
+    <div class="idx-card" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
+      <span class="card-tag-space">SPACE</span>
+      <div class="card-name">${esc(s.name)}</div>
+      <div class="rule"></div>
+      <div class="card-tags">${(s.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+      <div class="card-foot"><span>멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</span></div>
+    </div>`).join('')}</div>` : `<div class="empty">${active.length?'해당 태그의 스페이스가 없어요.':'아직 만들어진 스페이스가 없어요.'}</div>`}`;
+}
+
+/* =====================================================================
+   스페이스 생성 (카드 동시 설정)
+===================================================================== */
+function renderSpaceCreate(){
+  const room = state.cache.room;
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">${esc(room?.name||'')}</div>
+    <h1 class="page-title">스페이스 만들기</h1>
+    <div class="form-card">
+      <div class="field"><label>스페이스 이름</label><input id="sc-name" type="text"></div>
+      <div class="field"><label>최대 인원</label><input id="sc-max" type="number"></div>
+      <div class="field"><label>기술 스택 (쉼표로 구분)</label><input id="sc-tech" type="text"></div>
+      <div class="field"><label>태그 (쉼표로 구분)</label><input id="sc-tags" type="text"></div>
+      <div class="field"><label>선호 시작 시간</label><input id="sc-start" type="datetime-local"></div>
+      <div class="field"><label>선호 종료 시간</label><input id="sc-end" type="datetime-local"></div>
+      <div class="field"><label>커스텀 필드 (한 줄에 하나, "항목명: 값1, 값2" 형식)</label><textarea id="sc-custom" rows="3" placeholder="예: 선호 요일: 월, 수, 금"></textarea></div>
+      <button class="btn btn-primary btn-block" onclick="onCreateSpace()">만들기</button>
+    </div>
+  </div>`;
+}
+// "항목명: 값1, 값2" 줄 단위 텍스트 <-> Map<String, List<String>> 변환
+function parseCustomFieldText(text){
+  const map = {};
+  (text||'').split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
+    const idx = line.indexOf(':');
+    if(idx<0) return;
+    const key = line.slice(0,idx).trim();
+    const values = line.slice(idx+1).split(',').map(v=>v.trim()).filter(Boolean);
+    if(key) map[key] = values;
+  });
+  return map;
+}
+function customFieldToText(map){
+  return Object.entries(map||{}).map(([k,vs])=> `${k}: ${(vs||[]).join(', ')}`).join('\n');
+}
+function onCreateSpace(){
+  const name = document.getElementById('sc-name').value.trim();
+  if(!name){ showToast('스페이스 이름을 입력해주세요.'); return; }
+  const roomId = state.params.roomId;
+  const body = {
+    name,
+    maxMemberCount: parseInt(document.getElementById('sc-max').value) || null,
+    techStack: document.getElementById('sc-tech').value.split(',').map(s=>s.trim()).filter(Boolean),
+    tags: document.getElementById('sc-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    preferredStartTime: document.getElementById('sc-start').value || null,
+    preferredEndTime: document.getElementById('sc-end').value || null,
+    customField: parseCustomFieldText(document.getElementById('sc-custom').value),
+  };
+  withLoading(async ()=>{
+    await apiFetch('/rooms/' + roomId + '/spaces', { method:'POST', body: JSON.stringify(body) });
+    showToast('스페이스가 생성됐어요.');
+    await loadSpaces(roomId);
+    navigate('room', {roomId, tab:'spaces'});
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   스페이스 상세
+===================================================================== */
+function renderSpace(){
+  const { roomId, spaceId } = state.params;
+  if(!state.cache.spaceDetail || String(state.cache.spaceDetail._id)!==String(spaceId)){
+    withLoading(async ()=>{
+      const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+      detail._id = spaceId;
+      if(!state.cache.room || String(state.cache.room.id)!==String(roomId)) await loadRoom(roomId);
+      await ensureMemberNames(roomId).catch(()=>{});
+      // ownerId 필드가 추가되어 정확한 오너 판별 가능
+      detail.isOwner = detail.ownerId === state.me?.id;
+      state.cache.spaceDetail = detail;
+    }).catch(()=>{});
+    return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  }
+  const s = state.cache.spaceDetail;
+  const canManageSpace = s.isOwner || state.cache.room?.ownerId===state.me?.id;
+  return `
+  <div class="page">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div>
+        <span class="tag alt">SPACE</span>
+        <h1 class="page-title" style="margin-top:10px;">${esc(s.name)}</h1>
+        <div class="card-tags" style="margin-bottom:6px;">${(s.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+        <div class="field-hint">오너 ${esc(s.owner)} · 기술스택 ${(s.techStack||[]).join(', ')||'-'} · 멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</div>
+        ${(s.preferredStartTime||s.preferredEndTime) ? `<div class="field-hint">선호 시간: ${esc((s.preferredStartTime||'-').toString().slice(0,16))} ~ ${esc((s.preferredEndTime||'-').toString().slice(0,16))}</div>` : ''}
+        ${s.customField && Object.keys(s.customField).length ? `<div class="field-hint" style="white-space:pre-line;">${esc(customFieldToText(s.customField))}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="navigate('space-chat',{roomId:'${roomId}',spaceId:'${spaceId}'})">💬 스페이스 채팅</button>
+        <button class="btn btn-sm" onclick="onApplySpace('${spaceId}')">가입 신청하기</button>
+        ${canManageSpace ? `
+          <button class="btn btn-sm" onclick="openModal('space-edit',{})">카드 수정</button>
+          <button class="btn btn-sm" onclick="openModal('space-transfer',{})">오너 위임</button>
+        ` : ''}
+        ${s.isOwner ? `
+          <button class="btn btn-sm" onclick="openSpaceInviteModal()">멤버 초대</button>
+          <button class="btn btn-sm" onclick="openModal('space-invite-list',{})">가입 신청 확인</button>
+        ` : ''}
+        <button class="btn btn-danger btn-sm" onclick="onLeaveSpace('${roomId}','${spaceId}')">탈퇴하기</button>
+        ${canManageSpace ? `<button class="btn btn-danger btn-sm" onclick="onDeleteSpace('${roomId}','${spaceId}')">스페이스 삭제</button>` : ''}
+      </div>
+    </div>
+    <div class="warn-banner">⚠️ 스페이스 멤버 목록을 조회하는 API가 없어서 멤버 리스트는 표시하지 못했어요.</div>
+  </div>`;
+}
+function openSpaceInviteModal(){
+  withLoading(async ()=>{
+    // 초대 후보 = 룸 멤버 (스페이스 멤버 목록 API가 없어 "이미 스페이스에 있는지"는 걸러내지 못함)
+    await loadRoomMembers(state.params.roomId);
+  }).then(()=> openModal('space-invite', {})).catch(()=>{});
+}
+function onLeaveSpace(roomId, spaceId){
+  if(!confirm('스페이스에서 탈퇴할까요?')) return;
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/${spaceId}/leave`, { method:'DELETE' });
+    showToast('스페이스에서 탈퇴했어요.');
+    await loadSpaces(roomId);
+    navigate('room', {roomId, tab:'spaces'});
+  }).catch(()=>{});
+}
+function onDeleteSpace(roomId, spaceId){
+  if(!confirm('스페이스를 삭제할까요? 되돌릴 수 없어요.')) return;
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'DELETE' });
+    showToast('스페이스가 삭제됐어요.');
+    await loadSpaces(roomId);
+    navigate('room', {roomId, tab:'spaces'});
+  }).catch(()=>{});
+}
+/* =====================================================================
+   내 초대함 — GET /invites/members, accept/reject
+===================================================================== */
+function onApplySpace(spaceId){
+  withLoading(async ()=>{
+    await apiFetch('/invites/apply', { method:'POST', body: JSON.stringify({ spaceId: Number(spaceId) }) });
+    showToast('가입 신청을 보냈어요.');
+  }).catch(()=>{});
+}
+function renderInvitesInbox(){
+  const list = state.cache.invites;
+  if(!list){
+    withLoading(async ()=>{
+      state.cache.invites = await apiFetch('/invites/members', { method:'GET' });
+    }).catch(()=>{});
+    return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  }
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">Invites</div>
+    <h1 class="page-title">내 초대함</h1>
+    <p class="page-desc">스페이스에 보낸 가입 신청, 받은 가입 권유를 확인해요.</p>
+    ${list.length ? list.map(inv=>`
+      <div class="member-row">
+        <div class="info">
+          <span class="name">${esc(inv.spaceName)} <span class="badge">${inv.type==='MemberToSpace'?'내 신청':'받은 권유'}</span></span>
+          <div class="tagline">${inv.status}</div>
+        </div>
+        ${inv.status==='PENDING' ? `
+        <div class="row-actions">
+          <button class="btn btn-sm btn-primary" onclick="onInviteAction('${inv.id}','accept')">수락</button>
+          <button class="btn btn-sm btn-danger" onclick="onInviteAction('${inv.id}','reject')">거절</button>
+        </div>` : ''}
+      </div>`).join('') : `<div class="empty">대기 중인 초대/신청이 없어요.</div>`}
+  </div>`;
+}
+function onInviteAction(inviteId, action){
+  withLoading(async ()=>{
+    await apiFetch(`/invites/${inviteId}/${action}`, { method:'POST' });
+    showToast(action==='accept' ? '수락했어요.' : '거절했어요.');
+    state.cache.invites = null;
+    navigate('invites-inbox', state.params);
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   Room 관리 (수정/삭제/카드형식) API
+===================================================================== */
+function onSaveRoomEdit(){
+  const room = state.cache.room;
+  const maxMemberRaw = document.getElementById('re-max').value;
+  const maxMember = parseInt(maxMemberRaw);
+  if(!maxMemberRaw || isNaN(maxMember) || maxMember < 1){ showToast('최대 인원은 1명 이상 필수로 입력해야 해요.'); return; }
+  if(maxMember < room.currentMember){ showToast(`최대 인원은 현재 인원(${room.currentMember}명)보다 작을 수 없어요.`); return; }
+  const body = {
+    name: document.getElementById('re-name').value.trim() || room.name,
+    description: document.getElementById('re-desc').value.trim(),
+    maxMember,
+  };
+  withLoading(async ()=>{
+    const updated = await apiFetch('/rooms/' + room.id, { method:'PATCH', body: JSON.stringify(body) });
+    state.cache.room = updated;
+    showToast('룸 정보를 수정했어요.');
+    closeModal();
+  }).catch(()=>{});
+}
+function onSaveCustomFields(){
+  const room = state.cache.room;
+  const rows = document.querySelectorAll('.cf-row');
+  const customFields = [];
+  let error = null;
+  rows.forEach(row=>{
+    const existingId = row.dataset.fieldId ? Number(row.dataset.fieldId) : null;
+    if(existingId){
+      // 기존 필드는 절대 재구성하지 않고 원본 그대로 재전송(옵션 id 보존 — 안 그러면 서버가 "수정 불가" 에러를 던짐)
+      const original = (room.customFields||[]).find(f=>f.id===existingId);
+      if(original){
+        customFields.push({
+          id: original.id, fieldName: original.fieldName, required: original.required,
+          optionType: original.optionType,
+          options: (original.options||[]).map(o=>({ id:o.id, optionValue:o.optionValue, displayOrder:o.displayOrder }))
+        });
+      }
+      return;
+    }
+    // 신규 필드
+    const optionType = row.querySelector('.cf-type').value;
+    const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
+    const optionValues = row.querySelector('.cf-options').value.split(',').map(s=>s.trim()).filter(Boolean);
+    if(isSelect && optionValues.length===0){ error = 'SELECT 타입 항목은 선택지를 1개 이상 입력해야 해요.'; return; }
+    if(!isSelect && optionValues.length>0){ error = 'TEXT/NUMBER/DATE 타입에는 선택지를 입력할 수 없어요 — 지워주세요.'; return; }
+    customFields.push({
+      id: null,
+      fieldName: row.querySelector('.cf-name').value.trim(),
+      required: row.querySelector('.cf-required').checked,
+      optionType,
+      options: isSelect ? optionValues.map((v,i)=>({id:null, optionValue:v, displayOrder:i})) : []
+    });
+  });
+  if(error){ showToast(error); return; }
+  const filtered = customFields.filter(f=>f.id || f.fieldName);
+  withLoading(async ()=>{
+    const updated = await apiFetch(`/rooms/${room.id}/customFields`, { method:'PATCH', body: JSON.stringify({ customFields: filtered }) });
+    state.cache.room = { ...room, customFields: updated };
+    showToast('카드 형식을 저장했어요.');
+    closeModal();
+  }).catch(()=>{});
+}
+function addCustomFieldRow(){
+  document.getElementById('cf-rows').insertAdjacentHTML('beforeend', customFieldRowHtml());
+  render.skipNext = true; // no-op, 그냥 DOM만 추가
+}
+function customFieldRowHtml(f){
+  f = f || {fieldName:'', required:false, optionType:'TEXT', options:[]};
+  const isExisting = !!f.id;
+  return `
+  <div class="cf-row" data-field-id="${f.id||''}" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;">
+    ${isExisting ? `<div class="field-hint" style="margin-bottom:8px;">기존 항목 — 이름/타입/옵션은 이 화면에서 수정할 수 없어요. 바꾸려면 삭제 후 새로 추가해주세요.</div>` : ''}
+    <div class="field"><label>필드명</label><input class="cf-name" type="text" value="${esc(f.fieldName)}" ${isExisting?'disabled':''}></div>
+    <div class="field"><label>타입</label>
+      <select class="cf-type" ${isExisting?'disabled':''}>
+        ${['TEXT','NUMBER','DATE','SINGLE_SELECT','MULTI_SELECT'].map(t=>`<option value="${t}" ${f.optionType===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>선택지 (SELECT 타입일 때만, 쉼표로 구분)</label><input class="cf-options" type="text" value="${esc((f.options||[]).map(o=>o.optionValue).join(', '))}" ${isExisting?'disabled':''}></div>
+    <label style="font-size:12.5px;font-weight:600;display:flex;gap:6px;align-items:center;margin-bottom:8px;"><input class="cf-required" type="checkbox" ${f.required?'checked':''} ${isExisting?'disabled':''}> 필수 항목</label>
+    <button type="button" class="btn btn-sm ${isExisting?'btn-danger':''}" onclick="this.closest('.cf-row').remove()">${isExisting?'이 항목 삭제(답변도 함께 삭제됨)':'이 항목 취소'}</button>
+  </div>`;
+}
+
+/* =====================================================================
+   Space 관리 (수정/초대/신청확인/위임) API
+===================================================================== */
+function onSaveSpaceEdit(){
+  const { roomId, spaceId } = state.params;
+  const body = {
+    name: document.getElementById('se-name').value.trim(),
+    maxMemberCount: parseInt(document.getElementById('se-max').value) || null,
+    techStack: document.getElementById('se-tech').value.split(',').map(s=>s.trim()).filter(Boolean),
+    tags: document.getElementById('se-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    preferredStartTime: document.getElementById('se-start').value || null,
+    preferredEndTime: document.getElementById('se-end').value || null,
+    customField: parseCustomFieldText(document.getElementById('se-custom').value),
+  };
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'PATCH', body: JSON.stringify(body) });
+    showToast('스페이스 카드를 수정했어요.');
+    state.cache.spaceDetail = null;
+    closeModal();
+    navigate('space', {roomId, spaceId});
+  }).catch(()=>{});
+}
+function onSendSpaceInvite(){
+  const { roomId, spaceId } = state.params;
+  const targetUserId = document.getElementById('si-userid').value.trim();
+  if(!targetUserId){ showToast('초대할 유저 id를 입력해주세요.'); return; }
+  withLoading(async ()=>{
+    await apiFetch('/invites/invite', { method:'POST', body: JSON.stringify({ spaceId: Number(spaceId), targetUserId: Number(targetUserId) }) });
+    showToast('초대를 보냈어요.');
+    closeModal();
+  }).catch(()=>{});
+}
+async function loadSpacePendingInvites(spaceId){
+  return apiFetch('/invites/spaces/' + spaceId, { method:'GET' });
+}
+function onTransferOwner(){
+  const { roomId, spaceId } = state.params;
+  const newOwnerId = document.getElementById('to-userid').value.trim();
+  if(!newOwnerId){ showToast('새 오너의 유저 id를 입력해주세요.'); return; }
+  if(!confirm('오너를 위임할까요?')) return;
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/${spaceId}/owner`, { method:'PATCH', body: JSON.stringify({ newOwnerId: Number(newOwnerId) }) });
+    showToast('오너를 위임했어요.');
+    state.cache.spaceDetail = null;
+    closeModal();
+    navigate('space', {roomId, spaceId});
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   MemberProfileCard 관리 (수정/삭제) API
+===================================================================== */
+function onUpdateProfileCard(cardId, roomId){
+  const rows = document.querySelectorAll('.pc-answer');
+  const answers = {};
+  rows.forEach(r=> answers[r.dataset.fieldId] = r.value);
+  const name = document.getElementById('pc-edit-name').value.trim();
+  withLoading(async ()=>{
+    await apiFetch('/memberProfileCard/update', { method:'PATCH', body: JSON.stringify({ memberProfileCardId: Number(cardId), name, isMemberProfileCardUpdated:true, answers }) });
+    showToast('카드를 수정했어요.');
+    state.cache.roomMembers = null; state.cache.memberNames = {};
+    closeModal();
+    await loadRoomMembers(roomId);
+    render();
+  }).catch(()=>{});
+}
+function onDeleteProfileCard(cardId, roomId){
+  if(!confirm('카드를 삭제할까요?')) return;
+  withLoading(async ()=>{
+    await apiFetch('/memberProfileCard/' + cardId, { method:'DELETE' });
+    showToast('카드를 삭제했어요.');
+    state.cache.roomMembers = null; state.cache.memberNames = {};
+    closeModal();
+    await loadRoomMembers(roomId);
+    render();
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   채팅 (room · space 공용) — REST 전송 + STOMP 구독
+===================================================================== */
+function renderChat(targetType, targetId){
+  const room = state.cache.room;
+  return `
+  <div class="chat-layout">
+    <aside class="rail">
+      <div class="rail-section-title">채팅</div>
+      <div class="field-hint" style="padding:0 4px;">
+        <span class="ws-dot" id="wsDot"></span><span id="wsStatus">연결 중...</span>
+      </div>
+    </aside>
+    <section class="chat">
+      <div class="chat-head">
+        <div><h2>${targetType==='room'?'룸 채팅':'스페이스 채팅'}</h2><div class="sub">${targetType==='room'?'이 룸의 모든 멤버와 공유되는 대화예요':'이 스페이스 멤버끼리만 공유되는 대화예요'}</div></div>
+      </div>
+      <div class="chat-scroll" id="chatScroll"><div class="empty">불러오는 중...</div></div>
+      <div class="composer">
+        <div class="composer-box">
+          <textarea id="msgInput" rows="1" placeholder="메시지를 입력하세요"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendChat('${targetType}','${targetId}')">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L14 20L11 13L4 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>`;
+}
+async function initChat(targetType, targetId){
+  const roomId = state.params.roomId || (targetType==='room' ? targetId : null);
+  if(roomId) await ensureMemberNames(roomId).catch(()=>{});
+  await loadChatHistory(targetType, targetId);
+  connectWs(targetType, targetId);
+}
+async function loadChatHistory(targetType, targetId){
+  try{
+    const history = await apiFetch(`/chat/${targetType}/${targetId}?size=50`, { method:'GET' });
+    const scroll = document.getElementById('chatScroll');
+    if(!scroll) return;
+    if(!history.chats.length){ scroll.innerHTML = `<div class="empty">아직 대화가 없어요. 첫 메시지를 보내보세요.</div>`; return; }
+    scroll.innerHTML = history.chats.map(renderMsgHtml).join('');
+    scroll.scrollTop = scroll.scrollHeight;
+  }catch(e){ showToast('대화 내역을 불러오지 못했어요: ' + e.message); }
+}
+function renderMsgHtml(c){
+  const mine = c.senderId === state.me?.id;
+  const senderName = nameOf(c.senderId);
+  return `
+  <div class="msg-row ${mine?'mine':''}">
+    <div class="msg-avatar">${esc(initials(senderName))}</div>
+    <div class="msg-body">
+      <div class="msg-meta"><span class="name">${esc(senderName)}</span><span>${esc((c.createdAt||'').toString().slice(11,16))}</span></div>
+      <div class="bubble">${esc(c.content)}</div>
+    </div>
+  </div>`;
+}
+function connectWs(targetType, targetId){
+  if(state.ws.client){ try{ state.ws.client.disconnect(); }catch(e){} }
+  const socket = new SockJS(API_BASE + '/ws');
+  const client = Stomp.over(socket);
+  client.debug = null;
+  state.ws.client = client;
+  client.connect(
+    { Authorization: 'Bearer ' + state.accessToken },
+    () => {
+      const dot = document.getElementById('wsDot'); const st = document.getElementById('wsStatus');
+      if(dot){ dot.classList.add('on'); }
+      if(st){ st.textContent = '실시간 연결됨'; }
+      state.ws.sub = client.subscribe('/sub/' + targetType + '/' + targetId, (frame)=>{
+        const msg = JSON.parse(frame.body);
+        if(msg.senderId === state.me?.id) return; // 내가 보낸 건 낙관적 렌더로 이미 표시됨
+        const scroll = document.getElementById('chatScroll');
+        if(!scroll) return;
+        scroll.insertAdjacentHTML('beforeend', renderMsgHtml(msg));
+        scroll.scrollTop = scroll.scrollHeight;
+      });
+    },
+    (err) => {
+      const st = document.getElementById('wsStatus');
+      if(st) st.textContent = '연결 실패 — 새로고침 해주세요';
+      showToast('실시간 채팅 연결 실패: ' + (err?.headers?.message || '알 수 없는 오류'));
+    }
+  );
+}
+function sendChat(targetType, targetId){
+  const input = document.getElementById('msgInput');
+  const content = input.value.trim();
+  if(!content) return;
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  apiFetch('/chat/send', { method:'POST', body: JSON.stringify({ targetType, targetId: Number(targetId), content }) })
+    .then(msg=>{
+      const scroll = document.getElementById('chatScroll');
+      if(scroll){
+        if(scroll.querySelector('.empty')) scroll.innerHTML='';
+        scroll.insertAdjacentHTML('beforeend', renderMsgHtml(msg));
+        scroll.scrollTop = scroll.scrollHeight;
+      }
+      input.value='';
+    })
+    .catch(e=> showToast('전송 실패: ' + e.message))
+    .finally(()=>{ btn.disabled=false; });
+}
+document.addEventListener('keydown', (e)=>{
+  if(e.target && e.target.id==='msgInput' && e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    if(state.page==='room-chat') sendChat('room', state.params.roomId);
+    if(state.page==='space-chat') sendChat('space', state.params.spaceId);
+  }
+});
+
+/* =====================================================================
+   모달
+===================================================================== */
+function renderModal(){
+  const {type, payload} = state.modal;
+  let inner = '';
+  if(type==='profile-card'){
+    const m = JSON.parse(payload.card.replace(/&quot;/g,'"'));
+    const mine = m.userId === state.me?.id;
+    const room = state.cache.room;
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <div class="idx-card" style="cursor:default;">
+      <span class="card-tag-space">PROFILE</span>
+      <div class="card-name">${esc(m.name)}</div>
+      <div class="rule"></div>
+      ${(m.answers||[]).map(a=>{
+        const fieldName = room?.customFields?.find(f=>f.id===a.fieldId)?.fieldName || `필드 #${a.fieldId}`;
+        return `<div style="margin-bottom:8px;"><div class="field-hint" style="margin:0;">${esc(fieldName)}</div><div style="font-size:13.5px;font-weight:600;">${esc(a.value)}</div></div>`;
+      }).join('') || '<div class="field-hint">등록된 항목이 없어요.</div>'}
+    </div>
+    ${mine ? `
+    <div style="margin-top:18px;">
+      <div class="field"><label>이름</label><input id="pc-edit-name" type="text" value="${esc(m.name)}"></div>
+      ${(room?.customFields||[]).map(f=>{
+        const cur = (m.answers||[]).find(a=>a.fieldId===f.id);
+        return `<div class="field"><label>${esc(f.fieldName)}</label><input class="pc-answer" data-field-id="${f.id}" type="text" value="${esc(cur?cur.value:'')}"></div>`;
+      }).join('')}
+      <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
+      <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteProfileCard('${m.id}','${room?.id}')">카드 삭제</button>
+    </div>` : ''}`;
+  }
+  if(type==='room-edit'){
+    const room = state.cache.room;
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h3>룸 정보 수정</h3>
+    <div class="field" style="margin-top:16px;"><label>룸 이름</label><input id="re-name" type="text" value="${esc(room.name)}"></div>
+    <div class="field"><label>룸 소개</label><textarea id="re-desc" rows="3">${esc(room.description)}</textarea></div>
+    <div class="field"><label>최대 인원</label><input id="re-max" type="number" value="${room.maxMember||''}"></div>
+    <button class="btn btn-primary btn-block" onclick="onSaveRoomEdit()">저장</button>`;
+  }
+  if(type==='custom-fields'){
+    const room = state.cache.room;
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h3>멤버 프로필 카드 형식</h3>
+    <div class="notice-banner">⚠️ 기존 항목은 이름/타입/옵션을 수정할 수 없어요(삭제 후 새로 추가해야 해요). 항목을 삭제하면 그 항목에 대한 멤버 답변만 사라지고, 카드 자체가 통째로 삭제되진 않아요.</div>
+    <div id="cf-rows">${(room.customFields||[]).map(f=>customFieldRowHtml(f)).join('') || customFieldRowHtml()}</div>
+    <button class="btn btn-sm" style="margin-bottom:14px;" onclick="addCustomFieldRow()">+ 항목 추가</button>
+    <button class="btn btn-primary btn-block" onclick="onSaveCustomFields()">저장</button>`;
+  }
+  if(type==='space-edit'){
+    const s = state.cache.spaceDetail;
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h3>스페이스 카드 수정</h3>
+    <div class="field" style="margin-top:16px;"><label>이름</label><input id="se-name" type="text" value="${esc(s.name)}"></div>
+    <div class="field"><label>최대 인원</label><input id="se-max" type="number" value="${s.maxMemberCount||''}"></div>
+    <div class="field"><label>기술 스택 (쉼표로 구분)</label><input id="se-tech" type="text" value="${esc((s.techStack||[]).join(', '))}"></div>
+    <div class="field"><label>태그 (쉼표로 구분)</label><input id="se-tags" type="text" value="${esc((s.tags||[]).join(', '))}"></div>
+    <div class="field"><label>선호 시작 시간</label><input id="se-start" type="datetime-local" value="${esc((s.preferredStartTime||'').slice(0,16))}"></div>
+    <div class="field"><label>선호 종료 시간</label><input id="se-end" type="datetime-local" value="${esc((s.preferredEndTime||'').slice(0,16))}"></div>
+    <div class="field"><label>커스텀 필드 (한 줄에 하나, "항목명: 값1, 값2" 형식)</label><textarea id="se-custom" rows="3">${esc(customFieldToText(s.customField))}</textarea></div>
+    <button class="btn btn-primary btn-block" onclick="onSaveSpaceEdit()">저장</button>`;
+  }
+  if(type==='space-invite'){
+    const members = state.cache.roomMembers || [];
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h3>멤버 초대</h3>
+    <div class="field-hint" style="margin:6px 0 14px;">룸 멤버 중에서 초대할 사람을 선택해주세요. ⚠️ 스페이스 멤버 목록 API가 없어 이미 가입된 멤버도 후보에 뜰 수 있어요.</div>
+    <div class="field">
+      <label>초대할 멤버</label>
+      <select id="si-userid">
+        ${members.length ? members.map(m=>`<option value="${m.userId}">${esc(m.name)}</option>`).join('') : `<option value="">룸 멤버가 없어요</option>`}
+      </select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="onSendSpaceInvite()">초대 보내기</button>`;
+  }
+  if(type==='space-invite-list'){
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h3>가입 신청 확인</h3>
+    <div id="space-invite-list-body"><div class="empty">불러오는 중...</div></div>`;
+    setTimeout(async ()=>{
+      try{
+        const list = await loadSpacePendingInvites(state.params.spaceId);
+        const body = document.getElementById('space-invite-list-body');
+        if(!body) return;
+        body.innerHTML = list.length ? list.map(inv=>`
+          <div class="member-row">
+            <div class="info"><span class="name">${esc(inv.memberName)}</span><div class="tagline">${inv.status}</div></div>
+            ${inv.status==='PENDING' ? `
+            <div class="row-actions">
+              <button class="btn btn-sm btn-primary" onclick="onInviteAction('${inv.id}','accept')">수락</button>
+              <button class="btn btn-sm btn-danger" onclick="onInviteAction('${inv.id}','reject')">거절</button>
+            </div>` : ''}
+          </div>`).join('') : `<div class="empty">대기 중인 신청이 없어요.</div>`;
+      }catch(e){ showToast(e.message); }
+    }, 0);
+  }
+  if(type==='space-transfer'){
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h3>오너 위임</h3>
+    <div class="field-hint" style="margin:6px 0 14px;">⚠️ 새 오너는 반드시 이 스페이스의 기존 멤버여야 해요(서버에서 검증함). 멤버 목록 API가 없어 직접 입력해야 해요.</div>
+    <div class="field"><label>새 오너 유저 ID</label><input id="to-userid" type="number"></div>
+    <button class="btn btn-primary btn-block" onclick="onTransferOwner()">위임하기</button>`;
+  }
+  return `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal">${inner}</div></div>`;
+}
+
+/* ===================== INIT ===================== */
+if(restoreTokens()){ state.page = 'main'; }
+render();
+</script>
+</body>
+</html>

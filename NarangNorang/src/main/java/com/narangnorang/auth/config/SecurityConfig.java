@@ -53,7 +53,7 @@ public class SecurityConfig {
 								"/",
 								"/index.html",
 								"/ws/**",
-								"/space-api-test.html"
+								"/narangnorang.html"
 						).permitAll()
 						.anyRequest().authenticated()
 				)
