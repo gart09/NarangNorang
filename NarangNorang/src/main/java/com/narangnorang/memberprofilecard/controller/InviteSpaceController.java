@@ -23,23 +23,33 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/rooms/{roomId}/spaces/{spaceId}/invites")
 @RequiredArgsConstructor
-public class SpaceInviteController {
+public class InviteSpaceController {
 
     private final InviteSpaceService inviteSpaceService;
 
-    // space 신청/권유
-    @PostMapping
-    public ApiResponse<Void> createInvite(
+ // 멤버 본인이 신청
+    @PostMapping("/apply")
+    public ApiResponse<Void> MemberToOwner(
+            @PathVariable("roomId") Long roomId,
+            @PathVariable("spaceId") Long spaceId,
+            @AuthenticationPrincipal MyUserDetails userDetails) {
+
+        inviteSpaceService.applyToSpace(spaceId, userDetails.getId());
+
+        ApiResponse<Void> response = new ApiResponse<>();
+        response.setSuccess(null);
+        return response;
+    }
+
+    // 오너가 멤버 권유
+    @PostMapping("/invite")
+    public ApiResponse<Void> OwnerToMember(
             @PathVariable("roomId") Long roomId,
             @PathVariable("spaceId") Long spaceId,
             @AuthenticationPrincipal MyUserDetails userDetails,
             @RequestBody InviteSpaceRequestDto requestDto) {
 
-        if (requestDto.getTargetUserId() == null) {
-            inviteSpaceService.applyToSpace(spaceId, userDetails.getId());
-        } else {
-            inviteSpaceService.inviteToSpace(spaceId, userDetails.getId(), requestDto.getTargetUserId());
-        }
+        inviteSpaceService.inviteToSpace(spaceId, userDetails.getId(), requestDto.getTargetUserId());
 
         ApiResponse<Void> response = new ApiResponse<>();
         response.setSuccess(null);
@@ -50,10 +60,11 @@ public class SpaceInviteController {
     @GetMapping
     public ApiResponse<List<InviteSpaceResponseDto>> getPendingInvites(
             @PathVariable("roomId") Long roomId,
-            @PathVariable("spaceId") Long spaceId) {
+            @PathVariable("spaceId") Long spaceId,
+            @AuthenticationPrincipal MyUserDetails userDetails) {
 
         ApiResponse<List<InviteSpaceResponseDto>> response = new ApiResponse<>();
-        response.setSuccess(inviteSpaceService.getPendingInvites(spaceId));
+        response.setSuccess(inviteSpaceService.getPendingInvites(spaceId, userDetails.getId()));
         return response;
     }
     

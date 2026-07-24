@@ -35,16 +35,16 @@ public class InviteSpace {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     private MemberProfileCard memberProfileCard;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "space_id", nullable = false)
     private Space space;
 
     @Column(nullable = false)
-    private Long requestId;
-    
+    private Long memberId;
+
     @Column(nullable = false)
-    private Long targetId;
+    private Long ownerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -58,8 +58,13 @@ public class InviteSpace {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    // 이 요청을 승인/거절할 권한이 있는 사람 — type에 따라 memberId 또는 ownerId
+    private Long approverId() {
+        return this.type == InviteType.MemberToSpace ? this.ownerId : this.memberId;
+    }
+
     public void accept(Long requesterId) {
-        if (!this.targetId.equals(requesterId)) {
+        if (!approverId().equals(requesterId)) {
             throw new IllegalStateException("본인에게 온 요청만 처리할 수 있습니다.");
         }
         if (this.status != InviteStatus.PENDING) {
@@ -69,7 +74,7 @@ public class InviteSpace {
     }
 
     public void reject(Long requesterId) {
-        if (!this.targetId.equals(requesterId)) {
+        if (!approverId().equals(requesterId)) {
             throw new IllegalStateException("본인에게 온 요청만 처리할 수 있습니다.");
         }
         if (this.status != InviteStatus.PENDING) {
@@ -79,11 +84,11 @@ public class InviteSpace {
     }
 
     // 멤버가 스페이스에 신청
-    public static InviteSpace memberToSpace(Space space, Long requestId, MemberProfileCard memberProfileCard) {
+    public static InviteSpace memberToSpace(Space space, Long memberUserId, MemberProfileCard memberProfileCard) {
         return InviteSpace.builder()
                 .space(space)
-                .requestId(requestId)
-                .targetId(space.getOwnerId())
+                .memberId(memberUserId)
+                .ownerId(space.getOwnerId())
                 .memberProfileCard(memberProfileCard)
                 .type(InviteType.MemberToSpace)
                 .status(InviteStatus.PENDING)
@@ -91,11 +96,11 @@ public class InviteSpace {
     }
 
     // 오너가 멤버에게 권유
-    public static InviteSpace spaceToMember(Space space, Long requestId, Long targetUserId, MemberProfileCard memberProfileCard) {
+    public static InviteSpace spaceToMember(Space space, Long ownerUserId, Long memberUserId, MemberProfileCard memberProfileCard) {
         return InviteSpace.builder()
                 .space(space)
-                .requestId(requestId)
-                .targetId(targetUserId)
+                .memberId(memberUserId)
+                .ownerId(ownerUserId)
                 .memberProfileCard(memberProfileCard)
                 .type(InviteType.SpaceToMember)
                 .status(InviteStatus.PENDING)

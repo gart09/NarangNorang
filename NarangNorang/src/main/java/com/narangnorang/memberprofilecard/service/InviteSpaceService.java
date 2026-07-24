@@ -14,7 +14,7 @@ public interface InviteSpaceService {
 
     void rejectInvite(Long inviteId, Long requesterId);
 
-    List<InviteSpaceResponseDto> getPendingInvites(Long spaceId);
+    List<InviteSpaceResponseDto> getPendingInvites(Long spaceId, Long userId);
     
     List<InviteSpaceResponseDto> getInvites(Long userId);
 }

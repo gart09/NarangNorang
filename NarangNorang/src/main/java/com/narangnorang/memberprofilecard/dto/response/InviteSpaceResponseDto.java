@@ -15,8 +15,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class InviteSpaceResponseDto {
     private Long id;
-    private Long requesterId;
-    private Long targetId;
+    private Long memberId;
+    private Long ownerId;
     private String spaceName;
     private String memberName;
     private InviteSpace.InviteType type;
@@ -26,8 +26,8 @@ public class InviteSpaceResponseDto {
     public static InviteSpaceResponseDto from(InviteSpace inviteSpace) {
         return InviteSpaceResponseDto.builder()
                 .id(inviteSpace.getId())
-                .requesterId(inviteSpace.getRequestId())
-                .targetId(inviteSpace.getTargetId())
+                .memberId(inviteSpace.getMemberId())
+                .ownerId(inviteSpace.getOwnerId())
                 .spaceName(inviteSpace.getSpace().getName())
                 .memberName(inviteSpace.getMemberProfileCard().getName())
                 .type(inviteSpace.getType())
