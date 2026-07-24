@@ -26,6 +26,9 @@ public class SpaceMember {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private Long userId;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     private MemberProfileCard memberProfileCard;
@@ -33,4 +36,12 @@ public class SpaceMember {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "space_id", nullable = false)
     private Space space;
+    
+    public static SpaceMember toSpaceMemberEntity(Space space, Long userId, MemberProfileCard memberProfileCard) {
+        return SpaceMember.builder()
+                .space(space)
+                .memberProfileCard(memberProfileCard)
+                .userId(userId)
+                .build();
+    }
 }

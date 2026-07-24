@@ -173,6 +173,85 @@
   <pre id="deleteResult"></pre>
 </fieldset>
 
+<hr>
+
+<fieldset>
+  <legend>8. 스페이스 신청 (멤버 본인이 신청)</legend>
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="applyRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>spaceId (숫자)</label>
+    <small>지금 로그인한 계정이 이 스페이스에 신청함. 스페이스가 속한 룸의 멤버여야 함(MemberProfileCard 필요)</small>
+    <input id="applySpaceId" value="1">
+  </div>
+  <button onclick="applyToSpace()">신청</button>
+  <pre id="applyResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>9. 스페이스 권유 (오너가 특정 유저를 권유)</legend>
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="inviteRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>spaceId (숫자)</label>
+    <small>지금 로그인한 계정이 이 스페이스의 오너여야 함</small>
+    <input id="inviteSpaceId" value="1">
+  </div>
+  <div class="field">
+    <label>targetUserId (숫자)</label>
+    <small>권유할 대상의 User id. 그 룸의 멤버여야 함</small>
+    <input id="inviteTargetUserId" value="2">
+  </div>
+  <button onclick="inviteToSpace()">권유</button>
+  <pre id="inviteResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>10. 스페이스 기준 대기 목록 조회 (오너용)</legend>
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="pendingRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>spaceId (숫자)</label>
+    <small>이 스페이스에 걸린 PENDING 상태의 신청/권유를 전부 조회</small>
+    <input id="pendingSpaceId" value="1">
+  </div>
+  <button onclick="getPendingInvites()">조회</button>
+  <pre id="pendingResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>11. 신청/권유 수락 · 거절</legend>
+  <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="processRoomId" value="1">
+  </div>
+  <div class="field">
+    <label>spaceId (숫자)</label>
+    <input id="processSpaceId" value="1">
+  </div>
+  <div class="field">
+    <label>inviteId (숫자)</label>
+    <small>위 대기 목록 조회 결과에서 id 값을 넣으면 됨. 대상자(target) 본인 계정으로 로그인해서 호출해야 함</small>
+    <input id="processInviteId" value="1">
+  </div>
+  <button onclick="acceptInvite()">수락</button>
+  <button onclick="rejectInvite()">거절</button>
+  <pre id="processResult"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>12. 내가 받은 신청/권유 목록 조회</legend>
+  <small>지금 로그인한 계정을 target으로 하는, 대기 중인 모든 신청/권유를 스페이스 구분 없이 조회</small>
+  <button onclick="getMyInvites()">조회</button>
+  <pre id="myInvitesResult"></pre>
+</fieldset>
+
 <script>
 // 같은 origin(http://localhost:8080)에서 이 파일을 열면 상대경로만으로 충분함
 function getBaseUrl() {
@@ -328,6 +407,86 @@ async function deleteSpace() {
     });
     const data = await res.json();
     document.getElementById('deleteResult').textContent = JSON.stringify(data, null, 2);
+}
+
+// ===== InviteSpace 관련 =====
+
+function inviteBaseUrl(roomId, spaceId) {
+    return getBaseUrl() + '/rooms/' + roomId + '/spaces/' + spaceId + '/invites';
+}
+
+async function applyToSpace() {
+    const roomId = document.getElementById('applyRoomId').value;
+    const spaceId = document.getElementById('applySpaceId').value;
+
+    const res = await fetch(inviteBaseUrl(roomId, spaceId), {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ targetUserId: null })   // targetUserId 없음 = 본인 신청
+    });
+    const data = await res.json();
+    document.getElementById('applyResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function inviteToSpace() {
+    const roomId = document.getElementById('inviteRoomId').value;
+    const spaceId = document.getElementById('inviteSpaceId').value;
+    const targetUserId = Number(document.getElementById('inviteTargetUserId').value);
+
+    const res = await fetch(inviteBaseUrl(roomId, spaceId), {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ targetUserId })   // targetUserId 있음 = 오너가 권유
+    });
+    const data = await res.json();
+    document.getElementById('inviteResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function getPendingInvites() {
+    const roomId = document.getElementById('pendingRoomId').value;
+    const spaceId = document.getElementById('pendingSpaceId').value;
+
+    const res = await fetch(inviteBaseUrl(roomId, spaceId), {
+        method: 'GET',
+        headers: authHeaders()
+    });
+    const data = await res.json();
+    document.getElementById('pendingResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function acceptInvite() {
+    const roomId = document.getElementById('processRoomId').value;
+    const spaceId = document.getElementById('processSpaceId').value;
+    const inviteId = document.getElementById('processInviteId').value;
+
+    const res = await fetch(inviteBaseUrl(roomId, spaceId) + '/' + inviteId + '/accept', {
+        method: 'POST',
+        headers: authHeaders()
+    });
+    const data = await res.json();
+    document.getElementById('processResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function rejectInvite() {
+    const roomId = document.getElementById('processRoomId').value;
+    const spaceId = document.getElementById('processSpaceId').value;
+    const inviteId = document.getElementById('processInviteId').value;
+
+    const res = await fetch(inviteBaseUrl(roomId, spaceId) + '/' + inviteId + '/reject', {
+        method: 'POST',
+        headers: authHeaders()
+    });
+    const data = await res.json();
+    document.getElementById('processResult').textContent = JSON.stringify(data, null, 2);
+}
+
+async function getMyInvites() {
+    const res = await fetch(getBaseUrl() + '/users/invites', {
+        method: 'GET',
+        headers: authHeaders()
+    });
+    const data = await res.json();
+    document.getElementById('myInvitesResult').textContent = JSON.stringify(data, null, 2);
 }
 </script>
 
