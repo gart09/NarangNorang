@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCustomAnswerRepository;
 import com.narangnorang.room.dto.request.RoomCreateRequestDto;
+import com.narangnorang.room.dto.request.RoomProfileCustomFieldBulkUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldCreateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldOptionCreateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldOptionUpdateRequestDto;
+import com.narangnorang.room.dto.request.RoomProfileCustomFieldsUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
 import com.narangnorang.room.dto.response.RoomJoinResponseDto;
@@ -177,6 +179,71 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional
+    public List<RoomProfileCustomFieldResponseDto> updateCustomFields(
+            Long roomId,
+            RoomProfileCustomFieldsUpdateRequestDto requestDto,
+            Long userId
+    ) {
+        Room room = findRoom(roomId);
+        User user = findUser(userId);
+
+        validateOwner(room, user);
+
+        if (requestDto.getCustomFields() == null) {
+            throw new IllegalArgumentException("커스텀 필드 목록은 필수입니다.");
+        }
+
+        Set<Long> requestedFieldIds = new HashSet<>();
+
+        for (RoomProfileCustomFieldBulkUpdateRequestDto fieldDto : requestDto.getCustomFields()) {
+            validateOptions(fieldDto.getOptionType(), fieldDto.getOptions());
+
+            if (fieldDto.getId() == null) {
+                room.addCustomField(buildCustomField(fieldDto));
+                continue;
+            }
+
+            if (!requestedFieldIds.add(fieldDto.getId())) {
+                throw new IllegalArgumentException("중복된 커스텀 필드 ID가 존재합니다.");
+            }
+
+            RoomProfileCustomField customField = customFieldRepository.findById(fieldDto.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("커스텀 필드를 찾을 수 없습니다."));
+
+            validateFieldBelongsToRoom(customField, roomId);
+
+            customField.update(
+                    fieldDto.getFieldName(),
+                    fieldDto.isRequired(),
+                    fieldDto.getOptionType()
+            );
+
+            if (isSelectType(fieldDto.getOptionType())) {
+                updateOptions(customField, fieldDto.getOptions());
+            } else {
+                customField.getOptions().clear();
+            }
+        }
+
+        List<RoomProfileCustomField> fieldsToDelete = room.getCustomFields().stream()
+                .filter(field -> field.getId() != null)
+                .filter(field -> !requestedFieldIds.contains(field.getId()))
+                .toList();
+
+        for (RoomProfileCustomField field : fieldsToDelete) {
+            memberProfileCustomAnswerRepository.deleteByRoomProfileCustomFieldId(field.getId());
+            room.removeCustomField(field);
+        }
+
+        customFieldRepository.flush();
+
+        return room.getCustomFields().stream()
+                .map(RoomProfileCustomFieldResponseDto::from)
+                .toList();
+    }
+
+    @Override
+    @Transactional
     public void deleteCustomField(Long roomId, Long fieldId, Long userId) {
         Room room = findRoom(roomId);
         User user = findUser(userId);
@@ -221,6 +288,37 @@ public class RoomServiceImpl implements RoomService {
 
         if (fieldDto.getOptions() != null) {
             for (RoomProfileCustomFieldOptionCreateRequestDto optionDto : fieldDto.getOptions()) {
+                RoomProfileCustomFieldOption option = RoomProfileCustomFieldOption.builder()
+                        .optionValue(optionDto.getOptionValue())
+                        .displayOrder(optionDto.getDisplayOrder())
+                        .build();
+
+                customField.addOption(option);
+            }
+        }
+
+        return customField;
+    }
+
+    private RoomProfileCustomField buildCustomField(
+            RoomProfileCustomFieldBulkUpdateRequestDto fieldDto
+    ) {
+        validateOptions(fieldDto.getOptionType(), fieldDto.getOptions());
+
+        RoomProfileCustomField customField = RoomProfileCustomField.builder()
+                .fieldName(fieldDto.getFieldName())
+                .required(fieldDto.isRequired())
+                .optionType(fieldDto.getOptionType())
+                .build();
+
+        if (fieldDto.getOptions() != null) {
+            for (RoomProfileCustomFieldOptionUpdateRequestDto optionDto : fieldDto.getOptions()) {
+                if (optionDto.getId() != null) {
+                    throw new IllegalArgumentException(
+                            "새 커스텀 필드의 선택지에는 ID를 지정할 수 없습니다."
+                    );
+                }
+
                 RoomProfileCustomFieldOption option = RoomProfileCustomFieldOption.builder()
                         .optionValue(optionDto.getOptionValue())
                         .displayOrder(optionDto.getDisplayOrder())
