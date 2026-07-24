@@ -7,24 +7,13 @@ import com.narangnorang.chat.entity.Chat;
 import com.narangnorang.chat.exception.ChatErrorCode;
 import com.narangnorang.chat.exception.ChatException;
 import com.narangnorang.chat.repository.ChatRepository;
-import com.narangnorang.common.ApiResponse;
-import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
-import com.narangnorang.room.entity.Room;
-import com.narangnorang.room.repository.RoomRepository;
-import com.narangnorang.user.entity.User;
-import com.narangnorang.user.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -49,10 +38,10 @@ public class ChatServiceImpl implements ChatService{
 				if (hasPermission == false) {
 					throw new ChatException(ChatErrorCode.USER_NOT_PERMITTED, "-> 룸id: " + targetId + ", 유저ID: " + userId);
 				}
-				memberName = memberProfileCardRepository.findNameByRoomIdAndUserUserId(targetId, userId);
+				memberName = memberProfileCardRepository.findNameByRoomIdAndUserId(targetId, userId);
 				break;
 			case "space":
-				hasPermission = memberProfileCardRepository.findByUserIdAndSpaceId(userId, targetId).isPresent();
+				hasPermission = memberProfileCardRepository.findBySpaceIdAndUserId(userId, targetId).isPresent();
 				if (hasPermission == false) {
 					throw new ChatException(ChatErrorCode.USER_NOT_PERMITTED, "-> 스페이스id: " + targetId + ", 유저ID: " + userId);
 				}
@@ -82,7 +71,7 @@ public class ChatServiceImpl implements ChatService{
 	public boolean checkPermission(Long userId, String targetType, Long targetId) {
 		return switch (targetType) {
 			case "room" -> memberProfileCardRepository.findByUserIdAndRoomId(userId, targetId).isPresent();
-			case "space" -> memberProfileCardRepository.findByUserIdAndSpaceId(userId, targetId).isPresent();
+			case "space" -> memberProfileCardRepository.findBySpaceIdAndUserId(userId, targetId).isPresent();
 			default -> false;
 		};
 	}
