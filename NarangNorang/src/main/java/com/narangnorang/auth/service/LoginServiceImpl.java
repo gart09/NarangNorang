@@ -52,7 +52,8 @@ public class LoginServiceImpl implements LoginService {
 
 			LocalDateTime newExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenValidDurationSeconds);
 			String email = authentication.getName();
-			Long id = userRepository.findByEmail(email).orElseThrow().getId();
+			User user = userRepository.findByEmail(email).orElseThrow();
+			Long id = user.getId();
 			Optional<RefreshToken> optRefreshToken = refreshTokenRepository.findByUserId(id);
 
 			List<String> roles = authentication.getAuthorities()
@@ -60,8 +61,8 @@ public class LoginServiceImpl implements LoginService {
 					.map(GrantedAuthority::getAuthority)
 					.toList();
 
-			String token = jwtUtil.createToken(id, email, roles);
-			String newRefreshTokenKey = jwtUtil.createRefreshToken(id, email, roles);
+			String token = jwtUtil.createToken(id, email, user.getName(), roles);
+			String newRefreshTokenKey = jwtUtil.createRefreshToken(id, email);
 			RefreshToken refreshToken = null;
 			if (optRefreshToken.isPresent()) {
 				refreshToken = optRefreshToken.get();
@@ -116,8 +117,9 @@ public class LoginServiceImpl implements LoginService {
 
 				Long id = user.getId();
 				String email = user.getEmail();
+				String name = user.getName();
 
-				String newAccessToken = jwtUtil.createToken(id, email, roles);
+				String newAccessToken = jwtUtil.createToken(id, email, name, roles);
 				log.info("Using RefreshToken, Get AccessToken Success for {}", email);
 
 				LoginResponseDto loginResponseDto = LoginResponseDto.builder()

@@ -23,4 +23,5 @@ public class MyUserDetails implements UserDetails{
 	//사용자 정의 필드
 
 	private final Long id;
+	private final String name;
 }

@@ -6,9 +6,11 @@ import com.narangnorang.memberprofilecard.dto.request.MemberProfileCardUpdateReq
 import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardCreateResponseDto;
 import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardReadResponseDto;
 import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardUpdateResponseDto;
+import com.narangnorang.memberprofilecard.dto.response.RoomsListResponseDto;
 import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
 import com.narangnorang.memberprofilecard.entity.MemberProfileCustomAnswer;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
+import com.narangnorang.room.dto.response.RoomResponseDto;
 import com.narangnorang.room.entity.OptionType;
 import com.narangnorang.room.entity.Room;
 import com.narangnorang.room.entity.RoomProfileCustomField;
@@ -119,6 +121,21 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 			throw new IllegalArgumentException("해당 유저는 해당 멤버프로필카드를 삭제할 권한이 없습니다.");
 		}
 		memberProfileCardRepository.delete(memberProfileCard);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public RoomsListResponseDto getRoomsList(Long userId) {
+		List<Room> roomsList = memberProfileCardRepository.findRoomsByUserId(userId);
+
+		return RoomsListResponseDto.builder()
+				.rooms(roomsList.stream()
+						.map(room -> {
+							long currentMemberCount = memberProfileCardRepository.countByRoomId(room.getId());
+							return RoomResponseDto.from(room, currentMemberCount);
+						})
+						.toList())
+				.build();
 	}
 
 	private Map<Long, RoomProfileCustomField> getFieldMap(Map<Long, String> answers) {

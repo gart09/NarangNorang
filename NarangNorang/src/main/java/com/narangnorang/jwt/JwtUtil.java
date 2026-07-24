@@ -51,25 +51,27 @@ public class JwtUtil {
 	}
 
 	// JWT 생성
-	public String createToken(Long id, String username, List<String> roles) {
+	public String createToken(Long id, String email, String username, List<String> roles) {
 		Date now = new Date();
 
 		return Jwts.builder()
-				.subject(username)  // payload : 사용자 식별자 (sub)
+				.subject(email)  // payload : 사용자 식별자 (sub)
 				.claim("id", id)
 				.claim("roles", roles) // payload: 사용자 역할 목록, 반복적으로 더 많은 데이터 추가 <= 공개 노출된다.
+				.claim("username", username)
 				.issuedAt(now)  // payload: 발급 시각 (iat)
 				.expiration(new Date(now.getTime() + tokenValidDuration))
 				.signWith(secretKey, Jwts.SIG.HS256)
 				.compact();
 	}
 
-	public String createRefreshToken(Long id, String username, List<String> roles) {
+	public String createRefreshToken(Long id, String email) {
 		Date now = new Date();
 
 		return Jwts.builder()
-				.subject(username)  // payload : 사용자 식별자 (sub)
+				.subject(email)  // payload : 사용자 식별자 (sub)
 				.claim("id", id)
+				.claim("email", email)
 				.issuedAt(now)  // payload: 발급 시각 (iat)
 				.expiration(new Date(now.getTime() + refreshTokenValidDuration))
 				.signWith(secretKey, Jwts.SIG.HS256)
