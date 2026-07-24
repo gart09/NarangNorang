@@ -26,4 +26,10 @@ public interface SpaceService {
 	
 	// 룸 내의 태그 목록 조회
 	List<String> getRoomTagNames(Long roomId);
+	
+	// 스페이스 탈퇴
+	public void leaveSpace(Long spaceId, Long userId);
+	
+	// 스페이스 위임
+	public void transferOwner(Long spaceId, Long currentOwnerId, Long newOwnerId);
 }

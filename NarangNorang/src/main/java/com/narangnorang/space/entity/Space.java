@@ -66,4 +66,20 @@ public class Space {
     public void updateOwnerId(Long ownerId) {
     	this.ownerId = ownerId;
     }
+    
+    public void assignProfileCard(SpaceProfileCard profileCard) {
+        this.profileCard = profileCard;
+    }
+
+    public void addTag(String tagName) {
+        this.tags.add(Tag.builder().space(this).name(tagName).build());
+    }
+
+    public void addMember(SpaceMember spaceMember) {
+        this.spaceMembers.add(spaceMember);
+    }
+    
+    public void transferOwner(Long newOwnerId) {
+        this.ownerId = newOwnerId;
+    }
 }
