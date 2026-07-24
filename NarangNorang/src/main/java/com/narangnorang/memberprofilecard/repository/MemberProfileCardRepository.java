@@ -18,6 +18,16 @@ public interface MemberProfileCardRepository extends JpaRepository<MemberProfile
 	@Query("SELECT m.name FROM MemberProfileCard m WHERE m.user.id = :userId AND m.room.id = :roomId")
 	String findNameByRoomIdAndUserUserId(@Param("roomId")Long roomId, @Param("userId") Long userId);
 
+	@Query("SELECT m FROM MemberProfileCard m " +
+			"JOIN m.spaceMembers sm " +
+			"WHERE sm.space.id = :spaceId AND m.user.id = :userId")
+	Optional<MemberProfileCard> findByUserIdAndSpaceId(@Param("spaceId")Long spaceId, @Param("userId") Long userId);
+
+	@Query("SELECT m.name FROM MemberProfileCard m " +
+			"JOIN m.spaceMembers sm " +
+			"WHERE sm.space.id = :spaceId AND m.user.id = :userId")
+	String findNameByUserIdAndSpaceId(@Param("spaceId")Long spaceId, @Param("userId") Long userId);
+
 	boolean existsByUserIdAndRoomId(Long userId, Long roomId);
 
     long countByRoomId(Long roomId);
