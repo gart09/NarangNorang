@@ -278,6 +278,10 @@
 <fieldset>
   <legend>13. 스페이스 탈퇴</legend>
   <div class="field">
+    <label>roomId (숫자)</label>
+    <input id="leaveRoomId" value="1">
+  </div>
+  <div class="field">
     <label>spaceId (숫자)</label>
     <small>지금 로그인한 계정이 이 스페이스에서 탈퇴함. 오너는 탈퇴 불가(먼저 오너 위임 필요)</small>
     <input id="leaveSpaceId" value="1">
@@ -289,34 +293,9 @@
 <fieldset>
   <legend>14. 스페이스 오너 위임</legend>
   <div class="field">
-    <label>spaceId (숫자)</label>
-    <small>지금 로그인한 계정이 이 스페이스의 현재 오너여야 함</small>
-    <input id="transferSpaceId" value="1">
+    <label>roomId (숫자)</label>
+    <input id="transferRoomId" value="1">
   </div>
-  <div class="field">
-    <label>newOwnerId (숫자)</label>
-    <small>새 오너로 지정할 User id. 이 스페이스의 멤버여야 함</small>
-    <input id="transferNewOwnerId" value="2">
-  </div>
-  <button onclick="transferOwner()">위임</button>
-  <pre id="transferResult"></pre>
-</fieldset>
-
-<hr>
-
-<fieldset>
-  <legend>13. 스페이스 탈퇴</legend>
-  <div class="field">
-    <label>spaceId (숫자)</label>
-    <small>지금 로그인한 계정이 이 스페이스에서 탈퇴함. 오너는 탈퇴 불가(먼저 오너 위임 필요)</small>
-    <input id="leaveSpaceId" value="1">
-  </div>
-  <button onclick="leaveSpace()">탈퇴</button>
-  <pre id="leaveResult"></pre>
-</fieldset>
-
-<fieldset>
-  <legend>14. 스페이스 오너 위임</legend>
   <div class="field">
     <label>spaceId (숫자)</label>
     <small>지금 로그인한 계정이 이 스페이스의 현재 오너여야 함</small>
@@ -593,7 +572,7 @@ async function rejectInvite() {
 }
 
 async function getMyInvites() {
-    const res = await fetch(getBaseUrl() + '/invites', {
+    const res = await fetch(getBaseUrl() + '/invites/members', {
         method: 'GET',
         headers: authHeaders()
     });
@@ -604,9 +583,10 @@ async function getMyInvites() {
 // ===== 탈퇴 / 오너 위임 =====
 
 async function leaveSpace() {
+    const roomId = document.getElementById('leaveRoomId').value;
     const spaceId = document.getElementById('leaveSpaceId').value;
 
-    const res = await fetch(getBaseUrl() + '/spaces/' + spaceId + '/leave', {
+    const res = await fetch(getBaseUrl() + '/rooms/' + roomId + '/' + spaceId + '/leave', {
         method: 'DELETE',
         headers: authHeaders()
     });
@@ -615,10 +595,11 @@ async function leaveSpace() {
 }
 
 async function transferOwner() {
+    const roomId = document.getElementById('transferRoomId').value;
     const spaceId = document.getElementById('transferSpaceId').value;
     const newOwnerId = Number(document.getElementById('transferNewOwnerId').value);
 
-    const res = await fetch(getBaseUrl() + '/spaces/' + spaceId + '/owner', {
+    const res = await fetch(getBaseUrl() + '/rooms/' + roomId + '/' + spaceId + '/owner', {
         method: 'PATCH',
         headers: authHeaders(),
         body: JSON.stringify({ newOwnerId })
