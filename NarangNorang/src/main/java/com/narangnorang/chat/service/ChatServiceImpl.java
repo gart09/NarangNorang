@@ -41,22 +41,26 @@ public class ChatServiceImpl implements ChatService{
 		Long targetId = chatRequestDto.getTargetId();
 		String targetType = chatRequestDto.getTargetType();
 
-		boolean hasPermission = memberProfileCardRepository.findByUserIdAndRoomId(userId, targetId).isPresent();
+		boolean hasPermission;
+		String memberName = null;
 		switch (targetType) {
 			case "room":
+				hasPermission = memberProfileCardRepository.findByUserIdAndRoomId(userId, targetId).isPresent();
 				if (hasPermission == false) {
-					throw new ChatException(ChatErrorCode.USER_NOT_PERMITTED, "유저ID: " + userId);
+					throw new ChatException(ChatErrorCode.USER_NOT_PERMITTED, "-> 룸id: " + targetId + ", 유저ID: " + userId);
 				}
+				memberName = memberProfileCardRepository.findNameByRoomIdAndUserUserId(targetId, userId);
 				break;
 			case "space":
+				hasPermission = memberProfileCardRepository.findByUserIdAndSpaceId(userId, targetId).isPresent();
+				if (hasPermission == false) {
+					throw new ChatException(ChatErrorCode.USER_NOT_PERMITTED, "-> 스페이스id: " + targetId + ", 유저ID: " + userId);
+				}
+				memberName = memberProfileCardRepository.findNameByUserIdAndSpaceId(targetId, userId);
 				break;
 		}
 		Chat savedChat = chatRepository.save(chatRequestDto.toEntity());
 		ChatResponseDto savedDto = ChatResponseDto.from(savedChat);
-		//Todo: targetType에 맞춰 스페이스나 룸에서 해당 멤버 정보 가져오기
-		String memberName = memberProfileCardRepository.findNameByRoomIdAndUserUserId(targetId, savedChat.getSenderId());
-
-		//String memberName = memberProfileCardRepository.findNameBySpaceIdAndUserUserId(savedChat.getSenderId());
 		if (memberName == null)
 			throw new ChatException(ChatErrorCode.MEMBER_NOT_FOUND, savedChat.getSenderId());
 
@@ -76,12 +80,10 @@ public class ChatServiceImpl implements ChatService{
 
 	@Override
 	public boolean checkPermission(Long userId, String targetType, Long targetId) {
-		switch (targetType) {
-			case "room":
-				return memberProfileCardRepository.findByUserIdAndRoomId(userId, targetId).isPresent();
-			case "space":
-				break;
-		}
-		return false;
+		return switch (targetType) {
+			case "room" -> memberProfileCardRepository.findByUserIdAndRoomId(userId, targetId).isPresent();
+			case "space" -> memberProfileCardRepository.findByUserIdAndSpaceId(userId, targetId).isPresent();
+			default -> false;
+		};
 	}
 }
