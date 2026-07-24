@@ -41,7 +41,7 @@ public class ChatServiceImpl implements ChatService{
 				memberName = memberProfileCardRepository.findNameByRoomIdAndUserId(targetId, userId);
 				break;
 			case "space":
-				hasPermission = memberProfileCardRepository.findBySpaceIdAndUserId(userId, targetId).isPresent();
+				hasPermission = memberProfileCardRepository.findByUserIdAndSpaceId(userId, targetId).isPresent();
 				if (hasPermission == false) {
 					throw new ChatException(ChatErrorCode.USER_NOT_PERMITTED, "-> 스페이스id: " + targetId + ", 유저ID: " + userId);
 				}
@@ -71,7 +71,7 @@ public class ChatServiceImpl implements ChatService{
 	public boolean checkPermission(Long userId, String targetType, Long targetId) {
 		return switch (targetType) {
 			case "room" -> memberProfileCardRepository.findByUserIdAndRoomId(userId, targetId).isPresent();
-			case "space" -> memberProfileCardRepository.findBySpaceIdAndUserId(userId, targetId).isPresent();
+			case "space" -> memberProfileCardRepository.findByUserIdAndSpaceId(userId, targetId).isPresent();
 			default -> false;
 		};
 	}
