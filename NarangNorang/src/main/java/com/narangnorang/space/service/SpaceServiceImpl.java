@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
 import com.narangnorang.room.entity.Room;
 import com.narangnorang.room.repository.RoomRepository;
@@ -13,8 +14,10 @@ import com.narangnorang.space.dto.request.SpaceUpdateRequestDto;
 import com.narangnorang.space.dto.response.SpaceProfileCardResponseDto;
 import com.narangnorang.space.dto.response.SpaceSummaryResponseDto;
 import com.narangnorang.space.entity.Space;
+import com.narangnorang.space.entity.SpaceMember;
 import com.narangnorang.space.entity.SpaceProfileCard;
 import com.narangnorang.space.entity.Tag;
+import com.narangnorang.space.repository.SpaceMemberRepository;
 import com.narangnorang.space.repository.SpaceProfileCardRepository;
 import com.narangnorang.space.repository.SpaceRepository;
 import com.narangnorang.space.repository.TagRepository;
@@ -33,6 +36,7 @@ public class SpaceServiceImpl implements SpaceService{
 	private final TagRepository tagRepository;
 	private final RoomRepository roomRepository;
 	private final MemberProfileCardRepository memberProfileCardRepository;
+	private final SpaceMemberRepository spaceMemberRepository; 
 	
 	// 스페이스 목록 조회 (태그 필터링 옵션)
 	@Override
@@ -74,28 +78,29 @@ public class SpaceServiceImpl implements SpaceService{
 	@Override
 	@Transactional
 	public SpaceProfileCardResponseDto createSpace(Long roomId, Long ownerId, SpaceCreateRequestDto spaceCreateRequestDto) {
-		
-		validateRoomExists(roomId);
-		validateRoomMember(roomId, ownerId);
-	    
-		Space space = spaceCreateRequestDto.toSpaceEntity(roomId, ownerId);
-		spaceRepository.save(space);
-		
-		SpaceProfileCard card = spaceCreateRequestDto.toProfileCardEntity(space);
-        spaceProfileCardRepository.save(card);
-        
-		List<Tag> tags = spaceCreateRequestDto.getTags().stream()
-		        .map(tagName -> Tag.builder()
-					                .space(space)
-					                .name(tagName)
-					                .build())
-					        		.toList();	
-        tagRepository.saveAll(tags);
-        
-        
-        log.info("스페이스 생성 완료 - space : {}", space);
 
-        return SpaceProfileCardResponseDto.from(space, card, spaceCreateRequestDto.getTags());
+	    validateRoomExists(roomId);
+	    validateRoomMember(roomId, ownerId);
+
+	    Space space = spaceCreateRequestDto.toSpaceEntity(roomId, ownerId);
+
+	    SpaceProfileCard card = spaceCreateRequestDto.toProfileCardEntity(space);
+	    space.assignProfileCard(card);
+
+	    spaceCreateRequestDto.getTags().forEach(space::addTag);
+
+	    MemberProfileCard memberProfileCard = memberProfileCardRepository
+	            .findByUserIdAndRoomId(ownerId, roomId)
+	            .orElseThrow(() -> new IllegalStateException("멤버 프로필이 존재하지 않습니다."));
+	    space.addMember(SpaceMember.toSpaceMemberEntity(space, ownerId, memberProfileCard));
+
+	    space.updateCurrentMember(1L);
+
+	    spaceRepository.save(space);   // 이거 하나로 space, profileCard, tags, spaceMembers 다 저장됨
+
+	    log.info("스페이스 생성 완료 - space : {}", space);
+
+	    return SpaceProfileCardResponseDto.from(space, card, spaceCreateRequestDto.getTags());
 	}
 
 	
@@ -182,6 +187,29 @@ public class SpaceServiceImpl implements SpaceService{
 	    }
 	}
 
+	// 스페이스 탈퇴
+	@Transactional
+	public void leaveSpace(Long spaceId, Long userId) {
+	    Space space = spaceRepository.findById(spaceId)
+	            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
+
+	    SpaceMember spaceMember = spaceMemberRepository.findBySpaceIdAndUserId(userId, spaceId)
+	            .orElseThrow(() -> new IllegalStateException("이 스페이스의 멤버가 아닙니다."));
+	    
+	    // 오너는 탈퇴 불가
+	    if (space.getOwnerId().equals(userId)) {
+	        throw new IllegalStateException("오너는 탈퇴할 수 없습니다. 먼저 오너를 위임해주세요.");
+	    }
+
+	    spaceMemberRepository.delete(spaceMember);
+	    space.updateCurrentMember(space.getCurrentMemberCount() -1);
+	    
+	    log.info("스페이스 탈퇴 완료 - spaceId={}, userId={}", spaceId, userId);
+	}
+	
+	
+	
+	// 스페이스 및 룸 검증
 	private void validateManagePermission(Space space, Long roomId, Long userId) {
 		if (!space.getRoomId().equals(roomId)) {
 			throw new IllegalArgumentException("해당 룸의 스페이스가 아닙니다.");
@@ -199,4 +227,32 @@ public class SpaceServiceImpl implements SpaceService{
 			);
 		}
 	}
+	
+	// 스페이스 오너 위임
+	@Transactional
+	public void transferOwner(Long spaceId, Long currentOwnerId, Long newOwnerId) {
+	    Space space = spaceRepository.findById(spaceId)
+	            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
+
+	    // 현재 오너만 위임 가능
+	    if (!space.getOwnerId().equals(currentOwnerId)) {
+	        throw new IllegalStateException("스페이스 오너만 위임할 수 있습니다.");
+	    }
+
+	    // 새 오너가 이 스페이스의 멤버인지 확인
+	    if (!spaceMemberRepository.existsBySpaceIdAndUserId(spaceId, newOwnerId)) {
+	        throw new IllegalStateException("스페이스 멤버만 오너로 위임할 수 있습니다.");
+	    }
+
+	    // 자기 자신에게 위임하는 경우 방지
+	    if (currentOwnerId.equals(newOwnerId)) {
+	        throw new IllegalArgumentException("이미 오너입니다.");
+	    }
+
+	    space.transferOwner(newOwnerId);
+
+	    log.info("스페이스 오너 위임 완료 - spaceId={}, from={}, to={}", spaceId, currentOwnerId, newOwnerId);
+	}
+
+	
 }

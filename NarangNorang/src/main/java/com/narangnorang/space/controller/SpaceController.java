@@ -17,6 +17,7 @@ import com.narangnorang.auth.config.MyUserDetails;
 import com.narangnorang.common.ApiResponse;
 import com.narangnorang.space.dto.request.SpaceCreateRequestDto;
 import com.narangnorang.space.dto.request.SpaceUpdateRequestDto;
+import com.narangnorang.space.dto.request.TransferOwnerRequestDto;
 import com.narangnorang.space.dto.response.SpaceProfileCardResponseDto;
 import com.narangnorang.space.dto.response.SpaceSummaryResponseDto;
 import com.narangnorang.space.service.SpaceService;
@@ -104,6 +105,33 @@ public class SpaceController {
 	public ApiResponse<List<String>> getRoomTags(@PathVariable("roomId") Long roomId) {
 	    ApiResponse<List<String>> response = new ApiResponse<>();
 	    response.setSuccess(spaceService.getRoomTagNames(roomId));
+	    return response;
+	}
+	
+	//스페이스 탈퇴
+	@DeleteMapping("/{spaceId}/leave")
+	public ApiResponse<Void> leaveSpace(
+	        @PathVariable("spaceId") Long spaceId,
+	        @AuthenticationPrincipal MyUserDetails userDetails) {
+
+	    spaceService.leaveSpace(spaceId, userDetails.getId());
+
+	    ApiResponse<Void> response = new ApiResponse<>();
+	    response.setSuccess(null);
+	    return response;
+	}
+	
+	//스페이스 위임
+	@PatchMapping("/{spaceId}/owner")
+	public ApiResponse<Void> transferOwner(
+	        @PathVariable("spaceId") Long spaceId,
+	        @AuthenticationPrincipal MyUserDetails userDetails,
+	        @RequestBody TransferOwnerRequestDto requestDto) {
+
+	    spaceService.transferOwner(spaceId, userDetails.getId(), requestDto.getNewOwnerId());
+
+	    ApiResponse<Void> response = new ApiResponse<>();
+	    response.setSuccess(null);
 	    return response;
 	}
 }
