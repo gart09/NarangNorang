@@ -21,62 +21,66 @@ import com.narangnorang.memberprofilecard.service.InviteSpaceService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/rooms/{roomId}/spaces/{spaceId}/invites")
+@RequestMapping("/invites")
 @RequiredArgsConstructor
 public class InviteSpaceController {
 
     private final InviteSpaceService inviteSpaceService;
 
- // 멤버 본인이 신청
+    // 멤버 -> 오너 지원
     @PostMapping("/apply")
-    public ApiResponse<Void> MemberToOwner(
-            @PathVariable("roomId") Long roomId,
-            @PathVariable("spaceId") Long spaceId,
-            @AuthenticationPrincipal MyUserDetails userDetails) {
-
-        inviteSpaceService.applyToSpace(roomId, spaceId, userDetails.getId());
-
-        ApiResponse<Void> response = new ApiResponse<>();
-        response.setSuccess(null);
-        return response;
-    }
-
-    // 오너가 멤버 권유
-    @PostMapping("/invite")
-    public ApiResponse<Void> OwnerToMember(
-            @PathVariable("roomId") Long roomId,
-            @PathVariable("spaceId") Long spaceId,
+    public ApiResponse<Void> apply(
             @AuthenticationPrincipal MyUserDetails userDetails,
             @RequestBody InviteSpaceRequestDto requestDto) {
 
-        inviteSpaceService.inviteToSpace(roomId, spaceId, userDetails.getId(), requestDto.getTargetUserId());
+        inviteSpaceService.applyToSpace(requestDto.getSpaceId(), userDetails.getId());
 
         ApiResponse<Void> response = new ApiResponse<>();
         response.setSuccess(null);
         return response;
     }
 
-    // 스페이스 신청 대기 목록 조회
-    @GetMapping
+    // 오너-> 멤버 권유
+    @PostMapping("/invite")
+    public ApiResponse<Void> invite(
+            @AuthenticationPrincipal MyUserDetails userDetails,
+            @RequestBody InviteSpaceRequestDto requestDto) {
+
+        inviteSpaceService.inviteToSpace(requestDto.getSpaceId(), userDetails.getId(), requestDto.getTargetUserId());
+
+        ApiResponse<Void> response = new ApiResponse<>();
+        response.setSuccess(null);
+        return response;
+    }
+
+    // 스페이스 요청 대기 목록
+    @GetMapping("/spaces/{spaceId}")
     public ApiResponse<List<InviteSpaceResponseDto>> getPendingInvites(
-            @PathVariable("roomId") Long roomId,
             @PathVariable("spaceId") Long spaceId,
             @AuthenticationPrincipal MyUserDetails userDetails) {
 
         ApiResponse<List<InviteSpaceResponseDto>> response = new ApiResponse<>();
-        response.setSuccess(inviteSpaceService.getPendingInvites(roomId, spaceId, userDetails.getId()));
+        response.setSuccess(inviteSpaceService.getPendingInvites(spaceId, userDetails.getId()));
         return response;
     }
     
+    // 유저 요청 대기 목록
+    @GetMapping("/members")
+    public ApiResponse<List<InviteSpaceResponseDto>> getInvites(
+            @AuthenticationPrincipal MyUserDetails userDetails) {
+
+        ApiResponse<List<InviteSpaceResponseDto>> response = new ApiResponse<>();
+        response.setSuccess(inviteSpaceService.getInvites(userDetails.getId()));
+        return response;
+    }
+
     // 수락
     @PostMapping("/{inviteId}/accept")
     public ApiResponse<Void> accept(
-            @PathVariable("roomId") Long roomId,
-            @PathVariable("spaceId") Long spaceId,
             @PathVariable("inviteId") Long inviteId,
             @AuthenticationPrincipal MyUserDetails userDetails) {
 
-        inviteSpaceService.acceptInvite(roomId, inviteId, userDetails.getId());
+        inviteSpaceService.acceptInvite(inviteId, userDetails.getId());
 
         ApiResponse<Void> response = new ApiResponse<>();
         response.setSuccess(null);
@@ -86,12 +90,10 @@ public class InviteSpaceController {
     // 거절
     @PostMapping("/{inviteId}/reject")
     public ApiResponse<Void> reject(
-            @PathVariable("roomId") Long roomId,
-            @PathVariable("spaceId") Long spaceId,
             @PathVariable("inviteId") Long inviteId,
             @AuthenticationPrincipal MyUserDetails userDetails) {
 
-        inviteSpaceService.rejectInvite(roomId, inviteId, userDetails.getId());
+        inviteSpaceService.rejectInvite(inviteId, userDetails.getId());
 
         ApiResponse<Void> response = new ApiResponse<>();
         response.setSuccess(null);

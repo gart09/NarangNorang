@@ -32,11 +32,10 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     // 멤버가 스페이스에 신청
     @Override
     @Transactional
-    public void applyToSpace(Long roomId, Long spaceId, Long userId) {
+    public void applyToSpace(Long spaceId, Long userId) {
     	
         Space space = spaceRepository.findById(spaceId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
-    	validateRoom(roomId, space);
         
         MemberProfileCard memberProfileCard = validateInvitable(space, userId);
 
@@ -49,11 +48,10 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     // 오너가 멤버에게 권유
     @Override
     @Transactional
-    public void inviteToSpace(Long roomId, Long spaceId, Long ownerId, Long memberUserId) {
+    public void inviteToSpace(Long spaceId, Long ownerId, Long memberUserId) {
         Space space = spaceRepository.findById(spaceId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
-        validateRoom(roomId, space);
-        
+
         if (!space.getOwnerId().equals(ownerId)) {
             throw new IllegalStateException("스페이스 오너만 가능한 작업입니다.");
         }
@@ -69,7 +67,7 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     // 수락
     @Override
     @Transactional
-    public void acceptInvite(Long roomId, Long inviteId, Long requesterId) {
+    public void acceptInvite(Long inviteId, Long requesterId) {
     	
         InviteSpace inviteSpace = inviteSpaceRepository.findById(inviteId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 신청/초대입니다."));
@@ -77,7 +75,6 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
         inviteSpace.accept(requesterId);
 
         Space space = inviteSpace.getSpace();
-    	validateRoom(roomId, space);
     	
         // 룸 탈퇴 검증
         if (!memberProfileCardRepository.existsByUserIdAndRoomId(inviteSpace.getMemberId(), space.getRoomId())) {
@@ -98,12 +95,12 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     // 거절
     @Override
     @Transactional
-    public void rejectInvite(Long roomId, Long inviteId, Long requesterId) {
+    public void rejectInvite(Long inviteId, Long requesterId) {
     	
         InviteSpace inviteSpace = inviteSpaceRepository.findById(inviteId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 신청/초대입니다."));
         Space space = inviteSpace.getSpace();
-    	validateRoom(roomId, space);
+
         inviteSpace.reject(requesterId);
 
         log.info("스페이스 초대/신청 거절 완료 - inviteId={}", inviteId);
@@ -111,11 +108,10 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
 
     // 스페이스 기준 대기 목록 조회 (오너가 확인)
     @Override
-    public List<InviteSpaceResponseDto> getPendingInvites(Long roomId, Long spaceId, Long userId) {
+    public List<InviteSpaceResponseDto> getPendingInvites(Long spaceId, Long userId) {
         Space space = spaceRepository.findById(spaceId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
         
-        validateRoom(roomId, space);
         // 스페이스 오너 검증
         if (!space.getOwnerId().equals(userId)) {
             throw new IllegalStateException("스페이스 오너만 조회할 수 있습니다.");
@@ -157,16 +153,10 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
         if (inviteSpaceRepository.existsBySpaceIdAndMemberIdAndStatus(space.getId(), userId, InviteSpace.InviteStatus.PENDING)) {
             throw new IllegalStateException("이미 처리 대기 중인 신청/초대가 있습니다.");
         }
-
         return memberProfileCard;
     }
     
-    // 룸 경로 검증
-    private void validateRoom(Long roomId, Space space) {
-    	if (!space.getRoomId().equals(roomId)) {
-            throw new IllegalArgumentException("잘못된 룸 경로입니다.");
-        }
-    }
+
     
     
 }

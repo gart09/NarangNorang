@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 @Builder
 public class InviteSpaceRequestDto {
     private Long targetUserId;
+    private Long spaceId;
 }
