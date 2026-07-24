@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Getter
@@ -49,24 +51,25 @@ public class MemberProfileCard {
 		this.name = name;
 	}
 
-	public void updateAnswers(Map<Long, String> newAnswers) {
+	public void updateAnswers(List<MemberProfileCustomAnswer> newAnswers) {
 		if (newAnswers == null || newAnswers.isEmpty()) {
 			return;
 		}
 
-		this.answers.forEach(existingAnswer -> {
-			Long fieldId = existingAnswer.getRoomProfileCustomField().getId();
+		Map<Long, MemberProfileCustomAnswer> answerMap = answers.stream()
+				.collect(Collectors.toMap(
+						answer -> answer.getRoomProfileCustomField().getId(),
+						answer -> answer
+				));
 
-			if (newAnswers.containsKey(fieldId)) {
-				existingAnswer.updateValue(newAnswers.get(fieldId));
+		for(MemberProfileCustomAnswer newAnswer : newAnswers){
+			MemberProfileCustomAnswer existingAnswer = answerMap.get(newAnswer.getRoomProfileCustomField().getId());
+			if(existingAnswer != null){
+				existingAnswer.updateValue(newAnswer.getValue());
+			}else{
+				addAnswer(newAnswer);
 			}
-		});
-	}
-
-	public void updateAnswersWithNewField(List<MemberProfileCustomAnswer> newAnswers){
-		this.answers.clear();
-		if(newAnswers != null && newAnswers.isEmpty() == false)
-			this.answers.addAll(newAnswers);
+		}
 	}
 
 	public void updateDate(){

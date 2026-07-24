@@ -83,25 +83,26 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 
 
 		Set<Long> requestedFieldIds = requestDto.getAnswers().keySet();
+
+		// 원래 멤버프로필카드에 있던 항목이지만, requestDto에 없는 항목이라면 삭제된 항목이므로, 미리 삭제시킨다.
+		memberProfileCard.getAnswers().removeIf(answer -> requestedFieldIds.contains(answer.getRoomProfileCustomField().getId()) == false);
+
+		// requestDto의 fieldId를 가지고 있는 룸프로필커스텀필드 리스트를 만듬
 		List<RoomProfileCustomField> roomProfileCustomFields = roomProfileCustomFieldRepository.findAllById(requestedFieldIds);
-		Map<Long, RoomProfileCustomField> roomProfileCustomFieldMap = roomProfileCustomFields.stream()
-				.collect(Collectors.toMap(RoomProfileCustomField::getId, field -> field));
 
-		if(requestDto.isMemberProfileCardUpdated() == true){
+		//Map으로 커스텀필드id랑 엔티티를 연결(newAnswers만들때 편하게 만들기 위해서)
+		Map<Long, RoomProfileCustomField> newCustomFieldMap = roomProfileCustomFields.stream()
+				.collect(Collectors.toMap(RoomProfileCustomField::getId, Function.identity()));
 
-			List<MemberProfileCustomAnswer> newAnswers = requestDto.getAnswers().entrySet().stream()
-					.map(entry -> MemberProfileCustomAnswer.builder()
-							.memberProfileCard(memberProfileCard)
-							.roomProfileCustomField(roomProfileCustomFieldMap.get(entry.getKey()))
-							.value(entry.getValue())
-							.build())
-					.toList();
-			memberProfileCard.updateAnswersWithNewField(newAnswers);
-		}
-		else {
-			memberProfileCard.updateAnswers(requestDto.getAnswers());
-		}
+		List<MemberProfileCustomAnswer> newAnswers = requestDto.getAnswers().entrySet().stream()
+				.map(entry -> MemberProfileCustomAnswer.builder()
+						.memberProfileCard(memberProfileCard)
+						.roomProfileCustomField(newCustomFieldMap.get(entry.getKey()))
+						.value(entry.getValue())
+						.build())
+				.toList();
 
+		memberProfileCard.updateAnswers(newAnswers);
 		memberProfileCard.updateName(requestDto.getName());
 		memberProfileCard.updateDate();
 
