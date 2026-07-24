@@ -19,6 +19,5 @@ import java.util.Map;
 public class MemberProfileCardUpdateRequestDto {
 		private Long memberProfileCardId;
 		private String name;
-		private boolean isMemberProfileCardUpdated;
 		private Map<Long, String> answers;
 }
