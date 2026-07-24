@@ -34,10 +34,11 @@ public class SpaceController {
 	@GetMapping("/spaces")
 	public ApiResponse<List<SpaceSummaryResponseDto>> getSpaceList(
 			@PathVariable("roomId") Long roomId,
+			@AuthenticationPrincipal MyUserDetails userDetails,
 			@RequestParam(name = "tags", required = false) List<String> tags) {
 
 		ApiResponse<List<SpaceSummaryResponseDto>> response = new ApiResponse<>();
-		response.setSuccess(spaceService.getSpaceList(roomId, tags));
+		response.setSuccess(spaceService.getSpaceList(roomId, userDetails.getId(), tags));
 		return response;
 	}
 
@@ -45,10 +46,11 @@ public class SpaceController {
 	@GetMapping("/spaces/{spaceId}")
 	public ApiResponse<SpaceProfileCardResponseDto> getSpaceDetail(
 			@PathVariable("roomId") Long roomId,
-			@PathVariable("spaceId") Long spaceId) {
+			@PathVariable("spaceId") Long spaceId,
+			@AuthenticationPrincipal MyUserDetails userDetails) {
 
 		ApiResponse<SpaceProfileCardResponseDto> response = new ApiResponse<>();
-		response.setSuccess(spaceService.getSpaceDetail(spaceId));
+		response.setSuccess(spaceService.getSpaceDetail(roomId, spaceId, userDetails.getId()));
 		return response;
 	}
 
@@ -77,7 +79,7 @@ public class SpaceController {
 		Long userId = userDetails.getId();
 
 		ApiResponse<SpaceProfileCardResponseDto> response = new ApiResponse<>();
-		response.setSuccess(spaceService.updateSpaceCard(spaceId, userId, spaceUpdateRequestDto));
+		response.setSuccess(spaceService.updateSpaceCard(roomId, spaceId, userId, spaceUpdateRequestDto));
 		return response;
 	}
 
@@ -90,7 +92,7 @@ public class SpaceController {
 
 		Long userId = userDetails.getId();
 
-		spaceService.deleteSpace(spaceId, userId);
+		spaceService.deleteSpace(roomId, spaceId, userId);
 
 		ApiResponse<Void> response = new ApiResponse<>();
 		response.setSuccess(null);

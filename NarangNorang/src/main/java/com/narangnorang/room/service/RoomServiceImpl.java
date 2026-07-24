@@ -1,5 +1,13 @@
 package com.narangnorang.room.service;
 
+import java.security.SecureRandom;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
 import com.narangnorang.room.dto.request.RoomCreateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldCreateRequestDto;
@@ -7,8 +15,8 @@ import com.narangnorang.room.dto.request.RoomProfileCustomFieldOptionCreateReque
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldOptionUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
-import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
 import com.narangnorang.room.dto.response.RoomJoinResponseDto;
+import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
 import com.narangnorang.room.dto.response.RoomResponseDto;
 import com.narangnorang.room.entity.OptionType;
 import com.narangnorang.room.entity.Room;
@@ -17,16 +25,11 @@ import com.narangnorang.room.entity.RoomProfileCustomFieldOption;
 import com.narangnorang.room.repository.RoomProfileCustomFieldOptionRepository;
 import com.narangnorang.room.repository.RoomProfileCustomFieldRepository;
 import com.narangnorang.room.repository.RoomRepository;
+import com.narangnorang.space.repository.SpaceRepository;
 import com.narangnorang.user.entity.User;
 import com.narangnorang.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +46,7 @@ public class RoomServiceImpl implements RoomService {
     private final RoomProfileCustomFieldOptionRepository optionRepository;
     private final UserRepository userRepository;
     private final MemberProfileCardRepository memberProfileCardRepository;
+    private final SpaceRepository spaceRepository;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -157,6 +161,12 @@ public class RoomServiceImpl implements RoomService {
         User user = findUser(userId);
 
         validateOwner(room, user);
+        
+        spaceRepository.deleteAll(
+                spaceRepository.findByRoomId(roomId)
+        );
+        spaceRepository.flush();
+        
         roomRepository.delete(room);
     }
 
