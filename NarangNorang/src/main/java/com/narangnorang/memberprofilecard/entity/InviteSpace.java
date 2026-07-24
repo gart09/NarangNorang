@@ -33,7 +33,7 @@ public class InviteSpace {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
+    @JoinColumn(name = "member_profile_card_id", nullable = false)
     private MemberProfileCard memberProfileCard;
 
     @ManyToOne(fetch = FetchType.LAZY)
