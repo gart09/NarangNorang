@@ -6,15 +6,15 @@ import com.narangnorang.memberprofilecard.dto.response.InviteSpaceResponseDto;
 
 public interface InviteSpaceService {
 
-    void applyToSpace(Long spaceId, Long userId);
+    void applyToSpace(Long roomId, Long spaceId, Long userId);
 
-    void inviteToSpace(Long spaceId, Long ownerId, Long targetMemberId);
+    void inviteToSpace(Long roomId, Long spaceId, Long ownerId, Long targetMemberId);
 
-    void acceptInvite(Long inviteId, Long requesterId);
+    void acceptInvite(Long roomId, Long inviteId, Long requesterId);
 
-    void rejectInvite(Long inviteId, Long requesterId);
+    void rejectInvite(Long roomId, Long inviteId, Long requesterId);
 
-    List<InviteSpaceResponseDto> getPendingInvites(Long spaceId, Long userId);
+    List<InviteSpaceResponseDto> getPendingInvites(Long roomId, Long spaceId, Long userId);
     
     List<InviteSpaceResponseDto> getInvites(Long userId);
 }

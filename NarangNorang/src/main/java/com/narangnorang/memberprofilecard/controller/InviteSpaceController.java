@@ -34,7 +34,7 @@ public class InviteSpaceController {
             @PathVariable("spaceId") Long spaceId,
             @AuthenticationPrincipal MyUserDetails userDetails) {
 
-        inviteSpaceService.applyToSpace(spaceId, userDetails.getId());
+        inviteSpaceService.applyToSpace(roomId, spaceId, userDetails.getId());
 
         ApiResponse<Void> response = new ApiResponse<>();
         response.setSuccess(null);
@@ -49,7 +49,7 @@ public class InviteSpaceController {
             @AuthenticationPrincipal MyUserDetails userDetails,
             @RequestBody InviteSpaceRequestDto requestDto) {
 
-        inviteSpaceService.inviteToSpace(spaceId, userDetails.getId(), requestDto.getTargetUserId());
+        inviteSpaceService.inviteToSpace(roomId, spaceId, userDetails.getId(), requestDto.getTargetUserId());
 
         ApiResponse<Void> response = new ApiResponse<>();
         response.setSuccess(null);
@@ -64,7 +64,7 @@ public class InviteSpaceController {
             @AuthenticationPrincipal MyUserDetails userDetails) {
 
         ApiResponse<List<InviteSpaceResponseDto>> response = new ApiResponse<>();
-        response.setSuccess(inviteSpaceService.getPendingInvites(spaceId, userDetails.getId()));
+        response.setSuccess(inviteSpaceService.getPendingInvites(roomId, spaceId, userDetails.getId()));
         return response;
     }
     
@@ -76,7 +76,7 @@ public class InviteSpaceController {
             @PathVariable("inviteId") Long inviteId,
             @AuthenticationPrincipal MyUserDetails userDetails) {
 
-        inviteSpaceService.acceptInvite(inviteId, userDetails.getId());
+        inviteSpaceService.acceptInvite(roomId, inviteId, userDetails.getId());
 
         ApiResponse<Void> response = new ApiResponse<>();
         response.setSuccess(null);
@@ -91,7 +91,7 @@ public class InviteSpaceController {
             @PathVariable("inviteId") Long inviteId,
             @AuthenticationPrincipal MyUserDetails userDetails) {
 
-        inviteSpaceService.rejectInvite(inviteId, userDetails.getId());
+        inviteSpaceService.rejectInvite(roomId, inviteId, userDetails.getId());
 
         ApiResponse<Void> response = new ApiResponse<>();
         response.setSuccess(null);
