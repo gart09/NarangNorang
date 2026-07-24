@@ -28,8 +28,9 @@ public interface SpaceService {
 	List<String> getRoomTagNames(Long roomId);
 	
 	// 스페이스 탈퇴
-	public void leaveSpace(Long spaceId, Long userId);
+	public void leaveSpace(Long roomId, Long spaceId, Long userId);
 	
 	// 스페이스 위임
-	public void transferOwner(Long spaceId, Long currentOwnerId, Long newOwnerId);
+	public void transferOwner(Long roomId, Long spaceId, Long currentOwnerId, Long newOwnerId);
+
 }

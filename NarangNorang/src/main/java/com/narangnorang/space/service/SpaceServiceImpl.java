@@ -109,6 +109,7 @@ public class SpaceServiceImpl implements SpaceService{
 	@Transactional
 	public void deleteSpace(Long roomId, Long spaceId, Long userId) {
 		
+	    
 		Space space = spaceRepository.findById(spaceId)
 				 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
 		
@@ -157,7 +158,6 @@ public class SpaceServiceImpl implements SpaceService{
 
 	    return SpaceProfileCardResponseDto.from(space, card, tagNames);
 	}
-
 	
 	// 룸 내 태그 목록 조회
 	@Override
@@ -165,6 +165,56 @@ public class SpaceServiceImpl implements SpaceService{
 		return tagRepository.findTagNamesByRoomId(roomId);
 	}
 	
+	
+	// 스페이스 탈퇴
+	@Transactional
+	public void leaveSpace(Long roomId, Long spaceId, Long userId) {
+		
+		validateRoomExists(roomId);
+		
+	    Space space = spaceRepository.findById(spaceId)
+	            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
+
+	    SpaceMember spaceMember = spaceMemberRepository.findBySpaceIdAndUserId(userId, spaceId)
+	            .orElseThrow(() -> new IllegalStateException("이 스페이스의 멤버가 아닙니다."));
+	    
+	    // 오너는 탈퇴 불가
+	    if (space.getOwnerId().equals(userId)) {
+	        throw new IllegalStateException("오너는 탈퇴할 수 없습니다. 먼저 오너를 위임해주세요.");
+	    }
+
+	    spaceMemberRepository.delete(spaceMember);
+	    space.updateCurrentMember(space.getCurrentMemberCount() -1);
+	    
+	    log.info("스페이스 탈퇴 완료 - spaceId={}, userId={}", spaceId, userId);
+	}
+	
+	
+	
+	// 스페이스 오너 위임
+	@Transactional
+	public void transferOwner(Long roomId, Long spaceId, Long currentOwnerId, Long newOwnerId) {
+	    Space space = spaceRepository.findById(spaceId)
+	            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
+
+	    
+	    validateManagePermission(space, roomId, currentOwnerId);
+
+	    // 새 오너가 이 스페이스의 멤버인지 확인
+	    if (!spaceMemberRepository.existsBySpaceIdAndUserId(spaceId, newOwnerId)) {
+	        throw new IllegalStateException("스페이스 멤버만 오너로 위임할 수 있습니다.");
+	    }
+
+	    // 자기 자신에게 위임하는 경우 방지
+	    if (currentOwnerId.equals(newOwnerId)) {
+	        throw new IllegalArgumentException("이미 오너입니다.");
+	    }
+
+	    space.transferOwner(newOwnerId);
+
+	    log.info("스페이스 오너 위임 완료 - spaceId={}, from={}, to={}", spaceId, currentOwnerId, newOwnerId);
+	}
+		
 	// 룸 존재 확인
 	private void validateRoomExists(Long roomId) {
 	    if (!roomRepository.existsById(roomId)) {
@@ -185,26 +235,6 @@ public class SpaceServiceImpl implements SpaceService{
 	                "룸 멤버만 이용할 수 있습니다."
 	        );
 	    }
-	}
-
-	// 스페이스 탈퇴
-	@Transactional
-	public void leaveSpace(Long spaceId, Long userId) {
-	    Space space = spaceRepository.findById(spaceId)
-	            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
-
-	    SpaceMember spaceMember = spaceMemberRepository.findBySpaceIdAndUserId(userId, spaceId)
-	            .orElseThrow(() -> new IllegalStateException("이 스페이스의 멤버가 아닙니다."));
-	    
-	    // 오너는 탈퇴 불가
-	    if (space.getOwnerId().equals(userId)) {
-	        throw new IllegalStateException("오너는 탈퇴할 수 없습니다. 먼저 오너를 위임해주세요.");
-	    }
-
-	    spaceMemberRepository.delete(spaceMember);
-	    space.updateCurrentMember(space.getCurrentMemberCount() -1);
-	    
-	    log.info("스페이스 탈퇴 완료 - spaceId={}, userId={}", spaceId, userId);
 	}
 	
 	
@@ -228,31 +258,5 @@ public class SpaceServiceImpl implements SpaceService{
 		}
 	}
 	
-	// 스페이스 오너 위임
-	@Transactional
-	public void transferOwner(Long spaceId, Long currentOwnerId, Long newOwnerId) {
-	    Space space = spaceRepository.findById(spaceId)
-	            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
-
-	    // 현재 오너만 위임 가능
-	    if (!space.getOwnerId().equals(currentOwnerId)) {
-	        throw new IllegalStateException("스페이스 오너만 위임할 수 있습니다.");
-	    }
-
-	    // 새 오너가 이 스페이스의 멤버인지 확인
-	    if (!spaceMemberRepository.existsBySpaceIdAndUserId(spaceId, newOwnerId)) {
-	        throw new IllegalStateException("스페이스 멤버만 오너로 위임할 수 있습니다.");
-	    }
-
-	    // 자기 자신에게 위임하는 경우 방지
-	    if (currentOwnerId.equals(newOwnerId)) {
-	        throw new IllegalArgumentException("이미 오너입니다.");
-	    }
-
-	    space.transferOwner(newOwnerId);
-
-	    log.info("스페이스 오너 위임 완료 - spaceId={}, from={}, to={}", spaceId, currentOwnerId, newOwnerId);
-	}
-
 	
 }

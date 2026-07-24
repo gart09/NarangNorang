@@ -111,10 +111,13 @@ public class SpaceController {
 	//스페이스 탈퇴
 	@DeleteMapping("/{spaceId}/leave")
 	public ApiResponse<Void> leaveSpace(
+
+			@PathVariable("roomId") Long roomId,
 	        @PathVariable("spaceId") Long spaceId,
 	        @AuthenticationPrincipal MyUserDetails userDetails) {
 
-	    spaceService.leaveSpace(spaceId, userDetails.getId());
+	    spaceService.leaveSpace(roomId, spaceId, userDetails.getId());
+
 
 	    ApiResponse<Void> response = new ApiResponse<>();
 	    response.setSuccess(null);
@@ -124,11 +127,13 @@ public class SpaceController {
 	//스페이스 위임
 	@PatchMapping("/{spaceId}/owner")
 	public ApiResponse<Void> transferOwner(
+
+			@PathVariable("roomId") Long roomId,
 	        @PathVariable("spaceId") Long spaceId,
 	        @AuthenticationPrincipal MyUserDetails userDetails,
 	        @RequestBody TransferOwnerRequestDto requestDto) {
 
-	    spaceService.transferOwner(spaceId, userDetails.getId(), requestDto.getNewOwnerId());
+	    spaceService.transferOwner(roomId, spaceId, userDetails.getId(), requestDto.getNewOwnerId());
 
 	    ApiResponse<Void> response = new ApiResponse<>();
 	    response.setSuccess(null);
