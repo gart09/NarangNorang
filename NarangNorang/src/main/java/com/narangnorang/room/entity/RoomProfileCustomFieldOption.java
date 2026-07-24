@@ -41,8 +41,4 @@ public class RoomProfileCustomFieldOption {
         this.customField = customField;
     }
 
-    public void update(String optionValue, Integer displayOrder) {
-        this.optionValue = optionValue;
-        this.displayOrder = displayOrder;
-    }
 }

@@ -1,5 +1,7 @@
 package com.narangnorang.room.controller;
 
+import java.util.List;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.narangnorang.auth.config.MyUserDetails;
 import com.narangnorang.common.ApiResponse;
 import com.narangnorang.room.dto.request.RoomCreateRequestDto;
-import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
+import com.narangnorang.room.dto.request.RoomProfileCustomFieldsUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
 import com.narangnorang.room.dto.response.RoomJoinResponseDto;
 import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
@@ -83,16 +85,14 @@ public class RoomController {
         return success(result);
     }
 
-    @PatchMapping("/{roomId}/custom-fields/{fieldId}")
-    public ApiResponse<RoomProfileCustomFieldResponseDto> updateCustomField(
+    @PatchMapping("/{roomId}/customFields")
+    public ApiResponse<List<RoomProfileCustomFieldResponseDto>> updateCustomFields(
             @PathVariable("roomId") Long roomId,
-            @PathVariable("fieldId") Long fieldId,
-            @RequestBody RoomProfileCustomFieldUpdateRequestDto requestDto,
+            @RequestBody RoomProfileCustomFieldsUpdateRequestDto requestDto,
             @AuthenticationPrincipal MyUserDetails userDetails
     ) {
-        RoomProfileCustomFieldResponseDto result = roomService.updateCustomField(
+        List<RoomProfileCustomFieldResponseDto> result = roomService.updateCustomFields(
                 roomId,
-                fieldId,
                 requestDto,
                 userDetails.getId()
         );

@@ -64,12 +64,6 @@ public class RoomProfileCustomField {
         this.room = room;
     }
 
-    public void update(String fieldName, boolean required, OptionType optionType) {
-        this.fieldName = fieldName;
-        this.required = required;
-        this.optionType = optionType;
-    }
-
     public void addOption(RoomProfileCustomFieldOption option) {
         options.add(option);
         option.assignCustomField(this);

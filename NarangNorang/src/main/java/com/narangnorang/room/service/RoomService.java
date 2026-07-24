@@ -1,10 +1,12 @@
 package com.narangnorang.room.service;
 
+import java.util.List;
+
 import com.narangnorang.room.dto.request.RoomCreateRequestDto;
-import com.narangnorang.room.dto.request.RoomProfileCustomFieldUpdateRequestDto;
+import com.narangnorang.room.dto.request.RoomProfileCustomFieldsUpdateRequestDto;
 import com.narangnorang.room.dto.request.RoomUpdateRequestDto;
-import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
 import com.narangnorang.room.dto.response.RoomJoinResponseDto;
+import com.narangnorang.room.dto.response.RoomProfileCustomFieldResponseDto;
 import com.narangnorang.room.dto.response.RoomResponseDto;
 
 public interface RoomService {
@@ -17,10 +19,9 @@ public interface RoomService {
 
     RoomResponseDto updateRoom(Long roomId, RoomUpdateRequestDto requestDto, Long userId);
 
-    RoomProfileCustomFieldResponseDto updateCustomField(
+    List<RoomProfileCustomFieldResponseDto> updateCustomFields(
             Long roomId,
-            Long fieldId,
-            RoomProfileCustomFieldUpdateRequestDto requestDto,
+            RoomProfileCustomFieldsUpdateRequestDto requestDto,
             Long userId
     );
 
