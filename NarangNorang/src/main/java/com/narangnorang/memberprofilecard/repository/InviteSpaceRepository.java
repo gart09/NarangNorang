@@ -11,7 +11,7 @@ import com.narangnorang.memberprofilecard.entity.InviteSpace.InviteStatus;
 
 public interface InviteSpaceRepository extends JpaRepository<InviteSpace, Long> {
 
-	boolean existsBySpaceIdAndTargetIdAndStatus(Long spaceId, Long targetId, InviteStatus status);
+	boolean existsBySpaceIdAndMemberIdAndStatus(Long spaceId, Long memberId, InviteStatus status);
 
     // 대기 목록 (신청/권유 전체)
     @Query("""
@@ -27,8 +27,8 @@ public interface InviteSpaceRepository extends JpaRepository<InviteSpace, Long> 
             SELECT i FROM InviteSpace i
             JOIN FETCH i.space
             JOIN FETCH i.memberProfileCard
-            WHERE i.targetId = :targetId AND i.status = :status
+            WHERE i.memberId = :memberId AND i.status = :status
             """)
-    List<InviteSpace> findByTargetIdAndStatus(@Param("targetId") Long targetId, @Param("status") InviteSpace.InviteStatus status);
+    List<InviteSpace> findByMemberIdAndStatus(@Param("memberId") Long memberId, @Param("status") InviteSpace.InviteStatus status);
 }
     

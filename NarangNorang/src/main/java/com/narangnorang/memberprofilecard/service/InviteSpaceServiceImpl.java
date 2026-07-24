@@ -129,7 +129,7 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     @Override
     public List<InviteSpaceResponseDto> getInvites(Long userId) {
     	
-        return inviteSpaceRepository.findByTargetIdAndStatus(userId, InviteSpace.InviteStatus.PENDING).stream()
+        return inviteSpaceRepository.findByMemberIdAndStatus(userId, InviteSpace.InviteStatus.PENDING).stream()
                 .map(InviteSpaceResponseDto::from)
                 .toList();
     }
@@ -148,7 +148,7 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
         }
 
         // 신청 중복 검증
-        if (inviteSpaceRepository.existsBySpaceIdAndTargetIdAndStatus(space.getId(), userId, InviteSpace.InviteStatus.PENDING)) {
+        if (inviteSpaceRepository.existsBySpaceIdAndMemberIdAndStatus(space.getId(), userId, InviteSpace.InviteStatus.PENDING)) {
             throw new IllegalStateException("이미 처리 대기 중인 신청/초대가 있습니다.");
         }
 
