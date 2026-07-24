@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
+import com.narangnorang.memberprofilecard.repository.MemberProfileCustomAnswerRepository;
 import com.narangnorang.room.dto.request.RoomCreateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldCreateRequestDto;
 import com.narangnorang.room.dto.request.RoomProfileCustomFieldOptionCreateRequestDto;
@@ -47,6 +48,7 @@ public class RoomServiceImpl implements RoomService {
     private final UserRepository userRepository;
     private final MemberProfileCardRepository memberProfileCardRepository;
     private final SpaceRepository spaceRepository;
+    private final MemberProfileCustomAnswerRepository memberProfileCustomAnswerRepository;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -66,7 +68,7 @@ public class RoomServiceImpl implements RoomService {
 
         if (requestDto.getCustomFields() != null) {
             for (RoomProfileCustomFieldCreateRequestDto fieldDto : requestDto.getCustomFields()) {
-                room.addCustomField(createCustomField(fieldDto));
+                room.addCustomField(buildCustomField(fieldDto));
             }
         }
 
@@ -156,6 +158,42 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional
+    public RoomProfileCustomFieldResponseDto createCustomField(
+            Long roomId,
+            RoomProfileCustomFieldCreateRequestDto requestDto,
+            Long userId
+    ) {
+        Room room = findRoom(roomId);
+        User user = findUser(userId);
+
+        validateOwner(room, user);
+
+        RoomProfileCustomField customField = buildCustomField(requestDto);
+        room.addCustomField(customField);
+        customFieldRepository.save(customField);
+
+        return RoomProfileCustomFieldResponseDto.from(customField);
+    }
+
+    @Override
+    @Transactional
+    public void deleteCustomField(Long roomId, Long fieldId, Long userId) {
+        Room room = findRoom(roomId);
+        User user = findUser(userId);
+
+        validateOwner(room, user);
+
+        RoomProfileCustomField customField = customFieldRepository.findById(fieldId)
+                .orElseThrow(() -> new IllegalArgumentException("커스텀 필드를 찾을 수 없습니다."));
+
+        validateFieldBelongsToRoom(customField, roomId);
+
+        memberProfileCustomAnswerRepository.deleteByRoomProfileCustomFieldId(fieldId);
+        room.removeCustomField(customField);
+    }
+
+    @Override
+    @Transactional
     public void deleteRoom(Long roomId, Long userId) {
         Room room = findRoom(roomId);
         User user = findUser(userId);
@@ -170,7 +208,7 @@ public class RoomServiceImpl implements RoomService {
         roomRepository.delete(room);
     }
 
-    private RoomProfileCustomField createCustomField(
+    private RoomProfileCustomField buildCustomField(
             RoomProfileCustomFieldCreateRequestDto fieldDto
     ) {
         validateOptions(fieldDto.getOptionType(), fieldDto.getOptions());

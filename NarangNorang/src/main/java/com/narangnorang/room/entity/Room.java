@@ -74,4 +74,8 @@ public class Room {
         this.description = description;
         this.maxMember = maxMember;
     }
+    
+    public void removeCustomField(RoomProfileCustomField customField) {
+        customFields.remove(customField);
+    }
 }
