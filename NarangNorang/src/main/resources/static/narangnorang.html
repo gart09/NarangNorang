@@ -29,6 +29,18 @@
   .top-right{display:flex;align-items:center;gap:10px;}
   .room-code{font-family:monospace;font-size:12px;font-weight:700;background:var(--ink);color:var(--marigold);padding:6px 10px;border-radius:8px;letter-spacing:1px;}
   .avatar-chip{width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--marigold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid rgba(255,255,255,.6);cursor:pointer;}
+  .user-chip{
+    display:flex;align-items:center;gap:7px;background:var(--ink);color:var(--marigold);
+    border-radius:999px;padding:4px 14px 4px 4px;cursor:pointer;border:2px solid rgba(255,255,255,.5);
+    transition:transform .08s ease, background .15s ease;
+  }
+  .user-chip:hover{background:#3c2f20;}
+  .user-chip:active{transform:scale(.97);}
+  .user-chip-avatar{
+    width:26px;height:26px;border-radius:50%;background:var(--marigold);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+  }
+  .user-chip-name{font-size:13.5px;font-weight:700;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .btn{border:1.5px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 16px;border-radius:10px;font-size:13.5px;font-weight:700;}
   .btn:hover{border-color:var(--marigold-deep);}
   .btn-primary{background:var(--ink);border-color:var(--ink);color:var(--marigold);}
@@ -111,8 +123,9 @@
   .side-item.active{background:var(--marigold-soft);color:var(--ink);}
   .side-item-hash{color:var(--ink-soft);font-weight:700;}
   .member-mini-avatar{
-    width:22px;height:22px;border-radius:50%;background:var(--marigold);color:var(--ink);
-    display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;
+    width:28px;height:28px;border-radius:50%;background:var(--marigold);color:var(--ink);
+    display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;flex-shrink:0;
+    border:1.5px solid rgba(227,169,62,.4);
   }
   .side-panel-foot{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px;}
   .empty-inline{color:var(--ink-soft);font-size:12.5px;}
@@ -194,8 +207,17 @@
   }
   .option-box-row .cf-option-box:focus{outline:none;border-color:var(--marigold-deep);}
   .option-box-row .cf-option-box:disabled{background:var(--panel);color:var(--ink-soft);}
-  .radio-group{display:flex;flex-direction:column;gap:6px;}
-  .radio-option{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;cursor:pointer;}
+  .radio-group{display:flex;flex-direction:column;gap:8px;}
+  .radio-option{
+    display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:pointer;
+    padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);
+    transition:border-color .15s ease, background .15s ease, transform .08s ease;
+  }
+  .radio-option:hover{border-color:var(--marigold-deep);transform:translateY(-1px);}
+  .radio-option:has(input:checked){border-color:var(--marigold-deep);background:var(--marigold-soft);color:var(--ink);}
+  .radio-option input[type="radio"], .radio-option input[type="checkbox"]{
+    width:18px;height:18px;accent-color:var(--marigold-deep);cursor:pointer;flex-shrink:0;
+  }
 
   /* 스페이스 상세 화면 */
   .space-hero{
@@ -273,8 +295,12 @@ function clearPersistedTokens(){
 ===================================================================== */
 function decodeJwt(token){
   try{
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-    return payload;
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const binary = atob(base64);
+    // atob는 바이너리 문자열(1글자=1바이트)만 반환하므로, UTF-8(한글 등 멀티바이트)로 다시 디코딩해야 안 깨짐
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+    const json = new TextDecoder('utf-8').decode(bytes);
+    return JSON.parse(json);
   }catch(e){ return null; }
 }
 
@@ -353,6 +379,14 @@ window.addEventListener('popstate', (e)=>{
 });
 function openModal(type, payload){ state.modal={type,payload}; render(); }
 function closeModal(){ state.modal=null; render(); }
+function enableProfileCardEdit(){
+  if(state.modal) state.modal.payload.editMode = true;
+  render();
+}
+function disableProfileCardEdit(){
+  if(state.modal) state.modal.payload.editMode = false;
+  render();
+}
 function esc(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function initials(name){ return name ? name[0] : '?'; }
 
@@ -390,7 +424,14 @@ function getChipValues(containerId){
 function optionBoxesHtml(options, disabled){
   const vals = (options||[]).map(o=>o.optionValue);
   if(vals.length===0) vals.push('');
-  return `<div class="option-box-list" onkeydown="optionBoxKeydown(event)">${vals.map(v=>optionBoxRowHtml(v, disabled)).join('')}</div>`;
+  return `<div class="option-box-list" onkeydown="optionBoxKeydown(event)">${vals.map(v=>optionBoxRowHtml(v, disabled)).join('')}</div>
+  ${disabled ? '' : `<button type="button" class="btn btn-sm" style="margin-top:6px;" onclick="addOptionBoxRow(this)">+ 항목 추가</button>`}`;
+}
+function addOptionBoxRow(btn){
+  const list = btn.previousElementSibling;
+  list.insertAdjacentHTML('beforeend', optionBoxRowHtml(''));
+  const boxes = list.querySelectorAll('.cf-option-box');
+  boxes[boxes.length-1].focus();
 }
 function optionBoxRowHtml(value, disabled){
   return `<div class="option-box-row"><input type="text" class="cf-option-box" value="${esc(value)}" placeholder="선택 보기 입력 후 엔터" ${disabled?'disabled':''}>${disabled?'':`<button type="button" class="chip-x" onclick="this.closest('.option-box-row').remove()">×</button>`}</div>`;
@@ -475,13 +516,17 @@ function renderTopbar(){
       <div class="breadcrumb">${crumb}</div>
     </div>
     <div class="top-right">
-      <div class="avatar-chip" title="${esc(myDisplayName())} · 로그아웃" onclick="doLogout()">${initials(myDisplayName())}</div>
+      <div class="user-chip" title="로그아웃" onclick="doLogout()">
+        <span class="user-chip-avatar">👤</span>
+        <span class="user-chip-name">${esc(myDisplayName())}</span>
+      </div>
     </div>
   </div>`;
 }
 function myDisplayName(){
   const id = state.me?.id;
-  if(id!=null && state.cache.memberNames && state.cache.memberNames[id]) return state.cache.memberNames[id];
+  const inRoomContext = state.page==='room' || state.page==='space' || state.page==='space-create';
+  if(inRoomContext && id!=null && state.cache.memberNames && state.cache.memberNames[id]) return state.cache.memberNames[id];
   return state.me?.name || state.me?.email || '';
 }
 
@@ -798,6 +843,7 @@ function renderRoom(){
       <div class="side-panel-head">
         <div class="side-panel-title">${esc(room.name)}</div>
         <div class="side-panel-actions">
+          <button class="btn btn-sm" onclick="openMyProfileCard()">👤 내 카드 수정</button>
           <button class="btn btn-sm" onclick="openModal('room-invite',{})">🔑 초대코드</button>
           <button class="btn btn-sm" onclick="openModal('invites-inbox',{})">📨 초대함</button>
         </div>
@@ -951,6 +997,21 @@ async function loadRoomTags(roomId){
 async function initRoomChat(roomId){
   await ensureMemberNames(roomId).catch(()=>{});
   await initChatCore('room', roomId);
+}
+function openMyProfileCard(){
+  const roomId = state.params.roomId;
+  const found = (state.cache.roomMembers||[]).find(m=>m.userId===state.me?.id);
+  if(found){
+    openModal('profile-card', {card: JSON.stringify(found)});
+    return;
+  }
+  withLoading(async ()=>{
+    await loadRoomMembers(roomId);
+  }).then(()=>{
+    const m = (state.cache.roomMembers||[]).find(m=>m.userId===state.me?.id);
+    if(m) openModal('profile-card', {card: JSON.stringify(m)});
+    else showToast('아직 이 룸의 프로필 카드가 없어요.');
+  }).catch(()=>{});
 }
 
 /* =====================================================================
@@ -1355,6 +1416,7 @@ function onSaveSpaceEdit(){
     await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'PATCH', body: JSON.stringify(body) });
     showToast('스페이스 카드를 수정했어요.');
     state.cache.spaceDetail = null;
+    await loadSpaces(roomId, state.params.activeTags).catch(()=>{});
     closeModal();
     navigate('space', {roomId, spaceId});
   }).catch(()=>{});
@@ -1511,27 +1573,35 @@ function renderModal(){
     const m = JSON.parse(payload.card.replace(/&quot;/g,'"'));
     const mine = m.userId === state.me?.id;
     const room = state.cache.room;
-    inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
-    <div class="idx-card" style="cursor:default;">
-      <span class="card-tag-space">PROFILE</span>
-      <div class="card-name">${esc(m.name)}</div>
-      <div class="rule"></div>
-      ${(m.answers||[]).map(a=>{
-        const fieldName = room?.customFields?.find(f=>f.id===a.fieldId)?.fieldName || `필드 #${a.fieldId}`;
-        return `<div style="margin-bottom:8px;"><div class="field-hint" style="margin:0;">${esc(fieldName)}</div><div style="font-size:13.5px;font-weight:600;">${esc(a.value)}</div></div>`;
-      }).join('') || '<div class="field-hint">등록된 항목이 없어요.</div>'}
-    </div>
-    ${mine ? `
-    <div style="margin-top:18px;">
-      <div class="field"><label>이름</label><input id="pc-edit-name" type="text" value="${esc(m.name)}"></div>
-      ${(room?.customFields||[]).map(f=>{
-        const cur = (m.answers||[]).find(a=>a.fieldId===f.id);
-        return `<div class="field"><label>${esc(f.fieldName)}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
-      }).join('')}
-      <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
-      <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteProfileCard('${m.id}','${room?.id}')">카드 삭제</button>
-    </div>` : ''}`;
+    const editMode = mine && payload.editMode;
+    if(editMode){
+      inner = `
+      <button class="close-x" onclick="closeModal()">✕</button>
+      <h3>내 프로필 카드 수정</h3>
+      <div style="margin-top:14px;">
+        <div class="field"><label>이름</label><input id="pc-edit-name" type="text" value="${esc(m.name)}"></div>
+        ${(room?.customFields||[]).map(f=>{
+          const cur = (m.answers||[]).find(a=>a.fieldId===f.id);
+          return `<div class="field"><label>${esc(f.fieldName)}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
+        }).join('')}
+        <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
+        <button class="btn" style="margin-top:8px;" onclick="disableProfileCardEdit()">취소</button>
+        <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteProfileCard('${m.id}','${room?.id}')">카드 삭제</button>
+      </div>`;
+    } else {
+      inner = `
+      <button class="close-x" onclick="closeModal()">✕</button>
+      <div class="idx-card" style="cursor:default;">
+        <span class="card-tag-space">PROFILE</span>
+        <div class="card-name">${esc(m.name)}</div>
+        <div class="rule"></div>
+        ${(m.answers||[]).map(a=>{
+          const fieldName = room?.customFields?.find(f=>f.id===a.fieldId)?.fieldName || `필드 #${a.fieldId}`;
+          return `<div style="margin-bottom:8px;"><div class="field-hint" style="margin:0;">${esc(fieldName)}</div><div style="font-size:13.5px;font-weight:600;">${esc(a.value)}</div></div>`;
+        }).join('') || '<div class="field-hint">등록된 항목이 없어요.</div>'}
+      </div>
+      ${mine ? `<button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="enableProfileCardEdit()">✏️ 수정</button>` : ''}`;
+    }
   }
   if(type==='room-invite'){
     const room = state.cache.room;
