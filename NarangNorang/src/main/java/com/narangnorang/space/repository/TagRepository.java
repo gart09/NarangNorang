@@ -3,6 +3,7 @@ package com.narangnorang.space.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,7 +15,9 @@ public interface TagRepository extends JpaRepository<Tag, Long>{
     List<Tag> findBySpaceId(Long spaceId);
 
     // 삭제/수정 시 기존 태그 전체 제거
-    void deleteBySpaceId(Long spaceId);
+    @Modifying
+    @Query("DELETE FROM Tag t WHERE t.space.id = :spaceId")
+    void deleteBySpaceId(@Param("spaceId")Long spaceId);
     
     // 룸 내에 존재하는 태그 이름 목록 (중복 제거, 정렬)
     @Query("SELECT DISTINCT t.name FROM Tag t WHERE t.space.roomId = :roomId ORDER BY t.name")
