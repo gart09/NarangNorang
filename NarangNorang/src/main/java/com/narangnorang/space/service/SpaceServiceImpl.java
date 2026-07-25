@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardReadResponseDto;
 import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
 import com.narangnorang.room.entity.Room;
@@ -55,7 +56,7 @@ public class SpaceServiceImpl implements SpaceService{
 	// 스페이스 상세 조회 (프로필 카드, 태그 포함)
 	@Override
 	public SpaceProfileCardResponseDto getSpaceDetail(Long roomId, Long spaceId, Long userId) {
-		validateRoomExists(roomId);
+		
 		validateRoomMember(roomId, userId);
 		
 		Space space = spaceRepository.findByIdWithProfileCard(spaceId)
@@ -167,6 +168,7 @@ public class SpaceServiceImpl implements SpaceService{
 	
 	
 	// 스페이스 탈퇴
+	@Override
 	@Transactional
 	public void leaveSpace(Long roomId, Long spaceId, Long userId) {
 		
@@ -192,6 +194,7 @@ public class SpaceServiceImpl implements SpaceService{
 	
 	
 	// 스페이스 오너 위임
+	@Override
 	@Transactional
 	public void transferOwner(Long roomId, Long spaceId, Long currentOwnerId, Long newOwnerId) {
 	    Space space = spaceRepository.findById(spaceId)
@@ -214,7 +217,34 @@ public class SpaceServiceImpl implements SpaceService{
 
 	    log.info("스페이스 오너 위임 완료 - spaceId={}, from={}, to={}", spaceId, currentOwnerId, newOwnerId);
 	}
+	
+	
+	// 스페이스 멤버 목록
+	@Override
+	@Transactional
+	public List<MemberProfileCardReadResponseDto> getSpaceMemberList(Long roomId, Long spaceId, Long userId){
 		
+		validateRoomMember(roomId, userId);
+		List<SpaceMember> spaceMembers = spaceMemberRepository.findBySpaceId(spaceId);
+		List<MemberProfileCardReadResponseDto> memberProfileCardReadResponseDtos = spaceMembers.stream()
+					 .map(SpaceMember::getMemberProfileCard)
+					 .map(MemberProfileCardReadResponseDto::from)
+					 .toList();
+		return memberProfileCardReadResponseDtos;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	// 룸 존재 확인
 	private void validateRoomExists(Long roomId) {
 	    if (!roomRepository.existsById(roomId)) {

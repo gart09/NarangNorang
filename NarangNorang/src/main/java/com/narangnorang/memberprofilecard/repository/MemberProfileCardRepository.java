@@ -33,5 +33,5 @@ public interface MemberProfileCardRepository extends JpaRepository<MemberProfile
     long countByRoomId(Long roomId);
 
 	@Query("select m.room from MemberProfileCard m where m.user.id = :userId")
-	List<Room> findRoomsByUserId(Long userId);
+	List<Room> findRoomsByUserId(@Param("userId")Long userId);
 }

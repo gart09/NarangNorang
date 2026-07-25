@@ -38,6 +38,8 @@ public class SpaceProfileCardResponseDto {
                 .preferredStartTime(card.getPreferredStartTime())
                 .preferredEndTime(card.getPreferredEndTime())
                 .customField(card.getCustomField())
+                .maxMemberCount(space.getMaxMemberCount())
+                .currentMemberCount(space.getCurrentMemberCount())
                 .tags(tags)
                 .build();
     }

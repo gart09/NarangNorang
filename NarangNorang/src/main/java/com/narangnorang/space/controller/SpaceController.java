@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.narangnorang.auth.config.MyUserDetails;
 import com.narangnorang.common.ApiResponse;
+import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardReadResponseDto;
 import com.narangnorang.space.dto.request.SpaceCreateRequestDto;
 import com.narangnorang.space.dto.request.SpaceUpdateRequestDto;
 import com.narangnorang.space.dto.request.TransferOwnerRequestDto;
@@ -109,7 +110,7 @@ public class SpaceController {
 	}
 	
 	//스페이스 탈퇴
-	@DeleteMapping("/{spaceId}/leave")
+	@DeleteMapping("/spaces/{spaceId}/leave")
 	public ApiResponse<Void> leaveSpace(
 
 			@PathVariable("roomId") Long roomId,
@@ -125,7 +126,7 @@ public class SpaceController {
 	}
 	
 	//스페이스 위임
-	@PatchMapping("/{spaceId}/owner")
+	@PatchMapping("/spaces/{spaceId}/owner")
 	public ApiResponse<Void> transferOwner(
 
 			@PathVariable("roomId") Long roomId,
@@ -138,5 +139,18 @@ public class SpaceController {
 	    ApiResponse<Void> response = new ApiResponse<>();
 	    response.setSuccess(null);
 	    return response;
+	}
+	
+	//스페이스 멤버 조회
+	@GetMapping("/spaces/{spaceId}/spaceMembers")
+	public ApiResponse<List<MemberProfileCardReadResponseDto>> getSpaceMembers(
+			@PathVariable("roomId") Long roomId,
+	        @PathVariable("spaceId") Long spaceId,
+	        @AuthenticationPrincipal MyUserDetails userDetails
+			) {
+		ApiResponse<List<MemberProfileCardReadResponseDto>> response = new ApiResponse<>();
+		response.setSuccess(spaceService.getSpaceMemberList(roomId, spaceId, userDetails.getId()));
+		
+		return response;
 	}
 }

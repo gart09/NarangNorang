@@ -2,6 +2,7 @@ package com.narangnorang.space.service;
 
 import java.util.List;
 
+import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardReadResponseDto;
 import com.narangnorang.space.dto.request.SpaceCreateRequestDto;
 import com.narangnorang.space.dto.request.SpaceUpdateRequestDto;
 import com.narangnorang.space.dto.response.SpaceProfileCardResponseDto;
@@ -33,4 +34,6 @@ public interface SpaceService {
 	// 스페이스 위임
 	public void transferOwner(Long roomId, Long spaceId, Long currentOwnerId, Long newOwnerId);
 
+	// 스페이스 멤버 조회
+	public List<MemberProfileCardReadResponseDto> getSpaceMemberList(Long roomId, Long spaceId, Long userId);
 }

@@ -10,7 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 <style>
   :root{
-    --paper:#FFF6DE; --marigold:#F6B93B; --marigold-deep:#E39A15; --marigold-soft:rgba(246,185,59,.16);
+    --paper:#FFF6DE; --marigold:#FCE18C; --marigold-deep:#E3A93E; --marigold-soft:rgba(252,225,140,.32);
     --ink:#2B2118; --ink-soft:#6B5D48; --line:#EAD9A8; --panel:#FFFFFF;
     --coral:#FF7A54; --sage:#4C9A6A; --danger:#D9614C; --shadow:0 10px 26px rgba(43,33,24,.10); --radius:16px;
   }
@@ -52,6 +52,7 @@
   .plaque{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;}
   .plaque:hover{border-color:var(--marigold-deep);}
   .plaque-code{font-family:monospace;font-size:12px;font-weight:700;color:var(--ink);background:var(--marigold-soft);padding:5px 9px;border-radius:6px;letter-spacing:1px;}
+  .plaque-icon{font-size:20px;flex-shrink:0;}
   .plaque-info{flex:1;min-width:0;}
   .plaque-info .name{font-weight:700;font-size:14.5px;}
   .plaque-info .meta{color:var(--ink-soft);font-size:12px;margin-top:2px;}
@@ -90,6 +91,56 @@
   .modal{background:var(--panel);border-radius:18px;padding:28px;max-width:460px;width:100%;max-height:82vh;overflow-y:auto;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.25);}
   .close-x{position:absolute;top:16px;right:16px;background:var(--paper);border:none;width:28px;height:28px;border-radius:50%;font-size:14px;color:var(--ink-soft);}
   .chat-layout{display:flex;flex:1;min-height:0;height:calc(100vh - 65px);}
+
+  /* ===== 디스코드 스타일 3분할(좌: 목록 / 중앙: 채팅 / 우: 목록) ===== */
+  .discord-layout{display:flex;flex:1;min-height:0;height:calc(100vh - 65px);}
+  .side-panel{width:230px;flex-shrink:0;background:var(--panel);padding:16px;overflow-y:auto;display:flex;flex-direction:column;}
+  .side-panel:first-child{border-right:1px solid var(--line);}
+  .side-panel:last-child{border-left:1px solid var(--line);}
+  .side-panel-head{margin-bottom:14px;}
+  .side-panel-title{font-family:'Fraunces',serif;font-weight:700;font-size:16px;margin-bottom:8px;}
+  .side-panel-actions{display:flex;flex-direction:column;gap:6px;}
+  .side-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:10px 0 8px;}
+  .rail-count{font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0;}
+  .side-list{display:flex;flex-direction:column;gap:2px;flex:1;}
+  .side-item{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:13.5px;font-weight:600;
+    cursor:pointer;color:var(--ink-soft);
+  }
+  .side-item:hover{background:var(--paper);color:var(--ink);}
+  .side-item.active{background:var(--marigold-soft);color:var(--ink);}
+  .side-item-hash{color:var(--ink-soft);font-weight:700;}
+  .member-mini-avatar{
+    width:22px;height:22px;border-radius:50%;background:var(--marigold);color:var(--ink);
+    display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;
+  }
+  .side-panel-foot{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px;}
+  .empty-inline{color:var(--ink-soft);font-size:12.5px;}
+
+  /* 좌측 스페이스 목록 — 버튼형 카드 */
+  .space-card-btn{
+    display:block;text-align:left;width:100%;border:1px solid var(--line);background:var(--paper);
+    border-radius:10px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s, transform .08s;
+  }
+  .space-card-btn:hover{border-color:var(--marigold-deep);transform:translateY(-1px);}
+  .space-card-btn.active{background:var(--marigold-soft);border-color:var(--marigold-deep);}
+  .space-card-btn-name{font-weight:700;font-size:13.5px;margin-bottom:4px;}
+
+  /* 중앙 채팅/스페이스 탭 */
+  .center-tabs{display:flex;gap:4px;padding:10px 20px 0;background:var(--panel);border-bottom:1px solid var(--line);flex-shrink:0;}
+  .center-tab{padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--ink-soft);background:none;border:none;border-bottom:2px solid transparent;}
+  .center-tab.active{color:var(--marigold-deep);border-bottom-color:var(--marigold-deep);}
+
+  /* 채팅 상단 룸/스페이스 정보 배너(항상 노출) */
+  .info-banner{padding:18px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;max-height:40vh;overflow-y:auto;}
+  .info-banner h2{margin:0 0 4px;font-size:19px;}
+  .chat-subhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;}
+
+  /* 스페이스 브라우저(중앙 탭 - 스페이스) */
+  .space-browser{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .space-browser-head{display:flex;justify-content:space-between;align-items:center;padding:16px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;}
+  .search-panel{padding:14px 26px;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0;}
+  .space-browser-body{flex:1;overflow-y:auto;padding:20px 26px;}
   .rail{width:240px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:20px 16px;overflow-y:auto;}
   .rail-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:0 4px 10px;}
   .chat{flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -118,6 +169,55 @@
   .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--marigold-deep);border-radius:50%;animation:spin .7s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
   ::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+
+  /* 칩 입력(#태그 + 스페이스바) */
+  .chip-input{
+    display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--paper);
+    border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;
+  }
+  .chip-input:focus-within{border-color:var(--marigold-deep);}
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;background:var(--marigold-soft);color:var(--ink);
+    font-size:12.5px;font-weight:700;padding:4px 6px 4px 10px;border-radius:999px;border:1px solid rgba(227,169,62,.4);
+  }
+  .chip-x{border:none;background:none;color:var(--ink-soft);font-size:13px;line-height:1;cursor:pointer;padding:2px;}
+  .chip-x:hover{color:var(--danger);}
+  .chip-input-field{
+    flex:1;min-width:120px;border:none;background:transparent;outline:none;font-size:14px;
+    color:var(--ink);font-family:inherit;padding:4px 2px;
+  }
+  .option-box-list{display:flex;flex-direction:column;gap:6px;}
+  .option-box-row{display:flex;align-items:center;gap:6px;}
+  .option-box-row .cf-option-box{
+    flex:1;background:var(--paper);border:1.5px solid var(--line);border-radius:8px;
+    padding:8px 10px;font-size:13.5px;color:var(--ink);font-family:inherit;
+  }
+  .option-box-row .cf-option-box:focus{outline:none;border-color:var(--marigold-deep);}
+  .option-box-row .cf-option-box:disabled{background:var(--panel);color:var(--ink-soft);}
+  .radio-group{display:flex;flex-direction:column;gap:6px;}
+  .radio-option{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;cursor:pointer;}
+
+  /* 스페이스 상세 화면 */
+  .space-hero{
+    background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 30px;
+    box-shadow:var(--shadow);margin-bottom:20px;
+  }
+  .space-hero h1{margin:8px 0 12px;font-size:26px;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip-row .chip-static{font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;}
+  .chip-row .chip-static.tag-c{background:rgba(76,154,106,.14);color:#2d6b46;border:1px solid rgba(76,154,106,.3);}
+  .chip-row .chip-static.tech-c{background:var(--marigold-soft);color:var(--marigold-deep);border:1px solid rgba(227,169,62,.4);}
+  .meta-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);font-size:13px;color:var(--ink-soft);}
+  .meta-row b{color:var(--ink);}
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:20px;}
+  .detail-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+  .detail-card h3{margin:0 0 12px;font-size:13px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;font-family:'Noto Sans KR',sans-serif;}
+  .detail-card .empty-inline{color:var(--ink-soft);font-size:12.5px;}
+  .custom-field-row{margin-bottom:10px;}
+  .custom-field-row:last-child{margin-bottom:0;}
+  .custom-field-row .cf-label{font-size:11.5px;color:var(--ink-soft);margin-bottom:2px;}
+  .custom-field-row .cf-value{font-size:13.5px;font-weight:600;}
+  .actions-bar{display:flex;gap:8px;flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -138,8 +238,7 @@ const state = {
   accessToken:null, refreshToken:null,
   me:null,               // {id, email} — JWT 디코딩 결과, 이름 정보는 서버에 없음
   loginError:'', signupError:'', joinError:'',
-  knownRooms: [],         // 목록 API가 없어서 세션 동안 참여/생성한 룸만 기억
-  cache:{ room:null, spaces:null, spaceDetail:null, roomMembers:null, invites:null, memberNames:{} },
+  cache:{ room:null, spaces:null, spaceDetail:null, roomMembers:null, invites:null, memberNames:{}, myRooms:null },
   loading:false,
   ws:{ client:null, sub:null },
 };
@@ -161,7 +260,7 @@ function restoreTokens(){
     state.refreshToken = refreshToken;
     const payload = decodeJwt(accessToken);
     if(!payload) return false;
-    state.me = { id: payload.id, email: payload.sub };
+    state.me = { id: payload.id, email: payload.sub, name: payload.username || payload.sub };
     return true;
   }catch(e){ return false; }
 }
@@ -232,16 +331,115 @@ function showToast(msg){
   clearTimeout(showToast._tid);
   showToast._tid = setTimeout(()=>t.classList.remove('show'), 2400);
 }
-function navigate(page, params={}){
-  state.page=page; state.params=params; state.modal=null; render(); window.scrollTo(0,0);
-  // innerHTML로 삽입한 <script>는 브라우저가 실행하지 않으므로, 채팅 페이지 진입 시 여기서 직접 초기화
-  if(page==='room-chat') initChat('room', params.roomId);
-  if(page==='space-chat') initChat('space', params.spaceId);
+function navigate(page, params={}, opts={}){
+  state.page=page; state.params=params; state.modal=null;
+  if(!opts.fromPopstate){
+    history.pushState({page, params}, '', location.pathname + location.search);
+  }
+  render(); window.scrollTo(0,0);
+  enterPageSideEffects(page, params);
 }
+function enterPageSideEffects(page, params){
+  // room/space 진입 시 채팅 초기화(중앙 패널에 내장됨) — 중앙탭이 채팅일 때만
+  if(page==='room' && (params.centerTab||'chat')==='chat') initRoomChat(params.roomId);
+  if(page==='space') initSpaceChatIfMember(params.roomId, params.spaceId);
+}
+window.addEventListener('popstate', (e)=>{
+  const s = e.state;
+  if(!s) return; // 히스토리 시작 지점(로그인 이전) — 그냥 브라우저 기본 동작(페이지 이탈)에 맡김
+  state.page = s.page; state.params = s.params || {}; state.modal = null;
+  render(); window.scrollTo(0,0);
+  enterPageSideEffects(s.page, s.params || {});
+});
 function openModal(type, payload){ state.modal={type,payload}; render(); }
 function closeModal(){ state.modal=null; render(); }
 function esc(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function initials(name){ return name ? name[0] : '?'; }
+
+/* ===== 칩 입력: 태그는 "#키워드"+스페이스바/엔터, 기술스택은 #없이 엔터로 확정, x로 개별 삭제 ===== */
+function chipHtml(value, hash){
+  return `<span class="chip" data-value="${esc(value)}">${hash?'#':''}${esc(value)}<button type="button" class="chip-x" onclick="this.closest('.chip').remove()">×</button></span>`;
+}
+function chipInputHtml(containerId, initialValues, placeholder, opts){
+  opts = opts || {};
+  const hash = !!opts.hash;
+  const spaceCommit = opts.spaceCommit!==false;
+  const chips = (initialValues||[]).map(v=>chipHtml(v, hash)).join('');
+  return `<div class="chip-input" id="${containerId}" data-hash="${hash?1:0}" data-space-commit="${spaceCommit?1:0}">${chips}<input type="text" class="chip-input-field" placeholder="${esc(placeholder||'')}" onkeydown="chipInputKeydown(event)"></div>`;
+}
+function chipInputKeydown(e){
+  const container = e.target.closest('.chip-input');
+  const hash = container.dataset.hash==='1';
+  const spaceCommit = container.dataset.spaceCommit==='1';
+  const isCommitKey = e.key==='Enter' || (e.key===' ' && spaceCommit);
+  if(!isCommitKey) return;
+  e.preventDefault();
+  let val = e.target.value.trim();
+  if(hash){
+    if(!(val.startsWith('#') && val.length>1)) return;
+    val = val.slice(1);
+  }
+  if(!val) return;
+  e.target.insertAdjacentHTML('beforebegin', chipHtml(val, hash));
+  e.target.value='';
+}
+function getChipValues(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .chip')).map(el=>el.dataset.value);
+}
+/* ===== 선택 보기 입력: 엔터 누르면 아래에 새 텍스트박스가 생기는 방식 ===== */
+function optionBoxesHtml(options, disabled){
+  const vals = (options||[]).map(o=>o.optionValue);
+  if(vals.length===0) vals.push('');
+  return `<div class="option-box-list" onkeydown="optionBoxKeydown(event)">${vals.map(v=>optionBoxRowHtml(v, disabled)).join('')}</div>`;
+}
+function optionBoxRowHtml(value, disabled){
+  return `<div class="option-box-row"><input type="text" class="cf-option-box" value="${esc(value)}" placeholder="선택 보기 입력 후 엔터" ${disabled?'disabled':''}>${disabled?'':`<button type="button" class="chip-x" onclick="this.closest('.option-box-row').remove()">×</button>`}</div>`;
+}
+function optionBoxKeydown(e){
+  if(e.target.classList && e.target.classList.contains('cf-option-box') && e.key==='Enter'){
+    e.preventDefault();
+    if(!e.target.value.trim()) return;
+    const row = e.target.closest('.option-box-row');
+    row.insertAdjacentHTML('afterend', optionBoxRowHtml(''));
+    row.nextElementSibling.querySelector('.cf-option-box').focus();
+  }
+}
+function getOptionBoxValues(scopeEl){
+  return Array.from(scopeEl.querySelectorAll('.cf-option-box')).map(i=>i.value.trim()).filter(Boolean);
+}
+/* ===== 텍스트 목록: 엔터 또는 + 버튼으로 아래에 새 텍스트박스 추가 (예: 필요 기술) ===== */
+function textListHtml(containerId, values, placeholder){
+  const vals = (values && values.length) ? values : [''];
+  return `<div class="option-box-list" id="${containerId}" onkeydown="textListKeydown(event)">${vals.map(v=>textListRowHtml(v, placeholder)).join('')}</div>
+  <button type="button" class="btn btn-sm" style="margin-top:6px;" onclick="addTextListRow('${containerId}','${esc(placeholder||'')}')">+ 항목 추가</button>`;
+}
+function textListRowHtml(value, placeholder){
+  return `<div class="option-box-row"><input type="text" class="tl-box" value="${esc(value)}" placeholder="${esc(placeholder||'')}"><button type="button" class="chip-x" onclick="this.closest('.option-box-row').remove()">×</button></div>`;
+}
+function textListKeydown(e){
+  if(e.target.classList && e.target.classList.contains('tl-box') && e.key==='Enter'){
+    e.preventDefault();
+    if(!e.target.value.trim()) return;
+    const row = e.target.closest('.option-box-row');
+    row.insertAdjacentHTML('afterend', textListRowHtml('', e.target.placeholder));
+    row.nextElementSibling.querySelector('.tl-box').focus();
+  }
+}
+function addTextListRow(containerId, placeholder){
+  const container = document.getElementById(containerId);
+  container.insertAdjacentHTML('beforeend', textListRowHtml('', placeholder));
+  const rows = container.querySelectorAll('.tl-box');
+  rows[rows.length-1].focus();
+}
+function getTextListValues(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .tl-box')).map(i=>i.value.trim()).filter(Boolean);
+}
+function formatDateTime(iso){
+  if(!iso) return null;
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return esc(iso);
+  return d.toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', weekday:'short', hour:'2-digit', minute:'2-digit' });
+}
 
 async function withLoading(fn){
   state.loading = true; render();
@@ -262,12 +460,10 @@ function render(){
 function renderTopbar(){
   const room = state.cache.room;
   let crumb = '나랑노랑';
-  if(['room','room-chat','space','space-chat','space-create'].includes(state.page) && room){
+  if(['room','space','space-create'].includes(state.page) && room){
     crumb = `<a onclick="navigate('main')">나랑노랑</a> / <a onclick="navigate('room',{roomId:'${room.id}'})">${esc(room.name)}</a>`;
-    if(state.page==='room-chat') crumb += ' / 룸 채팅';
-    if((state.page==='space'||state.page==='space-chat') && state.cache.spaceDetail){
+    if(state.page==='space' && state.cache.spaceDetail){
       crumb += ` / ${esc(state.cache.spaceDetail.name)}`;
-      if(state.page==='space-chat') crumb += ' / 스페이스 채팅';
     }
   }
   return `
@@ -279,7 +475,6 @@ function renderTopbar(){
       <div class="breadcrumb">${crumb}</div>
     </div>
     <div class="top-right">
-      ${room && ['room','room-chat'].includes(state.page) ? `<span class="room-code">${esc(room.roomCode)}</span>` : ''}
       <div class="avatar-chip" title="${esc(myDisplayName())} · 로그아웃" onclick="doLogout()">${initials(myDisplayName())}</div>
     </div>
   </div>`;
@@ -287,7 +482,7 @@ function renderTopbar(){
 function myDisplayName(){
   const id = state.me?.id;
   if(id!=null && state.cache.memberNames && state.cache.memberNames[id]) return state.cache.memberNames[id];
-  return state.me?.email || '';
+  return state.me?.name || state.me?.email || '';
 }
 
 function renderPage(){
@@ -302,9 +497,6 @@ function renderPage(){
     case 'room': return renderRoom();
     case 'space-create': return renderSpaceCreate();
     case 'space': return renderSpace();
-    case 'room-chat': return renderChat('room', state.params.roomId);
-    case 'space-chat': return renderChat('space', state.params.spaceId);
-    case 'invites-inbox': return renderInvitesInbox();
     default: return `<div class="page"><div class="empty">페이지를 찾을 수 없어요.</div></div>`;
   }
 }
@@ -340,7 +532,7 @@ function onLogin(){
     state.accessToken = result.token;
     state.refreshToken = result.refreshToken;
     const payload = decodeJwt(result.token);
-    state.me = { id: payload?.id, email: payload?.sub || email };
+    state.me = { id: payload?.id, email: payload?.sub || email, name: payload?.username || payload?.sub || email };
     state.loginError='';
     persistTokens();
     showToast('로그인됐어요.');
@@ -349,8 +541,8 @@ function onLogin(){
 }
 function doLogout(silent){
   const done = ()=>{
-    state.accessToken=null; state.refreshToken=null; state.me=null; state.knownRooms=[];
-    state.cache = { room:null, spaces:null, spaceDetail:null, roomMembers:null, invites:null, memberNames:{} };
+    state.accessToken=null; state.refreshToken=null; state.me=null;
+    state.cache = { room:null, spaces:null, spaceDetail:null, roomMembers:null, invites:null, memberNames:{}, myRooms:null };
     clearPersistedTokens();
     if(!silent) showToast('로그아웃 됐어요.');
     navigate('login');
@@ -393,9 +585,17 @@ function onSignup(){
 }
 
 /* =====================================================================
-   메인 (룸 목록) — 서버에 목록 API가 없어 세션 내 knownRooms만 표시
+   메인 (룸 목록) — GET /memberProfileCard/roomsList
 ===================================================================== */
 function renderMain(){
+  if(!state.cache.myRooms){
+    withLoading(async ()=>{
+      const result = await apiFetch('/memberProfileCard/roomsList', { method:'GET' });
+      state.cache.myRooms = result.rooms || [];
+    }).catch(()=>{ state.cache.myRooms = []; });
+    return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  }
+  const rooms = state.cache.myRooms;
   return `
   <div class="page">
     <div class="hero">
@@ -407,14 +607,13 @@ function renderMain(){
         <button class="btn" onclick="navigate('room-join')">초대 코드로 참여하기</button>
       </div>
     </div>
-    <div class="warn-banner">⚠️ 내 룸 전체 목록을 조회하는 API가 아직 없어요. 지금은 이 브라우저 세션에서 생성/참여한 룸만 아래에 보여요 — 새로고침하면 초기화돼요. 목록 API가 생기면 여기를 실제 서버 조회로 바꿀게요.</div>
-    <div class="section-head"><h2>이번 세션에서 연 룸</h2><span class="count">${state.knownRooms.length}개</span></div>
-    ${state.knownRooms.length ? `<div class="plaque-list">${state.knownRooms.map(r=>`
+    <div class="section-head"><h2>내 룸</h2><span class="count">${rooms.length}개</span></div>
+    ${rooms.length ? `<div class="plaque-list">${rooms.map(r=>`
       <div class="plaque" onclick="openRoom('${r.id}')">
-        <span class="plaque-code">${esc(r.roomCode)}</span>
-        <div class="plaque-info"><div class="name">${esc(r.name)}</div></div>
+        <span class="plaque-icon">🏠</span>
+        <div class="plaque-info"><div class="name">${esc(r.name)}</div><div class="meta">멤버 ${r.currentMember}${r.maxMember?'/'+r.maxMember:''}명</div></div>
       </div>`).join('')}</div>`
-      : `<div class="empty">아직 이 세션에서 연 룸이 없어요.</div>`}
+      : `<div class="empty">아직 참여한 룸이 없어요. 룸을 만들거나 초대 코드로 참여해보세요.</div>`}
   </div>`;
 }
 
@@ -451,9 +650,9 @@ function onCreateRoom(){
     if(!fieldName) return null;
     const optionType = row.querySelector('.cf-type').value;
     const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
-    const optionValues = row.querySelector('.cf-options').value.split(',').map(s=>s.trim()).filter(Boolean);
-    if(isSelect && optionValues.length===0){ cfError = 'SELECT 타입 항목은 선택지를 1개 이상 입력해야 해요.'; return null; }
-    if(!isSelect && optionValues.length>0){ cfError = 'TEXT/NUMBER/DATE 타입에는 선택지를 입력할 수 없어요 — 지워주세요.'; return null; }
+    const optionValues = getOptionBoxValues(row);
+    if(isSelect && optionValues.length===0){ cfError = '선택형 항목은 선택 보기를 1개 이상 입력해야 해요.'; return null; }
+    if(!isSelect && optionValues.length>0){ cfError = '짧은 글/숫자/날짜 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return null; }
     return {
       fieldName, required: row.querySelector('.cf-required').checked, optionType,
       options: isSelect ? optionValues.map((v,i)=>({optionValue:v, displayOrder:i})) : []
@@ -462,7 +661,7 @@ function onCreateRoom(){
   if(cfError){ showToast(cfError); return; }
   withLoading(async ()=>{
     const room = await apiFetch('/rooms', { method:'POST', body: JSON.stringify({name, description, maxMember, customFields}) });
-    state.knownRooms.push(room);
+    state.cache.myRooms = null;
     state.cache.room = room;
     showToast('룸이 생성됐어요. 이어서 내 프로필 카드를 작성해주세요.');
     // ⚠️ RoomServiceImpl.createRoom이 오너용 MemberProfileCard를 만들어주지 않아서,
@@ -494,7 +693,7 @@ function onJoinRoom(){
     const joinResult = await apiFetch('/rooms/join/' + code, { method:'GET' });
     state.joinError='';
     const room = joinResult.room;
-    if(!state.knownRooms.find(r=>r.id===room.id)) state.knownRooms.push(room);
+    state.cache.myRooms = null;
     state.cache.room = room;
     if(joinResult.member){
       // 이미 카드까지 있는 기존 멤버
@@ -513,7 +712,7 @@ function renderRoomJoinCard(){
     <h1 class="page-title">프로필 카드 작성</h1>
     <p class="page-desc">룸을 이용하려면 프로필 카드를 작성해야 해요.</p>
     <div class="form-card">
-      <div class="field"><label>이름</label><input id="jc-name" type="text" value="${esc(state.me?.email||'')}"></div>
+      <div class="field"><label>이름</label><input id="jc-name" type="text" value="${esc(state.me?.name||state.me?.email||'')}"></div>
       ${(room.customFields||[]).map(f=>`
         <div class="field">
           <label>${esc(f.fieldName)}${f.required?' *':''}</label>
@@ -523,13 +722,32 @@ function renderRoomJoinCard(){
     </div>
   </div>`;
 }
-function renderCustomFieldInput(f, id){
-  if(f.optionType==='TEXT') return `<input id="${id}" type="text">`;
-  if(f.optionType==='NUMBER') return `<input id="${id}" type="number">`;
-  if(f.optionType==='DATE') return `<input id="${id}" type="date">`;
-  if(f.optionType==='SINGLE_SELECT') return `<select id="${id}"><option value="">선택해주세요</option>${(f.options||[]).map(o=>`<option value="${esc(o.optionValue)}">${esc(o.optionValue)}</option>`).join('')}</select>`;
-  if(f.optionType==='MULTI_SELECT') return `<select id="${id}" multiple size="${Math.min((f.options||[]).length,4)||3}">${(f.options||[]).map(o=>`<option value="${esc(o.optionValue)}">${esc(o.optionValue)}</option>`).join('')}</select>`;
-  return `<input id="${id}" type="text">`;
+function renderCustomFieldInput(f, id, currentValue){
+  const cur = currentValue!=null ? currentValue : '';
+  if(f.optionType==='TEXT') return `<input id="${id}" type="text" value="${esc(cur)}">`;
+  if(f.optionType==='NUMBER') return `<input id="${id}" type="number" value="${esc(cur)}">`;
+  if(f.optionType==='DATE') return `<input id="${id}" type="date" value="${esc(cur)}">`;
+  if(f.optionType==='SINGLE_SELECT') return `<div id="${id}" class="radio-group">${(f.options||[]).map(o=>`
+    <label class="radio-option"><input type="radio" name="${id}" value="${esc(o.optionValue)}" ${cur===o.optionValue?'checked':''}> ${esc(o.optionValue)}</label>`).join('')}</div>`;
+  if(f.optionType==='MULTI_SELECT'){
+    const curVals = cur ? cur.split(',').map(s=>s.trim()) : [];
+    return `<div id="${id}" class="radio-group">${(f.options||[]).map(o=>`
+      <label class="radio-option"><input type="checkbox" class="mc-box" value="${esc(o.optionValue)}" ${curVals.includes(o.optionValue)?'checked':''}> ${esc(o.optionValue)}</label>`).join('')}</div>`;
+  }
+  return `<input id="${id}" type="text" value="${esc(cur)}">`;
+}
+function readCustomFieldAnswer(f, id){
+  if(f.optionType==='SINGLE_SELECT'){
+    const checked = document.querySelector(`input[name="${id}"]:checked`);
+    return checked ? checked.value : '';
+  }
+  if(f.optionType==='MULTI_SELECT'){
+    const container = document.getElementById(id);
+    if(!container) return '';
+    return Array.from(container.querySelectorAll('.mc-box:checked')).map(c=>c.value).join(', ');
+  }
+  const el = document.getElementById(id);
+  return el ? el.value : '';
 }
 function onSubmitJoinCard(){
   const { roomId, roomCode } = state.params;
@@ -537,8 +755,7 @@ function onSubmitJoinCard(){
   const name = document.getElementById('jc-name').value.trim();
   const answers = {};
   (room.customFields||[]).forEach(f=>{
-    const el = document.getElementById('jc-field-'+f.id);
-    if(el) answers[f.id] = el.value;
+    answers[f.id] = readCustomFieldAnswer(f, 'jc-field-'+f.id);
   });
   withLoading(async ()=>{
     // ② 프로필 카드 생성 — 트랜잭션이 룸참여(①)와 분리되어 있어 순차 호출
@@ -557,61 +774,150 @@ function openRoom(roomId){ navigate('room', {roomId}); }
 async function loadRoom(roomId){
   const room = await apiFetch('/rooms/' + roomId, { method:'GET' });
   state.cache.room = room;
-  if(!state.knownRooms.find(r=>r.id===room.id)) state.knownRooms.push(room);
   return room;
 }
 function renderRoom(){
   const roomId = state.params.roomId;
-  const tab = state.params.tab || 'spaces';
   if(!state.cache.room || String(state.cache.room.id)!==String(roomId)){
     withLoading(async ()=>{
       await loadRoom(roomId);
-      if(tab==='members') await loadRoomMembers(roomId);
-      else { await loadSpaces(roomId); await loadRoomTags(roomId); }
-    }).catch(()=>{});
+      await Promise.all([loadRoomMembers(roomId), loadSpaces(roomId), loadRoomTags(roomId)]);
+    }).then(()=> initRoomChat(roomId)).catch(()=>{});
     return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
   }
   const room = state.cache.room;
+  const isOwner = room.ownerId===state.me?.id;
+  const spaces = state.cache.spaces || [];
+  const tags = state.cache.roomTags || [];
+  const active = state.params.activeTags || [];
+  const members = state.cache.roomMembers || [];
+  const centerTab = state.params.centerTab || 'chat';
   return `
-  <div class="page">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
-      <div>
-        <span class="plaque-code">${esc(room.roomCode)}</span>
-        <h1 class="page-title" style="margin-top:10px;">${esc(room.name)}</h1>
-        <p class="page-desc" style="margin-bottom:6px;">${esc(room.description)||'소개가 아직 없어요.'}</p>
-        <div class="field-hint">오너 ${esc(room.ownerName)} · 멤버 ${room.currentMember}${room.maxMember?'/'+room.maxMember:''}명</div>
+  <div class="discord-layout">
+    <aside class="side-panel">
+      <div class="side-panel-head">
+        <div class="side-panel-title">${esc(room.name)}</div>
+        <div class="side-panel-actions">
+          <button class="btn btn-sm" onclick="openModal('room-invite',{})">🔑 초대코드</button>
+          <button class="btn btn-sm" onclick="openModal('invites-inbox',{})">📨 초대함</button>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-primary" onclick="navigate('room-chat',{roomId:'${room.id}'})">💬 룸 채팅</button>
-        <button class="btn btn-sm" onclick="navigate('invites-inbox',{roomId:'${room.id}'})">내 초대함</button>
-        ${room.ownerId===state.me?.id ? `
-          <button class="btn btn-sm" onclick="openModal('room-edit',{})">룸 정보 수정</button>
-          <button class="btn btn-sm" onclick="openModal('custom-fields',{})">카드 형식 관리</button>
-          <button class="btn btn-sm btn-danger" onclick="onDeleteRoom('${room.id}')">룸 삭제</button>
-        ` : ''}
+      <div class="side-section-title">스페이스 <span class="rail-count">· ${spaces.length}개</span></div>
+      <div class="side-list">
+        ${spaces.length ? spaces.map(s=>`
+          <div class="space-card-btn" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
+            <div class="space-card-btn-name">${esc(s.name)}</div>
+            <div class="chip-row">${(s.tags||[]).length ? s.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
+          </div>`).join('') : `<div class="empty-inline" style="padding:8px;">${active.length?'해당 태그의 스페이스가 없어요':'아직 스페이스가 없어요'}</div>`}
       </div>
-    </div>
-    <div class="tabs" style="margin-top:26px;">
-      <button class="tab ${tab==='spaces'?'active':''}" onclick="switchRoomTab('spaces')">스페이스</button>
-      <button class="tab ${tab==='members'?'active':''}" onclick="switchRoomTab('members')">멤버</button>
-    </div>
-    ${tab==='members' ? renderRoomMembersTab() : renderRoomSpacesTab()}
+      <button class="btn btn-sm btn-block" style="margin-top:10px;" onclick="navigate('space-create',{roomId:'${room.id}'})">+ 스페이스 만들기</button>
+      ${isOwner ? `
+        <div class="side-panel-foot">
+          <button class="btn btn-sm btn-block" onclick="openModal('room-edit',{})">룸 정보 수정</button>
+          <button class="btn btn-sm btn-block" onclick="openModal('custom-fields',{})">카드 형식 관리</button>
+          <button class="btn btn-sm btn-danger btn-block" onclick="onDeleteRoom('${room.id}')">룸 삭제</button>
+        </div>` : ''}
+    </aside>
+
+    <section class="chat">
+      <div class="center-tabs">
+        <button class="center-tab ${centerTab==='chat'?'active':''}" onclick="setCenterTab('chat')">💬 채팅</button>
+        <button class="center-tab ${centerTab==='spaces'?'active':''}" onclick="setCenterTab('spaces')">🗂 스페이스</button>
+      </div>
+      ${centerTab==='spaces' ? renderRoomSpacesBrowser(room, spaces, tags, active) : renderRoomChatPanel(room)}
+    </section>
+
+    <aside class="side-panel">
+      <div class="side-section-title">멤버 <span class="rail-count">· ${members.length}명</span></div>
+      <div class="side-list">
+        ${members.length ? members.map(m=>`
+          <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
+            <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
+          </div>`).join('') : `<div class="empty-inline" style="padding:8px;">멤버 카드가 없어요</div>`}
+      </div>
+    </aside>
   </div>`;
+}
+function setCenterTab(tab){
+  state.params = {...state.params, centerTab: tab};
+  render();
+  if(tab==='chat') initRoomChat(state.params.roomId);
+}
+function renderRoomChatPanel(room){
+  return `
+  <div class="info-banner">
+    <h2>${esc(room.name)}</h2>
+    <p class="page-desc" style="margin:6px 0 10px;">${esc(room.description)||'소개가 아직 없어요.'}</p>
+    <div class="meta-row" style="margin:0;padding:0;border:none;">
+      <span>👑 오너 <b>${esc(room.ownerName)}</b></span>
+      <span>👥 멤버 <b>${room.currentMember}${room.maxMember?'/'+room.maxMember:''}명</b></span>
+      <span>📅 개설 <b>${esc(formatDateTime(room.createdAt)||'-')}</b></span>
+    </div>
+    ${(room.customFields||[]).length ? `
+      <div class="side-section-title" style="margin:12px 0 6px;">멤버 카드 항목</div>
+      <div class="chip-row">${room.customFields.map(f=>`<span class="chip-static tech-c">${esc(f.fieldName)}${f.required?' *':''}</span>`).join('')}</div>
+    ` : ''}
+  </div>
+  ${chatBodyHtml('room', room.id)}`;
+}
+function renderRoomSpacesBrowser(room, spaces, tags, active){
+  const searchOpen = !!state.params.searchOpen;
+  const pending = state.params.pendingTags || active;
+  return `
+  <div class="space-browser">
+    <div class="space-browser-head">
+      <h2 style="margin:0;">스페이스</h2>
+      <button class="btn btn-sm" onclick="toggleSpaceSearch()">🔍 검색 조건${active.length?` (${active.length})`:''}</button>
+    </div>
+    ${searchOpen ? `
+      <div class="search-panel">
+        <div class="field-hint" style="margin-bottom:8px;">태그를 선택하고 검색을 눌러주세요.</div>
+        <div class="chip-row" style="margin-bottom:12px;">
+          ${tags.length ? tags.map(t=>`<span class="chip-static ${pending.includes(t)?'tech-c':'tag-c'}" style="cursor:pointer;" onclick="togglePendingTag('${esc(t)}')">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 태그가 없어요</span>`}
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="applySpaceSearch()">검색</button>
+        <button class="btn btn-sm" onclick="clearSpaceSearch()">초기화</button>
+      </div>` : ''}
+    <div class="space-browser-body">
+      ${spaces.length ? `<div class="card-grid">${spaces.map(s=>`
+        <div class="idx-card" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
+          <span class="card-tag-space">SPACE</span>
+          <div class="card-name">${esc(s.name)}</div>
+          <div class="rule"></div>
+          <div class="card-tags">${(s.tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join('')}</div>
+          <div class="card-foot"><span>멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</span></div>
+        </div>`).join('')}</div>` : `<div class="empty">${active.length?'해당 태그의 스페이스가 없어요.':'아직 만들어진 스페이스가 없어요.'}</div>`}
+    </div>
+  </div>`;
+}
+function toggleSpaceSearch(){
+  state.params = {...state.params, searchOpen: !state.params.searchOpen, pendingTags: state.params.activeTags || []};
+  render();
+}
+function togglePendingTag(tag){
+  const list = state.params.pendingTags || [];
+  const i = list.indexOf(tag);
+  if(i>-1) list.splice(i,1); else list.push(tag);
+  state.params.pendingTags = list;
+  render();
+}
+function applySpaceSearch(){
+  const tags = state.params.pendingTags || [];
+  state.params.activeTags = tags;
+  state.params.searchOpen = false;
+  withLoading(async ()=> loadSpaces(state.params.roomId, tags)).catch(()=>{});
+}
+function clearSpaceSearch(){
+  state.params.activeTags = []; state.params.pendingTags = []; state.params.searchOpen = false;
+  withLoading(async ()=> loadSpaces(state.params.roomId, [])).catch(()=>{});
 }
 function onDeleteRoom(roomId){
   if(!confirm('룸을 삭제할까요? 되돌릴 수 없어요.')) return;
   withLoading(async ()=>{
     await apiFetch('/rooms/' + roomId, { method:'DELETE' });
-    state.knownRooms = state.knownRooms.filter(r=>String(r.id)!==String(roomId));
+    state.cache.myRooms = null;
     showToast('룸이 삭제됐어요.');
     navigate('main');
-  }).catch(()=>{});
-}
-function switchRoomTab(tab){
-  state.params = {...state.params, tab};
-  withLoading(async ()=>{
-    if(tab==='members') await loadRoomMembers(state.params.roomId);
-    else { await loadSpaces(state.params.roomId); await loadRoomTags(state.params.roomId); }
   }).catch(()=>{});
 }
 async function loadRoomMembers(roomId){
@@ -634,18 +940,6 @@ async function ensureMemberNames(roomId){
 function nameOf(userId){
   return (state.cache.memberNames && state.cache.memberNames[userId]) || ('유저 ' + userId);
 }
-function renderRoomMembersTab(){
-  const members = state.cache.roomMembers || [];
-  return `
-  <div class="warn-banner">⚠️ 룸 멤버 전용 조회 API가 없어서, 멤버 프로필 카드 필터 결과로 대체 표시하고 있어요.</div>
-  <div class="section-head"><h2>멤버</h2><span class="count">${members.length}명</span></div>
-  ${members.length ? members.map(m=>`
-    <div class="member-row">
-      <div class="avatar">${esc(initials(m.name))}</div>
-      <div class="info"><span class="name">${esc(m.name)}</span><div class="tagline">카드 작성됨</div></div>
-      <div class="row-actions"><button class="btn btn-sm" onclick="openModal('profile-card',{card:${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}})">카드 보기</button></div>
-    </div>`).join('') : `<div class="empty">멤버 카드가 없어요.</div>`}`;
-}
 async function loadSpaces(roomId, tags){
   let path = '/rooms/' + roomId + '/spaces';
   if(tags && tags.length) path += '?' + tags.map(t=>'tags=' + encodeURIComponent(t)).join('&');
@@ -654,32 +948,9 @@ async function loadSpaces(roomId, tags){
 async function loadRoomTags(roomId){
   state.cache.roomTags = await apiFetch('/rooms/' + roomId + '/tags', { method:'GET' });
 }
-function toggleTagFilter(tag){
-  state.params.activeTags = state.params.activeTags || [];
-  const i = state.params.activeTags.indexOf(tag);
-  if(i>-1) state.params.activeTags.splice(i,1); else state.params.activeTags.push(tag);
-  withLoading(async ()=> loadSpaces(state.params.roomId, state.params.activeTags)).catch(()=>{});
-}
-function renderRoomSpacesTab(){
-  const spaces = state.cache.spaces || [];
-  const room = state.cache.room;
-  const tags = state.cache.roomTags || [];
-  const active = state.params.activeTags || [];
-  return `
-  <div class="section-head">
-    <h2>스페이스</h2>
-    <button class="btn btn-primary btn-sm" onclick="navigate('space-create',{roomId:'${room.id}'})">+ 스페이스 만들기</button>
-  </div>
-  ${tags.length ? `<div class="card-tags" style="margin-bottom:16px;">${tags.map(t=>`
-    <span class="tag ${active.includes(t)?'alt':''}" style="cursor:pointer;" onclick="toggleTagFilter('${esc(t)}')">${esc(t)}</span>`).join('')}</div>` : ''}
-  ${spaces.length ? `<div class="card-grid">${spaces.map(s=>`
-    <div class="idx-card" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
-      <span class="card-tag-space">SPACE</span>
-      <div class="card-name">${esc(s.name)}</div>
-      <div class="rule"></div>
-      <div class="card-tags">${(s.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
-      <div class="card-foot"><span>멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</span></div>
-    </div>`).join('')}</div>` : `<div class="empty">${active.length?'해당 태그의 스페이스가 없어요.':'아직 만들어진 스페이스가 없어요.'}</div>`}`;
+async function initRoomChat(roomId){
+  await ensureMemberNames(roomId).catch(()=>{});
+  await initChatCore('room', roomId);
 }
 
 /* =====================================================================
@@ -694,8 +965,8 @@ function renderSpaceCreate(){
     <div class="form-card">
       <div class="field"><label>스페이스 이름</label><input id="sc-name" type="text"></div>
       <div class="field"><label>최대 인원</label><input id="sc-max" type="number"></div>
-      <div class="field"><label>기술 스택 (쉼표로 구분)</label><input id="sc-tech" type="text"></div>
-      <div class="field"><label>태그 (쉼표로 구분)</label><input id="sc-tags" type="text"></div>
+      <div class="field"><label>필요 기술</label>${textListHtml('sc-tech-list', [], '예: Java')}</div>
+      <div class="field"><label>태그</label>${chipInputHtml('sc-tags-chips', [], '#태그 입력 후 스페이스바', {hash:true})}</div>
       <div class="field"><label>선호 시작 시간</label><input id="sc-start" type="datetime-local"></div>
       <div class="field"><label>선호 종료 시간</label><input id="sc-end" type="datetime-local"></div>
       <div class="field"><label>커스텀 필드 (한 줄에 하나, "항목명: 값1, 값2" 형식)</label><textarea id="sc-custom" rows="3" placeholder="예: 선호 요일: 월, 수, 금"></textarea></div>
@@ -725,8 +996,8 @@ function onCreateSpace(){
   const body = {
     name,
     maxMemberCount: parseInt(document.getElementById('sc-max').value) || null,
-    techStack: document.getElementById('sc-tech').value.split(',').map(s=>s.trim()).filter(Boolean),
-    tags: document.getElementById('sc-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    techStack: getTextListValues('sc-tech-list'),
+    tags: getChipValues('sc-tags-chips'),
     preferredStartTime: document.getElementById('sc-start').value || null,
     preferredEndTime: document.getElementById('sc-end').value || null,
     customField: parseCustomFieldText(document.getElementById('sc-custom').value),
@@ -750,41 +1021,155 @@ function renderSpace(){
       detail._id = spaceId;
       if(!state.cache.room || String(state.cache.room.id)!==String(roomId)) await loadRoom(roomId);
       await ensureMemberNames(roomId).catch(()=>{});
+      if(!state.cache.spaces) await loadSpaces(roomId).catch(()=>{});
       // ownerId 필드가 추가되어 정확한 오너 판별 가능
       detail.isOwner = detail.ownerId === state.me?.id;
+      // 스페이스 멤버 조회 API로 멤버 목록 확보 + 내가 멤버인지 판별
+      const spaceMembers = await loadSpaceMembers(roomId, spaceId).catch(()=>[]);
+      detail.isMember = spaceMembers.some(m=>m.userId===state.me?.id);
       state.cache.spaceDetail = detail;
-    }).catch(()=>{});
+    }).then(()=> initSpaceChatIfMember(roomId, spaceId)).catch(()=>{});
     return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
   }
   const s = state.cache.spaceDetail;
   const canManageSpace = s.isOwner || state.cache.room?.ownerId===state.me?.id;
+  return s.isMember
+    ? renderSpaceChatView(s, roomId, spaceId, canManageSpace)
+    : renderSpaceInfoView(s, roomId, spaceId, canManageSpace);
+}
+async function loadSpaceMembers(roomId, spaceId){
+  const members = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/spaceMembers`, { method:'GET' });
+  state.cache.spaceMembers = members;
+  return members;
+}
+function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
+  const room = state.cache.room;
+  const spaces = state.cache.spaces || [];
+  const extraBtns = `
+    ${canManageSpace ? `<button class="btn btn-sm" onclick="openModal('space-edit',{})">✏️ 카드수정</button>` : ''}
+    ${s.isOwner ? `<button class="btn btn-sm" onclick="openSpaceInviteModal()">➕ 초대</button><button class="btn btn-sm" onclick="openModal('space-invite-list',{})">📋 신청확인</button>` : ''}
+    <button class="btn btn-sm btn-danger" onclick="onLeaveSpace('${roomId}','${spaceId}')">탈퇴</button>
+  `;
+  const start = formatDateTime(s.preferredStartTime);
+  const end = formatDateTime(s.preferredEndTime);
+  const customEntries = Object.entries(s.customField||{});
+  const infoBanner = `
+  <div class="info-banner">
+    <h2>${esc(s.name)}</h2>
+    <div class="chip-row" style="margin:8px 0;">${(s.tags||[]).length ? s.tags.map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 태그가 없어요</span>`}</div>
+    <div class="meta-row" style="margin:0 0 10px;padding:0;border:none;">
+      <span>👑 오너 <b>${esc(s.owner)}</b></span>
+      <span>👥 멤버 <b>${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</b></span>
+    </div>
+    <div class="side-section-title" style="margin:6px 0;">필요 기술</div>
+    <div class="chip-row">${(s.techStack||[]).length ? s.techStack.map(t=>`<span class="chip-static tech-c">${esc(t)}</span>`).join('') : `<span class="empty-inline">없음</span>`}</div>
+    <div class="side-section-title" style="margin:10px 0 4px;">선호 시간</div>
+    <div class="cf-value">${(start||end) ? `${esc(start||'미정')} ~ ${esc(end||'미정')}` : `<span class="empty-inline">등록된 선호 시간이 없어요</span>`}</div>
+    ${customEntries.length ? `
+      <div class="side-section-title" style="margin:10px 0 4px;">추가 정보</div>
+      ${customEntries.map(([k,v])=>`<div class="custom-field-row"><div class="cf-label">${esc(k)}</div><div class="cf-value">${esc((v||[]).join(', '))}</div></div>`).join('')}
+    ` : ''}
+  </div>`;
+  return `
+  <div class="discord-layout">
+    <aside class="side-panel">
+      <div class="side-panel-head">
+        <div class="side-panel-title">${esc(room?.name||'')}</div>
+        <div class="side-panel-actions"><button class="btn btn-sm" onclick="navigate('room',{roomId:'${roomId}'})">← 룸으로</button></div>
+      </div>
+      <div class="side-section-title">스페이스</div>
+      <div class="side-list">
+        ${spaces.map(sp=>`
+          <div class="space-card-btn ${String(sp.id)===String(spaceId)?'active':''}" onclick="navigate('space',{roomId:'${roomId}',spaceId:'${sp.id}'})">
+            <div class="space-card-btn-name">${esc(sp.name)}</div>
+            <div class="chip-row">${(sp.tags||[]).length ? sp.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
+          </div>`).join('')}
+      </div>
+    </aside>
+
+    <section class="chat">
+      ${infoBanner}
+      ${chatBodyHtml('space', spaceId, extraBtns)}
+    </section>
+
+    <aside class="side-panel">
+      <div class="side-section-title">멤버 <span class="rail-count">· ${(state.cache.spaceMembers||[]).length}명</span></div>
+      <div class="side-list">
+        ${(state.cache.spaceMembers||[]).length ? (state.cache.spaceMembers||[]).map(m=>`
+          <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
+            <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
+          </div>`).join('') : `<div class="empty-inline" style="padding:8px;">멤버 카드가 없어요</div>`}
+      </div>
+      ${canManageSpace ? `<div class="side-panel-foot"><button class="btn btn-sm btn-block" onclick="openModal('space-transfer',{})">오너 위임</button><button class="btn btn-sm btn-danger btn-block" onclick="onDeleteSpace('${roomId}','${spaceId}')">스페이스 삭제</button></div>` : ''}
+    </aside>
+  </div>`;
+}
+function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
+  const start = formatDateTime(s.preferredStartTime);
+  const end = formatDateTime(s.preferredEndTime);
+  const customEntries = Object.entries(s.customField||{});
   return `
   <div class="page">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
-      <div>
-        <span class="tag alt">SPACE</span>
-        <h1 class="page-title" style="margin-top:10px;">${esc(s.name)}</h1>
-        <div class="card-tags" style="margin-bottom:6px;">${(s.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
-        <div class="field-hint">오너 ${esc(s.owner)} · 기술스택 ${(s.techStack||[]).join(', ')||'-'} · 멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</div>
-        ${(s.preferredStartTime||s.preferredEndTime) ? `<div class="field-hint">선호 시간: ${esc((s.preferredStartTime||'-').toString().slice(0,16))} ~ ${esc((s.preferredEndTime||'-').toString().slice(0,16))}</div>` : ''}
-        ${s.customField && Object.keys(s.customField).length ? `<div class="field-hint" style="white-space:pre-line;">${esc(customFieldToText(s.customField))}</div>` : ''}
+    <div class="space-hero">
+      <span class="tag alt">SPACE</span>
+      <h1>${esc(s.name)}</h1>
+      <div class="chip-row">
+        ${(s.tags||[]).length ? (s.tags||[]).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 태그가 없어요</span>`}
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-primary btn-sm" onclick="navigate('space-chat',{roomId:'${roomId}',spaceId:'${spaceId}'})">💬 스페이스 채팅</button>
-        <button class="btn btn-sm" onclick="onApplySpace('${spaceId}')">가입 신청하기</button>
-        ${canManageSpace ? `
-          <button class="btn btn-sm" onclick="openModal('space-edit',{})">카드 수정</button>
-          <button class="btn btn-sm" onclick="openModal('space-transfer',{})">오너 위임</button>
-        ` : ''}
-        ${s.isOwner ? `
-          <button class="btn btn-sm" onclick="openSpaceInviteModal()">멤버 초대</button>
-          <button class="btn btn-sm" onclick="openModal('space-invite-list',{})">가입 신청 확인</button>
-        ` : ''}
-        <button class="btn btn-danger btn-sm" onclick="onLeaveSpace('${roomId}','${spaceId}')">탈퇴하기</button>
-        ${canManageSpace ? `<button class="btn btn-danger btn-sm" onclick="onDeleteSpace('${roomId}','${spaceId}')">스페이스 삭제</button>` : ''}
+      <div class="meta-row">
+        <span>👑 오너 <b>${esc(s.owner)}</b></span>
+        <span>👥 멤버 <b>${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</b></span>
       </div>
     </div>
-    <div class="warn-banner">⚠️ 스페이스 멤버 목록을 조회하는 API가 없어서 멤버 리스트는 표시하지 못했어요.</div>
+
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>필요 기술</h3>
+        <div class="chip-row">
+          ${(s.techStack||[]).length ? (s.techStack||[]).map(t=>`<span class="chip-static tech-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 필요 기술이 없어요</span>`}
+        </div>
+      </div>
+      <div class="detail-card">
+        <h3>선호 시간</h3>
+        ${(start||end) ? `<div class="custom-field-row"><div class="cf-value">${esc(start||'미정')} ~ ${esc(end||'미정')}</div></div>` : `<span class="empty-inline">등록된 선호 시간이 없어요</span>`}
+      </div>
+      <div class="detail-card">
+        <h3>추가 정보</h3>
+        ${customEntries.length ? customEntries.map(([k,v])=>`
+          <div class="custom-field-row">
+            <div class="cf-label">${esc(k)}</div>
+            <div class="cf-value">${esc((v||[]).join(', '))}</div>
+          </div>`).join('') : `<span class="empty-inline">등록된 항목이 없어요</span>`}
+      </div>
+    </div>
+
+    <div class="notice-banner">가입된 스페이스가 아니라서 정보 조회와 가입 신청만 할 수 있어요. 채팅은 가입 후 이용할 수 있어요.</div>
+
+    <div class="actions-bar">
+      <button class="btn btn-primary btn-sm" onclick="onApplySpace('${spaceId}')">가입 신청하기</button>
+      ${canManageSpace ? `
+        <button class="btn btn-sm" onclick="openModal('space-edit',{})">카드 수정</button>
+        <button class="btn btn-sm" onclick="openModal('space-transfer',{})">오너 위임</button>
+        <button class="btn btn-danger btn-sm" onclick="onDeleteSpace('${roomId}','${spaceId}')">스페이스 삭제</button>
+      ` : ''}
+    </div>
+  </div>`;
+}
+function chatBodyHtml(targetType, targetId, extraButtons){
+  return `
+  <div class="chat-subhead">
+    <span class="ws-dot" id="wsDot"></span><span id="wsStatus" class="field-hint" style="margin:0;">연결 중...</span>
+    <div style="flex:1;"></div>
+    ${extraButtons||''}
+  </div>
+  <div class="chat-scroll" id="chatScroll"><div class="empty">불러오는 중...</div></div>
+  <div class="composer">
+    <div class="composer-box">
+      <textarea id="msgInput" rows="1" placeholder="메시지를 입력하세요"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendChat('${targetType}','${targetId}')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L14 20L11 13L4 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
   </div>`;
 }
 function openSpaceInviteModal(){
@@ -796,10 +1181,11 @@ function openSpaceInviteModal(){
 function onLeaveSpace(roomId, spaceId){
   if(!confirm('스페이스에서 탈퇴할까요?')) return;
   withLoading(async ()=>{
-    await apiFetch(`/rooms/${roomId}/${spaceId}/leave`, { method:'DELETE' });
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/leave`, { method:'DELETE' });
+    state.cache.spaceDetail = null;
     showToast('스페이스에서 탈퇴했어요.');
     await loadSpaces(roomId);
-    navigate('room', {roomId, tab:'spaces'});
+    navigate('room', {roomId});
   }).catch(()=>{});
 }
 function onDeleteSpace(roomId, spaceId){
@@ -808,8 +1194,13 @@ function onDeleteSpace(roomId, spaceId){
     await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'DELETE' });
     showToast('스페이스가 삭제됐어요.');
     await loadSpaces(roomId);
-    navigate('room', {roomId, tab:'spaces'});
+    navigate('room', {roomId});
   }).catch(()=>{});
+}
+async function initSpaceChatIfMember(roomId, spaceId){
+  if(state.cache.spaceDetail && state.cache.spaceDetail.isMember){
+    await initChatCore('space', spaceId);
+  }
 }
 /* =====================================================================
    내 초대함 — GET /invites/members, accept/reject
@@ -820,40 +1211,37 @@ function onApplySpace(spaceId){
     showToast('가입 신청을 보냈어요.');
   }).catch(()=>{});
 }
-function renderInvitesInbox(){
-  const list = state.cache.invites;
-  if(!list){
-    withLoading(async ()=>{
-      state.cache.invites = await apiFetch('/invites/members', { method:'GET' });
-    }).catch(()=>{});
-    return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
-  }
-  return `
-  <div class="page page-narrow">
-    <div class="eyebrow">Invites</div>
-    <h1 class="page-title">내 초대함</h1>
-    <p class="page-desc">스페이스에 보낸 가입 신청, 받은 가입 권유를 확인해요.</p>
-    ${list.length ? list.map(inv=>`
-      <div class="member-row">
-        <div class="info">
-          <span class="name">${esc(inv.spaceName)} <span class="badge">${inv.type==='MemberToSpace'?'내 신청':'받은 권유'}</span></span>
-          <div class="tagline">${inv.status}</div>
-        </div>
-        ${inv.status==='PENDING' ? `
-        <div class="row-actions">
-          <button class="btn btn-sm btn-primary" onclick="onInviteAction('${inv.id}','accept')">수락</button>
-          <button class="btn btn-sm btn-danger" onclick="onInviteAction('${inv.id}','reject')">거절</button>
-        </div>` : ''}
-      </div>`).join('') : `<div class="empty">대기 중인 초대/신청이 없어요.</div>`}
-  </div>`;
+async function loadInvitesInboxBody(){
+  try{
+    const list = await apiFetch('/invites/members', { method:'GET' });
+    state.cache.invites = list;
+    renderInvitesInboxBody(list);
+  }catch(e){ showToast(e.message); }
+}
+function renderInvitesInboxBody(list){
+  const body = document.getElementById('invites-inbox-body');
+  if(!body) return;
+  body.innerHTML = list.length ? list.map(inv=>`
+    <div class="member-row">
+      <div class="info">
+        <span class="name">${esc(inv.spaceName)} <span class="badge">${inv.type==='MemberToSpace'?'내 신청':'받은 권유'}</span></span>
+        <div class="tagline">${inv.status}</div>
+      </div>
+      ${inv.status==='PENDING' ? `
+      <div class="row-actions">
+        <button class="btn btn-sm btn-primary" onclick="onInviteAction('${inv.id}','accept')">수락</button>
+        <button class="btn btn-sm btn-danger" onclick="onInviteAction('${inv.id}','reject')">거절</button>
+      </div>` : ''}
+    </div>`).join('') : `<div class="empty">대기 중인 초대/신청이 없어요.</div>`;
 }
 function onInviteAction(inviteId, action){
-  withLoading(async ()=>{
-    await apiFetch(`/invites/${inviteId}/${action}`, { method:'POST' });
-    showToast(action==='accept' ? '수락했어요.' : '거절했어요.');
-    state.cache.invites = null;
-    navigate('invites-inbox', state.params);
-  }).catch(()=>{});
+  apiFetch(`/invites/${inviteId}/${action}`, { method:'POST' })
+    .then(()=>{
+      state.cache.spaceDetail = null;
+      showToast(action==='accept' ? '수락했어요.' : '거절했어요.');
+      return loadInvitesInboxBody();
+    })
+    .catch(e=> showToast(e.message));
 }
 
 /* =====================================================================
@@ -899,9 +1287,9 @@ function onSaveCustomFields(){
     // 신규 필드
     const optionType = row.querySelector('.cf-type').value;
     const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
-    const optionValues = row.querySelector('.cf-options').value.split(',').map(s=>s.trim()).filter(Boolean);
-    if(isSelect && optionValues.length===0){ error = 'SELECT 타입 항목은 선택지를 1개 이상 입력해야 해요.'; return; }
-    if(!isSelect && optionValues.length>0){ error = 'TEXT/NUMBER/DATE 타입에는 선택지를 입력할 수 없어요 — 지워주세요.'; return; }
+    const optionValues = getOptionBoxValues(row);
+    if(isSelect && optionValues.length===0){ error = '선택형 항목은 선택 보기를 1개 이상 입력해야 해요.'; return; }
+    if(!isSelect && optionValues.length>0){ error = '짧은 글/숫자/날짜 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return; }
     customFields.push({
       id: null,
       fieldName: row.querySelector('.cf-name').value.trim(),
@@ -926,18 +1314,26 @@ function addCustomFieldRow(){
 function customFieldRowHtml(f){
   f = f || {fieldName:'', required:false, optionType:'TEXT', options:[]};
   const isExisting = !!f.id;
+  const typeLabels = {
+    TEXT: '짧은 글',
+    NUMBER: '숫자',
+    DATE: '날짜',
+    SINGLE_SELECT: '여러 보기 중 하나 선택',
+    MULTI_SELECT: '여러 보기 중 여러 개 선택'
+  };
+  const isSelect = f.optionType==='SINGLE_SELECT' || f.optionType==='MULTI_SELECT';
   return `
   <div class="cf-row" data-field-id="${f.id||''}" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;">
-    ${isExisting ? `<div class="field-hint" style="margin-bottom:8px;">기존 항목 — 이름/타입/옵션은 이 화면에서 수정할 수 없어요. 바꾸려면 삭제 후 새로 추가해주세요.</div>` : ''}
-    <div class="field"><label>필드명</label><input class="cf-name" type="text" value="${esc(f.fieldName)}" ${isExisting?'disabled':''}></div>
-    <div class="field"><label>타입</label>
-      <select class="cf-type" ${isExisting?'disabled':''}>
-        ${['TEXT','NUMBER','DATE','SINGLE_SELECT','MULTI_SELECT'].map(t=>`<option value="${t}" ${f.optionType===t?'selected':''}>${t}</option>`).join('')}
+    ${isExisting ? `<div class="field-hint" style="margin-bottom:8px;">이미 만들어진 항목이에요. 이름이나 방식은 여기서 바꿀 수 없고, 바꾸려면 삭제 후 새로 추가해주세요.</div>` : ''}
+    <div class="field"><label>항목 이름</label><input class="cf-name" type="text" placeholder="예: 포지션, 한줄소개" value="${esc(f.fieldName)}" ${isExisting?'disabled':''}></div>
+    <div class="field"><label>입력 방식</label>
+      <select class="cf-type" ${isExisting?'disabled':''} onchange="const opt=this.closest('.cf-row').querySelector('.cf-options-field'); if(opt) opt.style.display=(this.value==='SINGLE_SELECT'||this.value==='MULTI_SELECT')?'':'none';">
+        ${Object.entries(typeLabels).map(([t,label])=>`<option value="${t}" ${f.optionType===t?'selected':''}>${label}</option>`).join('')}
       </select>
     </div>
-    <div class="field"><label>선택지 (SELECT 타입일 때만, 쉼표로 구분)</label><input class="cf-options" type="text" value="${esc((f.options||[]).map(o=>o.optionValue).join(', '))}" ${isExisting?'disabled':''}></div>
-    <label style="font-size:12.5px;font-weight:600;display:flex;gap:6px;align-items:center;margin-bottom:8px;"><input class="cf-required" type="checkbox" ${f.required?'checked':''} ${isExisting?'disabled':''}> 필수 항목</label>
-    <button type="button" class="btn btn-sm ${isExisting?'btn-danger':''}" onclick="this.closest('.cf-row').remove()">${isExisting?'이 항목 삭제(답변도 함께 삭제됨)':'이 항목 취소'}</button>
+    <div class="field cf-options-field" style="display:${isSelect?'':'none'};"><label>선택 보기</label>${optionBoxesHtml(f.options, isExisting)}</div>
+    <label style="font-size:12.5px;font-weight:600;display:flex;gap:6px;align-items:center;margin-bottom:8px;"><input class="cf-required" type="checkbox" ${f.required?'checked':''} ${isExisting?'disabled':''}> 반드시 입력해야 하는 항목으로 설정</label>
+    <button type="button" class="btn btn-sm ${isExisting?'btn-danger':''}" onclick="this.closest('.cf-row').remove()">${isExisting?'이 항목 삭제(답변도 함께 삭제돼요)':'이 항목 취소'}</button>
   </div>`;
 }
 
@@ -949,8 +1345,8 @@ function onSaveSpaceEdit(){
   const body = {
     name: document.getElementById('se-name').value.trim(),
     maxMemberCount: parseInt(document.getElementById('se-max').value) || null,
-    techStack: document.getElementById('se-tech').value.split(',').map(s=>s.trim()).filter(Boolean),
-    tags: document.getElementById('se-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    techStack: getTextListValues('se-tech-list'),
+    tags: getChipValues('se-tags-chips'),
     preferredStartTime: document.getElementById('se-start').value || null,
     preferredEndTime: document.getElementById('se-end').value || null,
     customField: parseCustomFieldText(document.getElementById('se-custom').value),
@@ -979,7 +1375,7 @@ async function loadSpacePendingInvites(spaceId){
 function onTransferOwner(){
   const { roomId, spaceId } = state.params;
   const newOwnerId = document.getElementById('to-userid').value.trim();
-  if(!newOwnerId){ showToast('새 오너의 유저 id를 입력해주세요.'); return; }
+  if(!newOwnerId){ showToast('위임할 멤버를 선택해주세요.'); return; }
   if(!confirm('오너를 위임할까요?')) return;
   withLoading(async ()=>{
     await apiFetch(`/rooms/${roomId}/${spaceId}/owner`, { method:'PATCH', body: JSON.stringify({ newOwnerId: Number(newOwnerId) }) });
@@ -994,9 +1390,11 @@ function onTransferOwner(){
    MemberProfileCard 관리 (수정/삭제) API
 ===================================================================== */
 function onUpdateProfileCard(cardId, roomId){
-  const rows = document.querySelectorAll('.pc-answer');
+  const room = state.cache.room;
   const answers = {};
-  rows.forEach(r=> answers[r.dataset.fieldId] = r.value);
+  (room?.customFields||[]).forEach(f=>{
+    answers[f.id] = readCustomFieldAnswer(f, 'pc-answer-'+f.id);
+  });
   const name = document.getElementById('pc-edit-name').value.trim();
   withLoading(async ()=>{
     await apiFetch('/memberProfileCard/update', { method:'PATCH', body: JSON.stringify({ memberProfileCardId: Number(cardId), name, isMemberProfileCardUpdated:true, answers }) });
@@ -1020,37 +1418,9 @@ function onDeleteProfileCard(cardId, roomId){
 }
 
 /* =====================================================================
-   채팅 (room · space 공용) — REST 전송 + STOMP 구독
+   채팅 (room · space 공용, 3분할 레이아웃 중앙 패널에 내장) — REST 전송 + STOMP 구독
 ===================================================================== */
-function renderChat(targetType, targetId){
-  const room = state.cache.room;
-  return `
-  <div class="chat-layout">
-    <aside class="rail">
-      <div class="rail-section-title">채팅</div>
-      <div class="field-hint" style="padding:0 4px;">
-        <span class="ws-dot" id="wsDot"></span><span id="wsStatus">연결 중...</span>
-      </div>
-    </aside>
-    <section class="chat">
-      <div class="chat-head">
-        <div><h2>${targetType==='room'?'룸 채팅':'스페이스 채팅'}</h2><div class="sub">${targetType==='room'?'이 룸의 모든 멤버와 공유되는 대화예요':'이 스페이스 멤버끼리만 공유되는 대화예요'}</div></div>
-      </div>
-      <div class="chat-scroll" id="chatScroll"><div class="empty">불러오는 중...</div></div>
-      <div class="composer">
-        <div class="composer-box">
-          <textarea id="msgInput" rows="1" placeholder="메시지를 입력하세요"></textarea>
-          <button class="send-btn" id="sendBtn" onclick="sendChat('${targetType}','${targetId}')">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L14 20L11 13L4 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-      </div>
-    </section>
-  </div>`;
-}
-async function initChat(targetType, targetId){
-  const roomId = state.params.roomId || (targetType==='room' ? targetId : null);
-  if(roomId) await ensureMemberNames(roomId).catch(()=>{});
+async function initChatCore(targetType, targetId){
   await loadChatHistory(targetType, targetId);
   connectWs(targetType, targetId);
 }
@@ -1126,8 +1496,8 @@ function sendChat(targetType, targetId){
 document.addEventListener('keydown', (e)=>{
   if(e.target && e.target.id==='msgInput' && e.key==='Enter' && !e.shiftKey){
     e.preventDefault();
-    if(state.page==='room-chat') sendChat('room', state.params.roomId);
-    if(state.page==='space-chat') sendChat('space', state.params.spaceId);
+    if(state.page==='room') sendChat('room', state.params.roomId);
+    if(state.page==='space' && state.cache.spaceDetail?.isMember) sendChat('space', state.params.spaceId);
   }
 });
 
@@ -1157,11 +1527,30 @@ function renderModal(){
       <div class="field"><label>이름</label><input id="pc-edit-name" type="text" value="${esc(m.name)}"></div>
       ${(room?.customFields||[]).map(f=>{
         const cur = (m.answers||[]).find(a=>a.fieldId===f.id);
-        return `<div class="field"><label>${esc(f.fieldName)}</label><input class="pc-answer" data-field-id="${f.id}" type="text" value="${esc(cur?cur.value:'')}"></div>`;
+        return `<div class="field"><label>${esc(f.fieldName)}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
       }).join('')}
       <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
       <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteProfileCard('${m.id}','${room?.id}')">카드 삭제</button>
     </div>` : ''}`;
+  }
+  if(type==='room-invite'){
+    const room = state.cache.room;
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h3>초대 코드</h3>
+    <p class="page-desc" style="margin:8px 0 16px;">이 코드를 팀원에게 공유해서 룸에 초대하세요.</p>
+    <div style="text-align:center;padding:20px;background:var(--paper);border-radius:12px;">
+      <div style="font-family:monospace;font-size:28px;font-weight:800;letter-spacing:4px;">${esc(room.roomCode)}</div>
+    </div>
+    <button class="btn btn-block" style="margin-top:14px;" onclick="navigator.clipboard.writeText('${esc(room.roomCode)}').then(()=>showToast('복사했어요.'))">복사하기</button>`;
+  }
+  if(type==='invites-inbox'){
+    inner = `
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h3>내 초대함</h3>
+    <p class="page-desc" style="margin:8px 0 16px;">스페이스에 보낸 가입 신청, 받은 가입 권유를 확인해요.</p>
+    <div id="invites-inbox-body"><div class="empty">불러오는 중...</div></div>`;
+    setTimeout(loadInvitesInboxBody, 0);
   }
   if(type==='room-edit'){
     const room = state.cache.room;
@@ -1190,8 +1579,8 @@ function renderModal(){
     <h3>스페이스 카드 수정</h3>
     <div class="field" style="margin-top:16px;"><label>이름</label><input id="se-name" type="text" value="${esc(s.name)}"></div>
     <div class="field"><label>최대 인원</label><input id="se-max" type="number" value="${s.maxMemberCount||''}"></div>
-    <div class="field"><label>기술 스택 (쉼표로 구분)</label><input id="se-tech" type="text" value="${esc((s.techStack||[]).join(', '))}"></div>
-    <div class="field"><label>태그 (쉼표로 구분)</label><input id="se-tags" type="text" value="${esc((s.tags||[]).join(', '))}"></div>
+    <div class="field"><label>필요 기술</label>${textListHtml('se-tech-list', s.techStack||[], '예: Java')}</div>
+    <div class="field"><label>태그</label>${chipInputHtml('se-tags-chips', s.tags||[], '#태그 입력 후 스페이스바', {hash:true})}</div>
     <div class="field"><label>선호 시작 시간</label><input id="se-start" type="datetime-local" value="${esc((s.preferredStartTime||'').slice(0,16))}"></div>
     <div class="field"><label>선호 종료 시간</label><input id="se-end" type="datetime-local" value="${esc((s.preferredEndTime||'').slice(0,16))}"></div>
     <div class="field"><label>커스텀 필드 (한 줄에 하나, "항목명: 값1, 값2" 형식)</label><textarea id="se-custom" rows="3">${esc(customFieldToText(s.customField))}</textarea></div>
@@ -1234,11 +1623,18 @@ function renderModal(){
     }, 0);
   }
   if(type==='space-transfer'){
+    const s = state.cache.spaceDetail;
+    const members = (state.cache.spaceMembers||[]).filter(m=>m.userId!==s?.ownerId);
     inner = `
     <button class="close-x" onclick="closeModal()">✕</button>
     <h3>오너 위임</h3>
-    <div class="field-hint" style="margin:6px 0 14px;">⚠️ 새 오너는 반드시 이 스페이스의 기존 멤버여야 해요(서버에서 검증함). 멤버 목록 API가 없어 직접 입력해야 해요.</div>
-    <div class="field"><label>새 오너 유저 ID</label><input id="to-userid" type="number"></div>
+    <div class="field-hint" style="margin:6px 0 14px;">새 오너로 위임할 스페이스 멤버를 선택해주세요.</div>
+    <div class="field">
+      <label>새 오너</label>
+      <select id="to-userid">
+        ${members.length ? members.map(m=>`<option value="${m.userId}">${esc(m.name)}</option>`).join('') : `<option value="">위임 가능한 멤버가 없어요</option>`}
+      </select>
+    </div>
     <button class="btn btn-primary btn-block" onclick="onTransferOwner()">위임하기</button>`;
   }
   return `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal">${inner}</div></div>`;
@@ -1246,6 +1642,7 @@ function renderModal(){
 
 /* ===================== INIT ===================== */
 if(restoreTokens()){ state.page = 'main'; }
+history.replaceState({page: state.page, params: state.params}, '', location.pathname + location.search);
 render();
 </script>
 </body>

@@ -19,4 +19,11 @@ public interface SpaceMemberRepository extends JpaRepository<SpaceMember, Long> 
     
     Optional<SpaceMember> findBySpaceIdAndUserId(Long spaceId, Long userId);
     
+    @Query("""
+			SELECT sm FROM SpaceMember sm
+		    JOIN FETCH sm.memberProfileCard
+		    WHERE sm.space.id = :spaceId
+			""")
+    List<SpaceMember> findBySpaceId(@Param("spaceId")Long spaceId);
+    
 }
