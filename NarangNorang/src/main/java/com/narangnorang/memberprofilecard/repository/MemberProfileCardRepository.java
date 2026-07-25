@@ -2,10 +2,13 @@ package com.narangnorang.memberprofilecard.repository;
 
 import com.narangnorang.common.querydsl.MemberProfileCardQuerydslRepository;
 import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
+import com.narangnorang.room.entity.Room;
+import lombok.NonNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface MemberProfileCardRepository extends JpaRepository<MemberProfileCard, Long>, MemberProfileCardQuerydslRepository {
@@ -28,4 +31,7 @@ public interface MemberProfileCardRepository extends JpaRepository<MemberProfile
 	boolean existsByUserIdAndRoomId(Long userId, Long roomId);
 
     long countByRoomId(Long roomId);
+
+	@Query("select m.room from MemberProfileCard m where m.user.id = :userId")
+	List<Room> findRoomsByUserId(Long userId);
 }

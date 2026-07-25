@@ -96,7 +96,7 @@ public class SpaceServiceImpl implements SpaceService{
 
 	    space.updateCurrentMember(1L);
 
-	    spaceRepository.save(space);   // 이거 하나로 space, profileCard, tags, spaceMembers 다 저장됨
+	    spaceRepository.save(space);
 
 	    log.info("스페이스 생성 완료 - space : {}", space);
 
@@ -175,7 +175,7 @@ public class SpaceServiceImpl implements SpaceService{
 	    Space space = spaceRepository.findById(spaceId)
 	            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
 
-	    SpaceMember spaceMember = spaceMemberRepository.findBySpaceIdAndUserId(userId, spaceId)
+	    SpaceMember spaceMember = spaceMemberRepository.findBySpaceIdAndUserId(spaceId, userId)
 	            .orElseThrow(() -> new IllegalStateException("이 스페이스의 멤버가 아닙니다."));
 	    
 	    // 오너는 탈퇴 불가
