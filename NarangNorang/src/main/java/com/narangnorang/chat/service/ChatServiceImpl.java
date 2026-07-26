@@ -58,6 +58,8 @@ public class ChatServiceImpl implements ChatService{
 				}
 				memberName = memberProfileCardRepository.findNameByUserIdAndSpaceId(targetId, userId);
 				break;
+			default:
+				throw new ChatException(ChatErrorCode.INVALID_INPUT_TYPE, targetType);
 		}
 		Chat savedChat = chatRepository.save(chatRequestDto.toEntity());
 		ChatResponseDto savedDto = ChatResponseDto.from(savedChat);
@@ -73,6 +75,9 @@ public class ChatServiceImpl implements ChatService{
 	@Override
 	@Transactional(readOnly = true)
 	public ChatHistoryResponseDto getChatHistory(String targetType, Long targetId, Pageable pageable) {
+		if (!"room".equals(targetType) && !"space".equals(targetType)) {
+			throw new ChatException(ChatErrorCode.INVALID_INPUT_TYPE, targetType);
+		}
 		Slice<Chat> chatSlice = chatRepository.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(targetType, targetId, pageable);
 
 		return ChatHistoryResponseDto.from(chatSlice);
@@ -83,7 +88,7 @@ public class ChatServiceImpl implements ChatService{
 		return switch (targetType) {
 			case "room" -> memberProfileCardRepository.findByUserIdAndRoomId(userId, targetId).isPresent();
 			case "space" -> memberProfileCardRepository.findByUserIdAndSpaceId(userId, targetId).isPresent();
-			default -> false;
+			default -> throw new ChatException(ChatErrorCode.INVALID_INPUT_TYPE, targetType);
 		};
 	}
 }

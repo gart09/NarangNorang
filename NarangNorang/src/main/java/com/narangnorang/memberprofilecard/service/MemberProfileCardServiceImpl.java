@@ -9,6 +9,8 @@ import com.narangnorang.memberprofilecard.dto.response.MemberProfileCardUpdateRe
 import com.narangnorang.memberprofilecard.dto.response.RoomsListResponseDto;
 import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
 import com.narangnorang.memberprofilecard.entity.MemberProfileCustomAnswer;
+import com.narangnorang.memberprofilecard.exception.MemberProfileCardErrorCode;
+import com.narangnorang.memberprofilecard.exception.MemberProfileCardException;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
 import com.narangnorang.room.dto.response.RoomResponseDto;
 import com.narangnorang.room.entity.OptionType;
@@ -39,11 +41,13 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 
 	@Override
 	public MemberProfileCardCreateResponseDto createMemberProfileCard(Long userId, MemberProfileCardCreateRequestDto requestDto) {
-		User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-		Room room = roomRepository.findByRoomCode(requestDto.getRoomCode()).orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
+		User user = userRepository.findById(userId).orElseThrow(
+				() -> new MemberProfileCardException(MemberProfileCardErrorCode.USER_NOT_FOUND));
+		Room room = roomRepository.findByRoomCode(requestDto.getRoomCode()).orElseThrow(
+				() -> new MemberProfileCardException(MemberProfileCardErrorCode.ROOM_NOT_FOUND));
 
 		if(memberProfileCardRepository.existsByUserIdAndRoomId(user.getId(), room.getId())){
-			throw new IllegalArgumentException("이미 존재하는 프로필카드입니다.");
+			throw new MemberProfileCardException(MemberProfileCardErrorCode.MEMBER_PROFILE_CARD_DUPLICATED);
 		}
 
 		Map<Long, RoomProfileCustomField> fieldMap = getFieldMap(requestDto.getAnswers());
@@ -61,7 +65,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 
 		log.info("userId: {}, roomId: {}", userId, requestDto.getRoomId());
 		if(memberProfileCardRepository.existsByUserIdAndRoomId(userId, requestDto.getRoomId()) == false){
-			throw new IllegalArgumentException("해당 유저는 해당 방에 속해있지 않습니다.");
+			throw new MemberProfileCardException(MemberProfileCardErrorCode.USER_NOT_PERMITTED);
 		}
 
 		List<MemberProfileCard> memberProfileCards = memberProfileCardRepository.searchMemberProfileCards(requestDto);
@@ -73,10 +77,11 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 	@Transactional
 	public MemberProfileCardUpdateResponseDto updateMemberProfileCard(Long userId, MemberProfileCardUpdateRequestDto requestDto) {
 		MemberProfileCard memberProfileCard = memberProfileCardRepository.findById(requestDto.getMemberProfileCardId())
-				.orElseThrow(() -> new IllegalArgumentException("해당 프로필 카드가 존재하지 않습니다."));
+				.orElseThrow(
+						() -> new MemberProfileCardException(MemberProfileCardErrorCode.MEMBER_PROFILE_CARD_NOT_FOUND));
 
 		if(memberProfileCard.getUser().getId().equals(userId) == false){
-			throw new IllegalArgumentException("해당 유저는 해당 멤버프로필카드를 수정할 권한이 없습니다.");
+			throw new MemberProfileCardException(MemberProfileCardErrorCode.USER_NOT_PERMITTED);
 		}
 
 		Room room = memberProfileCard.getRoom();
@@ -115,10 +120,10 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 
 	@Override
 	public void deleteMemberProfileCard(Long userId, Long memberProfileCardId) {
-		MemberProfileCard memberProfileCard = memberProfileCardRepository.findById(memberProfileCardId).orElseThrow();
+		MemberProfileCard memberProfileCard = memberProfileCardRepository.findById(memberProfileCardId).orElseThrow(() -> new MemberProfileCardException(MemberProfileCardErrorCode.MEMBER_PROFILE_CARD_NOT_FOUND));
 
 		if(memberProfileCard.getUser().getId().equals(userId) == false){
-			throw new IllegalArgumentException("해당 유저는 해당 멤버프로필카드를 삭제할 권한이 없습니다.");
+			throw new MemberProfileCardException(MemberProfileCardErrorCode.USER_NOT_PERMITTED);
 		}
 		memberProfileCardRepository.delete(memberProfileCard);
 	}
@@ -126,6 +131,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 	@Override
 	@Transactional(readOnly = true)
 	public RoomsListResponseDto getRoomsList(Long userId) {
+		userRepository.findById(userId).orElseThrow(() -> new MemberProfileCardException(MemberProfileCardErrorCode.USER_NOT_FOUND));
 		List<Room> roomsList = memberProfileCardRepository.findRoomsByUserId(userId);
 
 		return RoomsListResponseDto.builder()
@@ -164,7 +170,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 				.toList();
 
 		if(missingRequiredFieldNames.isEmpty() == false){
-			throw new IllegalArgumentException("필수 입력 항목이 누락됐습니다." + missingRequiredFieldNames);
+			throw new MemberProfileCardException(MemberProfileCardErrorCode.REQUIRED_FIELD_MISS, missingRequiredFieldNames);
 		}
 
 		//2. 필수 필드값인데 필드값이 빈 칸인지 확인
@@ -178,7 +184,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 				.toList();
 
 		if(blanckedRequiredFieldNames.isEmpty() == false){
-			throw new IllegalArgumentException("필수 항목은 빈 칸 혹은 공백이 될 수 없습니다." + blanckedRequiredFieldNames);
+			throw new MemberProfileCardException(MemberProfileCardErrorCode.REQUIRED_FIELD_SPACE, blanckedRequiredFieldNames);
 		}
 
 		//3. 항목 선택 값인데 DB에 있는 항목 값이 아닌 다른 값이 들어오는 경우
@@ -196,7 +202,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 				.toList();
 
 		if(unmatchedSelectTypeFieldNames.isEmpty() == false){
-			throw new IllegalArgumentException("선택 가능하지 않은 항목입니다. " + unmatchedSelectTypeFieldNames);
+			throw new MemberProfileCardException(MemberProfileCardErrorCode.CANT_SELECT_FIELD, unmatchedSelectTypeFieldNames);
 		}
 	}
 }
