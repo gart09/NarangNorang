@@ -56,4 +56,10 @@ public class GlobalExceptionHandler extends BaseExceptionHandler{
 		log.error("Unhandled Exception : ", e);
 		return makeErrorResponse(CommonErrorCode.INTERNAL_SERVER_ERROR);
 	}
+	
+	@ExceptionHandler(BusinessException.class)
+	protected ResponseEntity<ErrorResponseDto> handleBusinessException(BusinessException e) {
+	    log.warn("Business Exception : {}", e.getMessage());
+	    return makeErrorResponse(e);
+	}
 }

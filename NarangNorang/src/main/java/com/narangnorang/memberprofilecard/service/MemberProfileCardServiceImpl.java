@@ -191,8 +191,16 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 		List<Map<String, String>> unmatchedSelectTypeFieldNames = answers.entrySet().stream()
 				.filter(entry -> roomProfileCustomFieldRepository.existsByIdAndOptionTypeIn(
 						entry.getKey(), List.of(OptionType.SINGLE_SELECT, OptionType.MULTI_SELECT)))
-				.filter(entry -> roomProfileCustomFieldRepository.findSelectTypeOptionsByFieldId(
-						entry.getKey()).contains(entry.getValue()) == false)
+				.filter(entry -> {
+					List<String> values = Arrays.stream(entry.getValue().split(","))
+							.map(String::trim)
+							.toList();
+					for( String value : values) {
+						if(roomProfileCustomFieldRepository.findSelectTypeOptionsByFieldId(entry.getKey()).contains(value) == false)
+							return true;
+					}
+					return false;
+				})
 				.map(entry -> {
 					RoomProfileCustomField field = roomProfileCustomFieldRepository.findById(entry.getKey()).orElseThrow();
 					Map<String, String> map = new HashMap<>();

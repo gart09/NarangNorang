@@ -85,7 +85,7 @@ public class StompHandler implements ChannelInterceptor {
 					String targetType = paths[2];
 					Long targetId = Long.parseLong(paths[3]);
 
-					log.info("입장 요청 - 타입: {}, ID: {}", targetType, targetId);
+					log.info("입장 요청 - 유저id: {}, 타입: {}, ID: {}", userId, targetType, targetId);
 
 					hasPermission = chatService.checkPermission(userId, targetType, targetId);
 				} catch (NumberFormatException e) {

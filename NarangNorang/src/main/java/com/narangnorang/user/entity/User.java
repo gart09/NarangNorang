@@ -28,4 +28,12 @@ public class User {
 			inverseJoinColumns=@JoinColumn(name="user_role_id")
 	)
 	private List<UserRole> userRoles;
+	
+	public void updatePassword(String password) {
+        this.password = password;
+    }
+	
+	public void updateName(String name) {
+        this.name = name;
+    }
 }
