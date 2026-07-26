@@ -3,6 +3,8 @@ package com.narangnorang.space.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.narangnorang.invitespace.entity.InviteSpace;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,9 +49,14 @@ public class Space {
     @Builder.Default
     @OneToMany(mappedBy = "space", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Tag> tags = new ArrayList<>();
+    
+    @Builder.Default
+    @OneToMany(mappedBy = "space", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InviteSpace> inviteSpaces = new ArrayList<>();
 
     @OneToOne(mappedBy = "space", cascade = CascadeType.ALL, orphanRemoval = true)
     private SpaceProfileCard profileCard;
+    
 
     
     public void updateInfo(String name, Long maxMemberCount) {
