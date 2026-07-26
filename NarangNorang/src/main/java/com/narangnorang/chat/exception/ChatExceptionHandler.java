@@ -23,7 +23,7 @@ public class ChatExceptionHandler extends BaseExceptionHandler {
 
 	@ExceptionHandler(DataAccessException.class)
 	protected ResponseEntity<ErrorResponseDto> handleDataAccessException(DataAccessException e) {
-		log.error("채팅 도메인 DB 오류 발생 : ", e);
+		log.error("Chat Domain DB Exception Occurred : ", e);
 
 		return makeErrorResponse(ChatErrorCode.DB_ERROR_OCCURRED);
 	}
