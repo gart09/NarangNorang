@@ -794,10 +794,22 @@ function readCustomFieldAnswer(f, id){
   const el = document.getElementById(id);
   return el ? el.value : '';
 }
+function validateRequiredCustomFieldAnswers(fields, inputIdPrefix){
+  for(const f of (fields||[])){
+    if(!f.required) continue;
+    const answer = readCustomFieldAnswer(f, inputIdPrefix + f.id);
+    if(!String(answer||'').trim()){
+      showToast(`필수 항목 '${f.fieldName}'을(를) 입력해주세요.`);
+      return false;
+    }
+  }
+  return true;
+}
 function onSubmitJoinCard(){
   const { roomId, roomCode } = state.params;
   const room = state.cache.room;
   const name = document.getElementById('jc-name').value.trim();
+  if(!validateRequiredCustomFieldAnswers(room.customFields, 'jc-field-')) return;
   const answers = {};
   (room.customFields||[]).forEach(f=>{
     answers[f.id] = readCustomFieldAnswer(f, 'jc-field-'+f.id);
@@ -1453,6 +1465,7 @@ function onTransferOwner(){
 ===================================================================== */
 function onUpdateProfileCard(cardId, roomId){
   const room = state.cache.room;
+  if(!validateRequiredCustomFieldAnswers(room?.customFields, 'pc-answer-')) return;
   const answers = {};
   (room?.customFields||[]).forEach(f=>{
     answers[f.id] = readCustomFieldAnswer(f, 'pc-answer-'+f.id);
@@ -1465,7 +1478,9 @@ function onUpdateProfileCard(cardId, roomId){
     closeModal();
     await loadRoomMembers(roomId);
     render();
-  }).catch(()=>{});
+  }).catch(e=>{
+    showToast(e.message || '프로필 카드 수정에 실패했습니다.');
+  });
 }
 function onDeleteProfileCard(cardId, roomId){
   if(!confirm('카드를 삭제할까요?')) return;
@@ -1582,7 +1597,7 @@ function renderModal(){
         <div class="field"><label>이름</label><input id="pc-edit-name" type="text" value="${esc(m.name)}"></div>
         ${(room?.customFields||[]).map(f=>{
           const cur = (m.answers||[]).find(a=>a.fieldId===f.id);
-          return `<div class="field"><label>${esc(f.fieldName)}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
+          return `<div class="field"><label>${esc(f.fieldName)}${f.required?' *':''}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
         }).join('')}
         <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
         <button class="btn" style="margin-top:8px;" onclick="disableProfileCardEdit()">취소</button>
