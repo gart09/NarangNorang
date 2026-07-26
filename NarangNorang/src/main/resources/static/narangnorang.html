@@ -260,7 +260,7 @@ const state = {
   accessToken:null, refreshToken:null,
   me:null,               // {id, email} — JWT 디코딩 결과, 이름 정보는 서버에 없음
   loginError:'', signupError:'', joinError:'',
-  cache:{ room:null, spaces:null, spaceDetail:null, roomMembers:null, invites:null, memberNames:{}, myRooms:null },
+  cache:{ room:null, spaces:null, spaceDetail:null, spaceMembers:null, roomMembers:null, roomTags:null, invites:null, memberNames:{}, myRooms:null },
   loading:false,
   ws:{ client:null, sub:null },
 };
@@ -357,7 +357,48 @@ function showToast(msg){
   clearTimeout(showToast._tid);
   showToast._tid = setTimeout(()=>t.classList.remove('show'), 2400);
 }
+function disconnectChat(){
+  if(state.ws.sub){
+    try{ state.ws.sub.unsubscribe(); }catch(e){}
+  }
+  if(state.ws.client){
+    try{ state.ws.client.disconnect(); }catch(e){}
+  }
+  state.ws.sub = null;
+  state.ws.client = null;
+}
+function resetRoomContext(nextRoom=null){
+  disconnectChat();
+  state.cache.room = nextRoom;
+  state.cache.spaces = null;
+  state.cache.spaceDetail = null;
+  state.cache.spaceMembers = null;
+  state.cache.roomMembers = null;
+  state.cache.roomTags = null;
+  state.cache.memberNames = {};
+}
+function setRoomContext(room){
+  const currentRoomId = state.cache.room?.id;
+  if(currentRoomId!=null && String(currentRoomId)!==String(room.id)){
+    resetRoomContext(room);
+    return;
+  }
+  state.cache.room = room;
+}
+function prepareRoomNavigation(page, params){
+  const roomPages = ['room','space','space-create','room-join-card'];
+  const nextRoomId = params?.roomId;
+  const currentRoomId = state.cache.room?.id;
+  if(roomPages.includes(page) && nextRoomId!=null
+      && currentRoomId!=null && String(currentRoomId)!==String(nextRoomId)){
+    resetRoomContext();
+  }
+  if(page!=='room' && page!=='space'){
+    disconnectChat();
+  }
+}
 function navigate(page, params={}, opts={}){
+  prepareRoomNavigation(page, params);
   state.page=page; state.params=params; state.modal=null;
   if(!opts.fromPopstate){
     history.pushState({page, params}, '', location.pathname + location.search);
@@ -367,12 +408,22 @@ function navigate(page, params={}, opts={}){
 }
 function enterPageSideEffects(page, params){
   // room/space 진입 시 채팅 초기화(중앙 패널에 내장됨) — 중앙탭이 채팅일 때만
-  if(page==='room' && (params.centerTab||'chat')==='chat') initRoomChat(params.roomId);
-  if(page==='space') initSpaceChatIfMember(params.roomId, params.spaceId);
+  const roomReady = state.cache.room
+      && String(state.cache.room.id)===String(params.roomId)
+      && state.cache.roomMembers!==null;
+  if(page==='room' && roomReady && (params.centerTab||'chat')==='chat'){
+    initRoomChat(params.roomId);
+  }
+  const spaceReady = state.cache.spaceDetail
+      && String(state.cache.spaceDetail._id)===String(params.spaceId);
+  if(page==='space' && spaceReady){
+    initSpaceChatIfMember(params.roomId, params.spaceId);
+  }
 }
 window.addEventListener('popstate', (e)=>{
   const s = e.state;
   if(!s) return; // 히스토리 시작 지점(로그인 이전) — 그냥 브라우저 기본 동작(페이지 이탈)에 맡김
+  prepareRoomNavigation(s.page, s.params || {});
   state.page = s.page; state.params = s.params || {}; state.modal = null;
   render(); window.scrollTo(0,0);
   enterPageSideEffects(s.page, s.params || {});
@@ -707,7 +758,7 @@ function onCreateRoom(){
   withLoading(async ()=>{
     const room = await apiFetch('/rooms', { method:'POST', body: JSON.stringify({name, description, maxMember, customFields}) });
     state.cache.myRooms = null;
-    state.cache.room = room;
+    setRoomContext(room);
     showToast('룸이 생성됐어요. 이어서 내 프로필 카드를 작성해주세요.');
     // ⚠️ RoomServiceImpl.createRoom이 오너용 MemberProfileCard를 만들어주지 않아서,
     //    오너도 멤버 참여와 동일한 카드 작성 화면을 거치게 함(카드가 없으면 스페이스 생성이 막힘)
@@ -739,7 +790,7 @@ function onJoinRoom(){
     state.joinError='';
     const room = joinResult.room;
     state.cache.myRooms = null;
-    state.cache.room = room;
+    setRoomContext(room);
     if(joinResult.member){
       // 이미 카드까지 있는 기존 멤버
       navigate('room', {roomId: room.id});
@@ -830,7 +881,7 @@ function openRoom(roomId){ navigate('room', {roomId}); }
 ===================================================================== */
 async function loadRoom(roomId){
   const room = await apiFetch('/rooms/' + roomId, { method:'GET' });
-  state.cache.room = room;
+  setRoomContext(room);
   return room;
 }
 function renderRoom(){
