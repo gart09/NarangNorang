@@ -1,4 +1,4 @@
-package com.narangnorang.memberprofilecard.controller;
+package com.narangnorang.invitespace.controller;
 
 import java.util.List;
 
@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.narangnorang.auth.config.MyUserDetails;
 import com.narangnorang.common.ApiResponse;
-import com.narangnorang.memberprofilecard.dto.request.InviteSpaceRequestDto;
-import com.narangnorang.memberprofilecard.dto.response.InviteSpaceResponseDto;
-import com.narangnorang.memberprofilecard.service.InviteSpaceService;
+import com.narangnorang.invitespace.dto.request.InviteSpaceRequestDto;
+import com.narangnorang.invitespace.dto.response.InviteSpaceResponseDto;
+import com.narangnorang.invitespace.service.InviteSpaceService;
 
 import lombok.RequiredArgsConstructor;
 

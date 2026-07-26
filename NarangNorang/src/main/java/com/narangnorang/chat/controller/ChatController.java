@@ -63,8 +63,8 @@ public class ChatController {
 
 	@GetMapping("/{targetType}/{targetId}")
 	public ApiResponse<ChatHistoryResponseDto> getChatHistory(
-			@PathVariable String targetType,
-			@PathVariable Long targetId,
+			@PathVariable("targetType") String targetType,
+			@PathVariable("targetId") Long targetId,
 			@PageableDefault(size = PAGESIZE) Pageable pageable,
 			@AuthenticationPrincipal MyUserDetails myUserDetails){
 

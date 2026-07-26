@@ -1,8 +1,8 @@
-package com.narangnorang.memberprofilecard.service;
+package com.narangnorang.invitespace.service;
 
 import java.util.List;
 
-import com.narangnorang.memberprofilecard.dto.response.InviteSpaceResponseDto;
+import com.narangnorang.invitespace.dto.response.InviteSpaceResponseDto;
 
 public interface InviteSpaceService {
 

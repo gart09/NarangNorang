@@ -29,10 +29,10 @@ public class SpaceProfileCardResponseDto {
     private Long currentMemberCount;
     private List<String> tags;
     
-    public static SpaceProfileCardResponseDto from(Space space, SpaceProfileCard card,List<String> tags) {
+    public static SpaceProfileCardResponseDto from(Space space, SpaceProfileCard card, List<String> tags, String ownerName) {
         return SpaceProfileCardResponseDto.builder()
                 .name(card.getName())
-                .owner(card.getOwner())
+                .owner(ownerName)
                 .ownerId(space.getOwnerId())
                 .techStack(card.getTechStack())
                 .preferredStartTime(card.getPreferredStartTime())
