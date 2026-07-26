@@ -14,7 +14,8 @@ public enum ChatErrorCode implements ErrorCode {
 	DB_ERROR_OCCURRED(HttpStatus.INTERNAL_SERVER_ERROR,"CHAT-003","DB 에러가 발생했습니다. 콘솔 로그를 참고하세요."),
 	INVALID_TOKEN(HttpStatus.BAD_REQUEST, "CHAT-004", "유효하지 않은 토큰입니다."),
 	USER_NOT_FOUND_IN_SESSION(HttpStatus.NOT_FOUND, "CHAT-005", "세션에 유저 ID가 존재하지 않습니다."),
-	INVALID_CHATROOM_TYPE(HttpStatus.BAD_REQUEST, "CHAT-006", "채팅방 번호 형식이 올바르지 않습니다. 입력된 값: %s");
+	INVALID_CHATROOM_TYPE(HttpStatus.BAD_REQUEST, "CHAT-006", "채팅방 번호 형식이 올바르지 않습니다. 입력된 값: %s"),
+	INVALID_INPUT_TYPE(HttpStatus.BAD_REQUEST, "CHAT-007", "TargetType이 올바르지 않습니다. 입력된 값: %s");
 
 	private final HttpStatus status;
 	private final String code;

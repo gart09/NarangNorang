@@ -3,6 +3,8 @@ package com.narangnorang.memberprofilecard.service;
 import com.narangnorang.memberprofilecard.dto.response.InviteSpaceResponseDto;
 import com.narangnorang.memberprofilecard.entity.InviteSpace;
 import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
+import com.narangnorang.memberprofilecard.exception.InviteSpaceErrorCode;
+import com.narangnorang.memberprofilecard.exception.InviteSpaceException;
 import com.narangnorang.memberprofilecard.repository.InviteSpaceRepository;
 import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
 import com.narangnorang.room.entity.Room;
@@ -35,7 +37,7 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     public void applyToSpace(Long spaceId, Long userId) {
     	
         Space space = spaceRepository.findById(spaceId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
+                .orElseThrow(() -> new InviteSpaceException(InviteSpaceErrorCode.SPACE_NOT_FOUND));
         
         MemberProfileCard memberProfileCard = validateInvitable(space, userId);
 
@@ -50,10 +52,10 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     @Transactional
     public void inviteToSpace(Long spaceId, Long ownerId, Long memberUserId) {
         Space space = spaceRepository.findById(spaceId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
+                .orElseThrow(() -> new InviteSpaceException(InviteSpaceErrorCode.SPACE_NOT_FOUND));
 
         if (!space.getOwnerId().equals(ownerId)) {
-            throw new IllegalStateException("스페이스 오너만 가능한 작업입니다.");
+            throw new InviteSpaceException(InviteSpaceErrorCode.USER_NOT_SPACE_OWNER);
         }
 
         MemberProfileCard memberProfileCard = validateInvitable(space, memberUserId);
@@ -70,7 +72,7 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     public void acceptInvite(Long inviteId, Long requesterId) {
     	
         InviteSpace inviteSpace = inviteSpaceRepository.findById(inviteId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 신청/초대입니다."));
+                .orElseThrow(() -> new InviteSpaceException(InviteSpaceErrorCode.INVITE_NOT_FOUND));
 
         inviteSpace.accept(requesterId);
 
@@ -78,11 +80,12 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     	
         // 룸 탈퇴 검증
         if (!memberProfileCardRepository.existsByUserIdAndRoomId(inviteSpace.getMemberId(), space.getRoomId())) {
-            throw new IllegalStateException("더 이상 룸 멤버가 아닙니다.");
+            throw new InviteSpaceException(InviteSpaceErrorCode.NO_LONGER_ROOM_MEMBER);
         }
         //스페이스 멤버 중복 검증
         if (spaceMemberRepository.existsBySpaceIdAndUserId(space.getId(), inviteSpace.getMemberId())) {
-            throw new IllegalStateException("이미 스페이스 멤버입니다.");
+
+            throw new InviteSpaceException(InviteSpaceErrorCode.SPACE_MEMBER_DUPLICATED);
         }
         
         space.updateCurrentMember(space.getCurrentMemberCount() + 1);
@@ -98,7 +101,7 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     public void rejectInvite(Long inviteId, Long requesterId) {
     	
         InviteSpace inviteSpace = inviteSpaceRepository.findById(inviteId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 신청/초대입니다."));
+                .orElseThrow(() -> new InviteSpaceException(InviteSpaceErrorCode.INVITE_NOT_FOUND));
         Space space = inviteSpace.getSpace();
 
         inviteSpace.reject(requesterId);
@@ -110,16 +113,16 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     @Override
     public List<InviteSpaceResponseDto> getPendingInvites(Long spaceId, Long userId) {
         Space space = spaceRepository.findById(spaceId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스페이스입니다."));
+                .orElseThrow(() -> new InviteSpaceException(InviteSpaceErrorCode.SPACE_NOT_FOUND));
         
         // 스페이스 오너 검증
         if (!space.getOwnerId().equals(userId)) {
-            throw new IllegalStateException("스페이스 오너만 조회할 수 있습니다.");
+            throw new InviteSpaceException(InviteSpaceErrorCode.USER_NOT_SPACE_OWNER);
         }
         
         // 룸 멤버 검증
         if (!memberProfileCardRepository.existsByUserIdAndRoomId(userId, space.getRoomId())) {
-            throw new IllegalStateException("룸 멤버가 아닙니다.");
+            throw new InviteSpaceException(InviteSpaceErrorCode.USER_NOT_ROOM_MEMBER);
         }
         
         return inviteSpaceRepository.findBySpaceIdAndStatus(spaceId, InviteSpace.InviteStatus.PENDING).stream()
@@ -142,16 +145,16 @@ public class InviteSpaceServiceImpl implements InviteSpaceService {
     	// 룸 멤버 검증
         MemberProfileCard memberProfileCard = memberProfileCardRepository
                 .findByUserIdAndRoomId(userId, space.getRoomId())
-                .orElseThrow(() -> new IllegalStateException("룸 멤버만 가능한 작업입니다."));
+                .orElseThrow(() -> new InviteSpaceException(InviteSpaceErrorCode.USER_NOT_ROOM_MEMBER));
 
         // 스페이스 멤버 중복 검증
         if (spaceMemberRepository.existsBySpaceIdAndUserId(space.getId(), userId)) {
-            throw new IllegalStateException("이미 스페이스 멤버입니다.");
+            throw new InviteSpaceException(InviteSpaceErrorCode.SPACE_MEMBER_DUPLICATED);
         }
 
         // 신청 중복 검증
         if (inviteSpaceRepository.existsBySpaceIdAndMemberIdAndStatus(space.getId(), userId, InviteSpace.InviteStatus.PENDING)) {
-            throw new IllegalStateException("이미 처리 대기 중인 신청/초대가 있습니다.");
+            throw new InviteSpaceException(InviteSpaceErrorCode.INVITE_DUPLICATED);
         }
         return memberProfileCard;
     }
