@@ -481,6 +481,20 @@ function formatDateTime(iso){
   if(isNaN(d.getTime())) return esc(iso);
   return d.toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', weekday:'short', hour:'2-digit', minute:'2-digit' });
 }
+// 선호 시간은 실제로는 시각(time)만 의미 있음 — 저장은 LocalDateTime이라 더미 날짜를 붙여서 보내고, 표시/입력은 시각만 다룸
+const PREF_TIME_DUMMY_DATE = '1970-01-01';
+function formatTimeOnly(iso){
+  if(!iso) return null;
+  const m = String(iso).match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : null;
+}
+function extractTimeValue(iso){
+  const m = String(iso||'').match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : '';
+}
+function timeToIsoDateTime(timeStr){
+  return timeStr ? `${PREF_TIME_DUMMY_DATE}T${timeStr}:00` : null;
+}
 
 async function withLoading(fn){
   state.loading = true; render();
@@ -697,7 +711,7 @@ function onCreateRoom(){
     const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
     const optionValues = getOptionBoxValues(row);
     if(isSelect && optionValues.length===0){ cfError = '선택형 항목은 선택 보기를 1개 이상 입력해야 해요.'; return null; }
-    if(!isSelect && optionValues.length>0){ cfError = '짧은 글/숫자/날짜 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return null; }
+    if(!isSelect && optionValues.length>0){ cfError = '짧은 글/숫자 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return null; }
     return {
       fieldName, required: row.querySelector('.cf-required').checked, optionType,
       options: isSelect ? optionValues.map((v,i)=>({optionValue:v, displayOrder:i})) : []
@@ -771,7 +785,6 @@ function renderCustomFieldInput(f, id, currentValue){
   const cur = currentValue!=null ? currentValue : '';
   if(f.optionType==='TEXT') return `<input id="${id}" type="text" value="${esc(cur)}">`;
   if(f.optionType==='NUMBER') return `<input id="${id}" type="number" value="${esc(cur)}">`;
-  if(f.optionType==='DATE') return `<input id="${id}" type="date" value="${esc(cur)}">`;
   if(f.optionType==='SINGLE_SELECT') return `<div id="${id}" class="radio-group">${(f.options||[]).map(o=>`
     <label class="radio-option"><input type="radio" name="${id}" value="${esc(o.optionValue)}" ${cur===o.optionValue?'checked':''}> ${esc(o.optionValue)}</label>`).join('')}</div>`;
   if(f.optionType==='MULTI_SELECT'){
@@ -1028,8 +1041,8 @@ function renderSpaceCreate(){
       <div class="field"><label>최대 인원</label><input id="sc-max" type="number"></div>
       <div class="field"><label>필요 기술</label>${textListHtml('sc-tech-list', [], '예: Java')}</div>
       <div class="field"><label>태그</label>${chipInputHtml('sc-tags-chips', [], '#태그 입력 후 스페이스바', {hash:true})}</div>
-      <div class="field"><label>선호 시작 시간</label><input id="sc-start" type="datetime-local"></div>
-      <div class="field"><label>선호 종료 시간</label><input id="sc-end" type="datetime-local"></div>
+      <div class="field"><label>선호 시작 시간</label><input id="sc-start" type="time"></div>
+      <div class="field"><label>선호 종료 시간</label><input id="sc-end" type="time"></div>
       <div class="field"><label>커스텀 필드 (한 줄에 하나, "항목명: 값1, 값2" 형식)</label><textarea id="sc-custom" rows="3" placeholder="예: 선호 요일: 월, 수, 금"></textarea></div>
       <button class="btn btn-primary btn-block" onclick="onCreateSpace()">만들기</button>
     </div>
@@ -1059,8 +1072,8 @@ function onCreateSpace(){
     maxMemberCount: parseInt(document.getElementById('sc-max').value) || null,
     techStack: getTextListValues('sc-tech-list'),
     tags: getChipValues('sc-tags-chips'),
-    preferredStartTime: document.getElementById('sc-start').value || null,
-    preferredEndTime: document.getElementById('sc-end').value || null,
+    preferredStartTime: timeToIsoDateTime(document.getElementById('sc-start').value),
+    preferredEndTime: timeToIsoDateTime(document.getElementById('sc-end').value),
     customField: parseCustomFieldText(document.getElementById('sc-custom').value),
   };
   withLoading(async ()=>{
@@ -1111,8 +1124,8 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
     ${s.isOwner ? `<button class="btn btn-sm" onclick="openSpaceInviteModal()">➕ 초대</button><button class="btn btn-sm" onclick="openModal('space-invite-list',{})">📋 신청확인</button>` : ''}
     <button class="btn btn-sm btn-danger" onclick="onLeaveSpace('${roomId}','${spaceId}')">탈퇴</button>
   `;
-  const start = formatDateTime(s.preferredStartTime);
-  const end = formatDateTime(s.preferredEndTime);
+  const start = formatTimeOnly(s.preferredStartTime);
+  const end = formatTimeOnly(s.preferredEndTime);
   const customEntries = Object.entries(s.customField||{});
   const infoBanner = `
   <div class="info-banner">
@@ -1166,8 +1179,8 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
   </div>`;
 }
 function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
-  const start = formatDateTime(s.preferredStartTime);
-  const end = formatDateTime(s.preferredEndTime);
+  const start = formatTimeOnly(s.preferredStartTime);
+  const end = formatTimeOnly(s.preferredEndTime);
   const customEntries = Object.entries(s.customField||{});
   return `
   <div class="page">
@@ -1350,7 +1363,7 @@ function onSaveCustomFields(){
     const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
     const optionValues = getOptionBoxValues(row);
     if(isSelect && optionValues.length===0){ error = '선택형 항목은 선택 보기를 1개 이상 입력해야 해요.'; return; }
-    if(!isSelect && optionValues.length>0){ error = '짧은 글/숫자/날짜 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return; }
+    if(!isSelect && optionValues.length>0){ error = '짧은 글/숫자 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return; }
     customFields.push({
       id: null,
       fieldName: row.querySelector('.cf-name').value.trim(),
@@ -1378,7 +1391,6 @@ function customFieldRowHtml(f){
   const typeLabels = {
     TEXT: '짧은 글',
     NUMBER: '숫자',
-    DATE: '날짜',
     SINGLE_SELECT: '여러 보기 중 하나 선택',
     MULTI_SELECT: '여러 보기 중 여러 개 선택'
   };
@@ -1408,8 +1420,8 @@ function onSaveSpaceEdit(){
     maxMemberCount: parseInt(document.getElementById('se-max').value) || null,
     techStack: getTextListValues('se-tech-list'),
     tags: getChipValues('se-tags-chips'),
-    preferredStartTime: document.getElementById('se-start').value || null,
-    preferredEndTime: document.getElementById('se-end').value || null,
+    preferredStartTime: timeToIsoDateTime(document.getElementById('se-start').value),
+    preferredEndTime: timeToIsoDateTime(document.getElementById('se-end').value),
     customField: parseCustomFieldText(document.getElementById('se-custom').value),
   };
   withLoading(async ()=>{
@@ -1651,8 +1663,8 @@ function renderModal(){
     <div class="field"><label>최대 인원</label><input id="se-max" type="number" value="${s.maxMemberCount||''}"></div>
     <div class="field"><label>필요 기술</label>${textListHtml('se-tech-list', s.techStack||[], '예: Java')}</div>
     <div class="field"><label>태그</label>${chipInputHtml('se-tags-chips', s.tags||[], '#태그 입력 후 스페이스바', {hash:true})}</div>
-    <div class="field"><label>선호 시작 시간</label><input id="se-start" type="datetime-local" value="${esc((s.preferredStartTime||'').slice(0,16))}"></div>
-    <div class="field"><label>선호 종료 시간</label><input id="se-end" type="datetime-local" value="${esc((s.preferredEndTime||'').slice(0,16))}"></div>
+    <div class="field"><label>선호 시작 시간</label><input id="se-start" type="time" value="${esc(extractTimeValue(s.preferredStartTime))}"></div>
+    <div class="field"><label>선호 종료 시간</label><input id="se-end" type="time" value="${esc(extractTimeValue(s.preferredEndTime))}"></div>
     <div class="field"><label>커스텀 필드 (한 줄에 하나, "항목명: 값1, 값2" 형식)</label><textarea id="se-custom" rows="3">${esc(customFieldToText(s.customField))}</textarea></div>
     <button class="btn btn-primary btn-block" onclick="onSaveSpaceEdit()">저장</button>`;
   }

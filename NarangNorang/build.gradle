@@ -19,6 +19,14 @@ repositories {
 	mavenCentral()
 }
 
+sourceSets {
+    main {
+        java {
+            srcDirs += ["$buildDir/generated/sources/annotationProcessor/java/main"]
+        }
+    }
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
