@@ -27,4 +27,12 @@ public class UserRequestDto {
 				.userRoles(userRoles)
 				.build();
 	}
+	public User toEntity(String name,String password,List<UserRole> userRoles) {
+		return User.builder()
+				.name(this.name)
+				.email(this.email)
+				.password(this.password)
+				.userRoles(userRoles)
+				.build();
+	}
 }
