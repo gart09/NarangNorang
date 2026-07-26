@@ -412,7 +412,9 @@ function enterPageSideEffects(page, params){
       && String(state.cache.room.id)===String(params.roomId)
       && state.cache.roomMembers!==null;
   if(page==='room' && roomReady && (params.centerTab||'chat')==='chat'){
-    initRoomChat(params.roomId);
+    if(!openRequiredProfileUpdateIfNeeded(params.roomId)){
+      initRoomChat(params.roomId);
+    }
   }
   const spaceReady = state.cache.spaceDetail
       && String(state.cache.spaceDetail._id)===String(params.spaceId);
@@ -429,12 +431,23 @@ window.addEventListener('popstate', (e)=>{
   enterPageSideEffects(s.page, s.params || {});
 });
 function openModal(type, payload){ state.modal={type,payload}; render(); }
-function closeModal(){ state.modal=null; render(); }
+function closeModal(){
+  if(state.modal?.payload?.requiredUpdate){
+    showToast('새로 추가된 필수 항목을 입력해야 룸을 이용할 수 있어요.');
+    return;
+  }
+  state.modal=null;
+  render();
+}
 function enableProfileCardEdit(){
   if(state.modal) state.modal.payload.editMode = true;
   render();
 }
 function disableProfileCardEdit(){
+  if(state.modal?.payload?.requiredUpdate){
+    showToast('필수 항목을 모두 입력해주세요.');
+    return;
+  }
   if(state.modal) state.modal.payload.editMode = false;
   render();
 }
@@ -886,11 +899,22 @@ async function loadRoom(roomId){
 }
 function renderRoom(){
   const roomId = state.params.roomId;
-  if(!state.cache.room || String(state.cache.room.id)!==String(roomId)){
+  const roomDataMissing = !state.cache.room
+      || String(state.cache.room.id)!==String(roomId)
+      || state.cache.roomMembers===null
+      || state.cache.spaces===null
+      || state.cache.roomTags===null;
+  if(roomDataMissing){
     withLoading(async ()=>{
-      await loadRoom(roomId);
+      if(!state.cache.room || String(state.cache.room.id)!==String(roomId)){
+        await loadRoom(roomId);
+      }
       await Promise.all([loadRoomMembers(roomId), loadSpaces(roomId), loadRoomTags(roomId)]);
-    }).then(()=> initRoomChat(roomId)).catch(()=>{});
+    }).then(()=>{
+      if(!openRequiredProfileUpdateIfNeeded(roomId)){
+        initRoomChat(roomId);
+      }
+    }).catch(()=>{});
     return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
   }
   const room = state.cache.room;
@@ -1075,6 +1099,41 @@ function openMyProfileCard(){
     if(m) openModal('profile-card', {card: JSON.stringify(m)});
     else showToast('아직 이 룸의 프로필 카드가 없어요.');
   }).catch(()=>{});
+}
+function findMissingRequiredFields(room, memberProfileCard){
+  const answerMap = new Map(
+    (memberProfileCard?.answers||[]).map(answer=>[
+      String(answer.fieldId),
+      String(answer.value||'').trim()
+    ])
+  );
+
+  return (room?.customFields||[]).filter(field=>
+    field.required && !answerMap.get(String(field.id))
+  );
+}
+function openRequiredProfileUpdateIfNeeded(roomId){
+  const room = state.cache.room;
+  if(!room || String(room.id)!==String(roomId)) return false;
+
+  const myCard = (state.cache.roomMembers||[])
+      .find(card=>card.userId===state.me?.id);
+  if(!myCard) return false;
+
+  const missingFields = findMissingRequiredFields(room, myCard);
+  if(!missingFields.length) return false;
+
+  state.modal = {
+    type:'profile-card',
+    payload:{
+      card:JSON.stringify(myCard),
+      editMode:true,
+      requiredUpdate:true
+    }
+  };
+  showToast(`새 필수 항목 '${missingFields[0].fieldName}'을(를) 입력해주세요.`);
+  render();
+  return true;
 }
 
 /* =====================================================================
@@ -1526,9 +1585,12 @@ function onUpdateProfileCard(cardId, roomId){
     await apiFetch('/memberProfileCard/update', { method:'PATCH', body: JSON.stringify({ memberProfileCardId: Number(cardId), name, isMemberProfileCardUpdated:true, answers }) });
     showToast('카드를 수정했어요.');
     state.cache.roomMembers = null; state.cache.memberNames = {};
-    closeModal();
+    state.modal = null;
     await loadRoomMembers(roomId);
     render();
+    if(state.page==='room' && (state.params.centerTab||'chat')==='chat'){
+      initRoomChat(roomId);
+    }
   }).catch(e=>{
     showToast(e.message || '프로필 카드 수정에 실패했습니다.');
   });
@@ -1641,9 +1703,11 @@ function renderModal(){
     const room = state.cache.room;
     const editMode = mine && payload.editMode;
     if(editMode){
+      const requiredUpdate = !!payload.requiredUpdate;
       inner = `
-      <button class="close-x" onclick="closeModal()">✕</button>
+      ${requiredUpdate ? '' : '<button class="close-x" onclick="closeModal()">✕</button>'}
       <h3>내 프로필 카드 수정</h3>
+      ${requiredUpdate ? '<div class="notice-banner">새로 추가된 필수 항목을 입력해야 룸을 이용할 수 있어요.</div>' : ''}
       <div style="margin-top:14px;">
         <div class="field"><label>이름</label><input id="pc-edit-name" type="text" value="${esc(m.name)}"></div>
         ${(room?.customFields||[]).map(f=>{
@@ -1651,8 +1715,8 @@ function renderModal(){
           return `<div class="field"><label>${esc(f.fieldName)}${f.required?' *':''}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
         }).join('')}
         <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
-        <button class="btn" style="margin-top:8px;" onclick="disableProfileCardEdit()">취소</button>
-        <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteProfileCard('${m.id}','${room?.id}')">카드 삭제</button>
+        ${requiredUpdate ? '' : `<button class="btn" style="margin-top:8px;" onclick="disableProfileCardEdit()">취소</button>
+        <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteProfileCard('${m.id}','${room?.id}')">카드 삭제</button>`}
       </div>`;
     } else {
       inner = `
