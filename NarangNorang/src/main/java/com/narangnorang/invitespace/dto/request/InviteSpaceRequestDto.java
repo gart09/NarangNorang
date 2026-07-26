@@ -1,4 +1,4 @@
-package com.narangnorang.memberprofilecard.dto.request;
+package com.narangnorang.invitespace.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

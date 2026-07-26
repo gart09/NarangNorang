@@ -1,9 +1,10 @@
-package com.narangnorang.memberprofilecard.entity;
+package com.narangnorang.invitespace.entity;
 
 import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.CreatedDate;
 
+import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
 import com.narangnorang.space.entity.Space;
 
 import jakarta.persistence.Column;
@@ -43,9 +44,6 @@ public class InviteSpace {
     @Column(nullable = false)
     private Long memberId;
 
-    @Column(nullable = false)
-    private Long ownerId;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private InviteType type;
@@ -59,27 +57,15 @@ public class InviteSpace {
     private LocalDateTime createdAt;
 
     // 이 요청을 승인/거절할 권한이 있는 사람 — type에 따라 memberId 또는 ownerId
-    private Long approverId() {
-        return this.type == InviteType.MemberToSpace ? this.ownerId : this.memberId;
+    public Long getApproverId() {
+        return this.type == InviteType.MemberToSpace ? this.space.getOwnerId() : this.memberId;
     }
 
-    public void accept(Long requesterId) {
-        if (!approverId().equals(requesterId)) {
-            throw new IllegalStateException("본인에게 온 요청만 처리할 수 있습니다.");
-        }
-        if (this.status != InviteStatus.PENDING) {
-            throw new IllegalStateException("이미 처리 완료된 가입/초대 요청입니다.");
-        }
+    public void accept() {
         this.status = InviteStatus.ACCEPTED;
     }
 
-    public void reject(Long requesterId) {
-        if (!approverId().equals(requesterId)) {
-            throw new IllegalStateException("본인에게 온 요청만 처리할 수 있습니다.");
-        }
-        if (this.status != InviteStatus.PENDING) {
-            throw new IllegalStateException("이미 처리 완료된 가입/초대 요청입니다.");
-        }
+    public void reject() {
         this.status = InviteStatus.REJECTED;
     }
 
@@ -88,7 +74,6 @@ public class InviteSpace {
         return InviteSpace.builder()
                 .space(space)
                 .memberId(memberUserId)
-                .ownerId(space.getOwnerId())
                 .memberProfileCard(memberProfileCard)
                 .type(InviteType.MemberToSpace)
                 .status(InviteStatus.PENDING)
@@ -96,26 +81,14 @@ public class InviteSpace {
     }
 
     // 오너가 멤버에게 권유
-    public static InviteSpace spaceToMember(Space space, Long ownerUserId, Long memberUserId, MemberProfileCard memberProfileCard) {
+    public static InviteSpace spaceToMember(Space space, Long memberUserId, MemberProfileCard memberProfileCard) {
         return InviteSpace.builder()
                 .space(space)
                 .memberId(memberUserId)
-                .ownerId(ownerUserId)
                 .memberProfileCard(memberProfileCard)
                 .type(InviteType.SpaceToMember)
                 .status(InviteStatus.PENDING)
                 .build();
-    }
-    
-    public enum InviteType {
-        MemberToSpace,    // 멤버가 스페이스에 신청
-        SpaceToMember    // 오너가 멤버에게 권유
-    }
-
-    public enum InviteStatus {
-        PENDING, 		// 요청
-        ACCEPTED, 		// 수락
-        REJECTED		// 거절
     }
     
 }

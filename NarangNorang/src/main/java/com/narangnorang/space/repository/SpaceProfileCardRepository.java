@@ -8,6 +8,5 @@ import com.narangnorang.space.entity.SpaceProfileCard;
 
 public interface SpaceProfileCardRepository extends JpaRepository<SpaceProfileCard, Long>{
 
-	Optional<SpaceProfileCard> findBySpaceId(Long spaceId);
 	
 }
