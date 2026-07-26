@@ -244,6 +244,7 @@
 </head>
 <body>
 <div id="app"></div>
+<div id="modal-root"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -261,6 +262,7 @@ const state = {
   me:null,               // {id, email} — JWT 디코딩 결과, 이름 정보는 서버에 없음
   loginError:'', signupError:'', joinError:'',
   cache:{ room:null, spaces:null, spaceDetail:null, spaceMembers:null, roomMembers:null, roomTags:null, invites:null, memberNames:{}, myRooms:null },
+  roomContextId:null,
   loading:false,
   ws:{ client:null, sub:null },
 };
@@ -370,6 +372,7 @@ function disconnectChat(){
 function resetRoomContext(nextRoom=null){
   disconnectChat();
   state.cache.room = nextRoom;
+  state.roomContextId = nextRoom?.id!=null ? String(nextRoom.id) : null;
   state.cache.spaces = null;
   state.cache.spaceDetail = null;
   state.cache.spaceMembers = null;
@@ -384,6 +387,16 @@ function setRoomContext(room){
     return;
   }
   state.cache.room = room;
+  state.roomContextId = String(room.id);
+}
+function isCurrentRoomContext(roomId){
+  return state.roomContextId!=null
+      && String(state.roomContextId)===String(roomId);
+}
+function isCurrentSpaceContext(roomId, spaceId){
+  return state.page==='space'
+      && isCurrentRoomContext(roomId)
+      && String(state.params.spaceId)===String(spaceId);
 }
 function prepareRoomNavigation(page, params){
   const roomPages = ['room','space','space-create','room-join-card'];
@@ -392,6 +405,9 @@ function prepareRoomNavigation(page, params){
   if(roomPages.includes(page) && nextRoomId!=null
       && currentRoomId!=null && String(currentRoomId)!==String(nextRoomId)){
     resetRoomContext();
+  }
+  if(roomPages.includes(page) && nextRoomId!=null){
+    state.roomContextId = String(nextRoomId);
   }
   if(page!=='room' && page!=='space'){
     disconnectChat();
@@ -430,18 +446,21 @@ window.addEventListener('popstate', (e)=>{
   render(); window.scrollTo(0,0);
   enterPageSideEffects(s.page, s.params || {});
 });
-function openModal(type, payload){ state.modal={type,payload}; render(); }
+function openModal(type, payload){
+  state.modal={type,payload};
+  renderModalLayer();
+}
 function closeModal(){
   if(state.modal?.payload?.requiredUpdate){
     showToast('새로 추가된 필수 항목을 입력해야 룸을 이용할 수 있어요.');
     return;
   }
   state.modal=null;
-  render();
+  renderModalLayer();
 }
 function enableProfileCardEdit(){
   if(state.modal) state.modal.payload.editMode = true;
-  render();
+  renderModalLayer();
 }
 function disableProfileCardEdit(){
   if(state.modal?.payload?.requiredUpdate){
@@ -449,7 +468,7 @@ function disableProfileCardEdit(){
     return;
   }
   if(state.modal) state.modal.payload.editMode = false;
-  render();
+  renderModalLayer();
 }
 function esc(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function initials(name){ return name ? name[0] : '?'; }
@@ -569,11 +588,39 @@ async function withLoading(fn){
 
 function render(){
   const app = document.getElementById('app');
+  const currentChat = document.getElementById('chatScroll');
+  const chatSnapshot = currentChat ? {
+    key: state.page==='room'
+        ? `room:${state.params.roomId}`
+        : state.page==='space'
+            ? `space:${state.params.spaceId}`
+            : null,
+    html: currentChat.innerHTML,
+    scrollTop: currentChat.scrollTop
+  } : null;
+
   app.innerHTML = `
     ${state.page!=='login' && state.page!=='signup' ? renderTopbar() : ''}
     ${renderPage()}
-    ${state.modal ? renderModal() : ''}
   `;
+
+  const nextChat = document.getElementById('chatScroll');
+  const nextChatKey = state.page==='room'
+      ? `room:${state.params.roomId}`
+      : state.page==='space'
+          ? `space:${state.params.spaceId}`
+          : null;
+  if(nextChat && chatSnapshot?.key && chatSnapshot.key===nextChatKey){
+    nextChat.innerHTML = chatSnapshot.html;
+    nextChat.scrollTop = chatSnapshot.scrollTop;
+  }
+
+  renderModalLayer();
+}
+
+function renderModalLayer(){
+  const modalRoot = document.getElementById('modal-root');
+  if(modalRoot) modalRoot.innerHTML = state.modal ? renderModal() : '';
 }
 
 function renderTopbar(){
@@ -665,7 +712,8 @@ function onLogin(){
 function doLogout(silent){
   const done = ()=>{
     state.accessToken=null; state.refreshToken=null; state.me=null;
-    state.cache = { room:null, spaces:null, spaceDetail:null, roomMembers:null, invites:null, memberNames:{}, myRooms:null };
+    state.cache = { room:null, spaces:null, spaceDetail:null, spaceMembers:null, roomMembers:null, roomTags:null, invites:null, memberNames:{}, myRooms:null };
+    state.roomContextId = null;
     clearPersistedTokens();
     if(!silent) showToast('로그아웃 됐어요.');
     navigate('login');
@@ -907,6 +955,7 @@ function openRoom(roomId){ navigate('room', {roomId}); }
 ===================================================================== */
 async function loadRoom(roomId){
   const room = await apiFetch('/rooms/' + roomId, { method:'GET' });
+  if(!isCurrentRoomContext(roomId)) return null;
   setRoomContext(room);
   return room;
 }
@@ -924,6 +973,7 @@ function renderRoom(){
       }
       await Promise.all([loadRoomMembers(roomId), loadSpaces(roomId), loadRoomTags(roomId)]);
     }).then(()=>{
+      if(!isCurrentRoomContext(roomId)) return;
       if(!openRequiredProfileUpdateIfNeeded(roomId)){
         initRoomChat(roomId);
       }
@@ -1068,8 +1118,11 @@ function onDeleteRoom(roomId){
 }
 async function loadRoomMembers(roomId){
   // 룸 멤버 목록 API가 없어 MemberProfileCard 필터(roomId만 지정)로 대체
-  state.cache.roomMembers = await apiFetch('/memberProfileCard/filter', { method:'POST', body: JSON.stringify({ roomId: Number(roomId) }) });
-  buildMemberNameMap(state.cache.roomMembers);
+  const roomMembers = await apiFetch('/memberProfileCard/filter', { method:'POST', body: JSON.stringify({ roomId: Number(roomId) }) });
+  if(!isCurrentRoomContext(roomId)) return [];
+  state.cache.roomMembers = roomMembers;
+  buildMemberNameMap(roomMembers);
+  return roomMembers;
 }
 // 룸 내 표시 이름은 User 이름이 아니라 해당 룸의 MemberProfileCard.name 기준
 function buildMemberNameMap(cards){
@@ -1081,6 +1134,7 @@ function buildMemberNameMap(cards){
 async function ensureMemberNames(roomId){
   if(Object.keys(state.cache.memberNames||{}).length) return state.cache.memberNames;
   const cards = await apiFetch('/memberProfileCard/filter', { method:'POST', body: JSON.stringify({ roomId: Number(roomId) }) });
+  if(!isCurrentRoomContext(roomId)) return {};
   return buildMemberNameMap(cards);
 }
 function nameOf(userId){
@@ -1089,10 +1143,16 @@ function nameOf(userId){
 async function loadSpaces(roomId, tags){
   let path = '/rooms/' + roomId + '/spaces';
   if(tags && tags.length) path += '?' + tags.map(t=>'tags=' + encodeURIComponent(t)).join('&');
-  state.cache.spaces = await apiFetch(path, { method:'GET' });
+  const spaces = await apiFetch(path, { method:'GET' });
+  if(!isCurrentRoomContext(roomId)) return [];
+  state.cache.spaces = spaces;
+  return spaces;
 }
 async function loadRoomTags(roomId){
-  state.cache.roomTags = await apiFetch('/rooms/' + roomId + '/tags', { method:'GET' });
+  const roomTags = await apiFetch('/rooms/' + roomId + '/tags', { method:'GET' });
+  if(!isCurrentRoomContext(roomId)) return [];
+  state.cache.roomTags = roomTags;
+  return roomTags;
 }
 async function initRoomChat(roomId){
   await ensureMemberNames(roomId).catch(()=>{});
@@ -1214,6 +1274,7 @@ function renderSpace(){
   if(!state.cache.spaceDetail || String(state.cache.spaceDetail._id)!==String(spaceId)){
     withLoading(async ()=>{
       const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+      if(!isCurrentSpaceContext(roomId, spaceId)) return;
       detail._id = spaceId;
       if(!state.cache.room || String(state.cache.room.id)!==String(roomId)) await loadRoom(roomId);
       await ensureMemberNames(roomId).catch(()=>{});
@@ -1223,6 +1284,7 @@ function renderSpace(){
       // 스페이스 멤버 조회 API로 멤버 목록 확보 + 내가 멤버인지 판별
       const spaceMembers = await loadSpaceMembers(roomId, spaceId).catch(()=>[]);
       detail.isMember = spaceMembers.some(m=>m.userId===state.me?.id);
+      if(!isCurrentSpaceContext(roomId, spaceId)) return;
       state.cache.spaceDetail = detail;
     }).then(()=> initSpaceChatIfMember(roomId, spaceId)).catch(()=>{});
     return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
@@ -1235,6 +1297,7 @@ function renderSpace(){
 }
 async function loadSpaceMembers(roomId, spaceId){
   const members = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/spaceMembers`, { method:'GET' });
+  if(!isCurrentSpaceContext(roomId, spaceId)) return [];
   state.cache.spaceMembers = members;
   return members;
 }
@@ -1623,18 +1686,41 @@ function onDeleteProfileCard(cardId, roomId){
    채팅 (room · space 공용, 3분할 레이아웃 중앙 패널에 내장) — REST 전송 + STOMP 구독
 ===================================================================== */
 async function initChatCore(targetType, targetId){
-  await loadChatHistory(targetType, targetId);
+  const historyLoaded = await loadChatHistory(targetType, targetId);
+  if(!historyLoaded || !isCurrentChatTarget(targetType, targetId)) return;
   connectWs(targetType, targetId);
 }
+function isCurrentChatTarget(targetType, targetId){
+  if(targetType==='room'){
+    return state.page==='room'
+        && isCurrentRoomContext(targetId)
+        && String(state.params.roomId)===String(targetId);
+  }
+  if(targetType==='space'){
+    return isCurrentSpaceContext(state.params.roomId, targetId);
+  }
+  return false;
+}
 async function loadChatHistory(targetType, targetId){
+  if(!isCurrentChatTarget(targetType, targetId)) return false;
   try{
     const history = await apiFetch(`/chat/${targetType}/${targetId}?size=50`, { method:'GET' });
+    if(!isCurrentChatTarget(targetType, targetId)) return false;
     const scroll = document.getElementById('chatScroll');
-    if(!scroll) return;
-    if(!history.chats.length){ scroll.innerHTML = `<div class="empty">아직 대화가 없어요. 첫 메시지를 보내보세요.</div>`; return; }
+    if(!scroll) return false;
+    if(!history.chats.length){
+      scroll.innerHTML = `<div class="empty">아직 대화가 없어요. 첫 메시지를 보내보세요.</div>`;
+      return true;
+    }
     scroll.innerHTML = history.chats.map(renderMsgHtml).join('');
     scroll.scrollTop = scroll.scrollHeight;
-  }catch(e){ showToast('대화 내역을 불러오지 못했어요: ' + e.message); }
+    return true;
+  }catch(e){
+    if(isCurrentChatTarget(targetType, targetId)){
+      showToast('대화 내역을 불러오지 못했어요: ' + e.message);
+    }
+    return false;
+  }
 }
 function renderMsgHtml(c){
   const mine = c.senderId === state.me?.id;
@@ -1649,6 +1735,7 @@ function renderMsgHtml(c){
   </div>`;
 }
 function connectWs(targetType, targetId){
+  if(!isCurrentChatTarget(targetType, targetId)) return;
   if(state.ws.client){ try{ state.ws.client.disconnect(); }catch(e){} }
   const socket = new SockJS(API_BASE + '/ws');
   const client = Stomp.over(socket);
@@ -1657,10 +1744,15 @@ function connectWs(targetType, targetId){
   client.connect(
     { Authorization: 'Bearer ' + state.accessToken },
     () => {
+      if(!isCurrentChatTarget(targetType, targetId)){
+        try{ client.disconnect(); }catch(e){}
+        return;
+      }
       const dot = document.getElementById('wsDot'); const st = document.getElementById('wsStatus');
       if(dot){ dot.classList.add('on'); }
       if(st){ st.textContent = '실시간 연결됨'; }
       state.ws.sub = client.subscribe('/sub/' + targetType + '/' + targetId, (frame)=>{
+        if(!isCurrentChatTarget(targetType, targetId)) return;
         const msg = JSON.parse(frame.body);
         if(msg.senderId === state.me?.id) return; // 내가 보낸 건 낙관적 렌더로 이미 표시됨
         const scroll = document.getElementById('chatScroll');
