@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.narangnorang.invitespace.entity.InviteSpace;
 import com.narangnorang.room.entity.Room;
 import com.narangnorang.space.entity.SpaceMember;
 import com.narangnorang.user.entity.User;
@@ -58,6 +59,10 @@ public class MemberProfileCard {
 	@Builder.Default
 	@OneToMany(mappedBy = "memberProfileCard", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<SpaceMember> spaceMembers = new ArrayList<>();
+	
+	@Builder.Default
+    @OneToMany(mappedBy = "memberProfileCard", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InviteSpace> inviteSpaces = new ArrayList<>();
 	
 	public void addAnswer(MemberProfileCustomAnswer answer){
 		this.answers.add(answer);
