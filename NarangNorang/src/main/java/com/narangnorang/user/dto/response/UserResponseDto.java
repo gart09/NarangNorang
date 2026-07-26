@@ -19,7 +19,6 @@ public class UserResponseDto {
 	private Long id;
 	private String name;
 	private String email;
-	private String password;
 
 	private List<String> userRoles;
 
@@ -35,7 +34,6 @@ public class UserResponseDto {
 				user.getId(),
 				user.getName(),
 				user.getEmail(),
-				user.getPassword(),
 				strRoles
 		);
 	}
@@ -45,7 +43,6 @@ public class UserResponseDto {
 				.id(this.id)
 				.name(this.name)
 				.email(this.email)
-				.password(this.password)
 				.userRoles(userRoles)
 				.build();
 	}
