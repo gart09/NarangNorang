@@ -8,22 +8,30 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.narangnorang.space.entity.Space;
-import com.narangnorang.space.entity.SpaceProfileCard;
 
-public interface SpaceRepository extends JpaRepository<Space, Long>{
+public interface SpaceRepository extends JpaRepository<Space, Long> {
 
 	List<Space> findByRoomId(Long roomId);
 	
-	@Query("""
-			SELECT DISTINCT s FROM Space s
-		    JOIN FETCH s.profileCard
-		    LEFT JOIN FETCH s.tags
-		    WHERE s.id = :spaceId
-			""")
-    Optional<Space> findByIdWithProfileCard(@Param("spaceId") Long spaceId);
-	
-	@Query("SELECT DISTINCT s FROM Space s JOIN s.tags t WHERE s.roomId = :roomId AND t.name IN :tagNames")
-    List<Space> findByRoomIdAndTagNames(@Param("roomId") Long roomId, @Param("tagNames") List<String> tagNames);
+    @Query("""
+            SELECT DISTINCT s FROM Space s
+            LEFT JOIN FETCH s.tags
+            WHERE s.roomId = :roomId
+            """)
+    List<Space> findByRoomIdWithTags(@Param("roomId") Long roomId);
 
-	
+    @Query("""
+            SELECT DISTINCT s FROM Space s
+            JOIN s.tags t
+            WHERE s.roomId = :roomId AND t.name IN :tagNames
+            """)
+    List<Space> findByRoomIdAndTagNamesWithTags(@Param("roomId") Long roomId, @Param("tagNames") List<String> tagNames);
+
+    @Query("""
+            SELECT DISTINCT s FROM Space s
+            JOIN FETCH s.profileCard
+            LEFT JOIN FETCH s.tags
+            WHERE s.id = :spaceId
+            """)
+    Optional<Space> findByIdWithProfileCard(@Param("spaceId") Long spaceId);
 }
