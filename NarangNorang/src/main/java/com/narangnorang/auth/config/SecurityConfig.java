@@ -51,7 +51,6 @@ public class SecurityConfig {
 								"/users/login",
 								"/users/checkRefreshToken",
 								"/",
-								"/index.html",
 								"/ws/**",
 								"/narangnorang.html"
 						).permitAll()

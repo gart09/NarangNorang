@@ -34,4 +34,7 @@ public interface MemberProfileCardRepository extends JpaRepository<MemberProfile
 
 	@Query("select m.room from MemberProfileCard m where m.user.id = :userId")
 	List<Room> findRoomsByUserId(@Param("userId")Long userId);
+
+	@Query("select m.room from MemberProfileCard m where m.id = :memberProfileCardId")
+	Optional<Room> findRoomByMemberProfileCardId(@Param("memberProfileCardId") Long memberProfileCardId);
 }

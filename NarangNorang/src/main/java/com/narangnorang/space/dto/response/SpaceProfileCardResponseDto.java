@@ -1,6 +1,6 @@
 package com.narangnorang.space.dto.response;
 
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -22,8 +22,8 @@ public class SpaceProfileCardResponseDto {
     private String owner;
     private Long ownerId;
     private List<String> techStack;
-    private LocalDateTime preferredStartTime;
-    private LocalDateTime preferredEndTime;
+    private LocalTime preferredStartTime;
+    private LocalTime preferredEndTime;
     private Map<String, List<String>> customField;
     private Long maxMemberCount;
     private Long currentMemberCount;

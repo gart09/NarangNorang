@@ -1,6 +1,6 @@
 package com.narangnorang.space.dto.request;
 
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -15,8 +15,8 @@ public class SpaceUpdateRequestDto {
 
     // SpaceProfileCard
     private List<String> techStack;
-    private LocalDateTime preferredStartTime;
-    private LocalDateTime preferredEndTime;
+    private LocalTime preferredStartTime;
+    private LocalTime preferredEndTime;
     private Map<String, List<String>> customField;
 
     // Tag
