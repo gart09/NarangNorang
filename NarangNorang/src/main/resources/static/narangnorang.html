@@ -1,0 +1,2369 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나랑노랑 — NarangNorang (연동)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<style>
+  :root{
+    --paper:#FFF6DE; --marigold:#FCE18C; --marigold-deep:#E3A93E; --marigold-soft:rgba(252,225,140,.32);
+    --ink:#2B2118; --ink-soft:#6B5D48; --line:#EAD9A8; --panel:#FFFFFF;
+    --coral:#FF7A54; --sage:#4C9A6A; --danger:#D9614C; --shadow:0 10px 26px rgba(43,33,24,.10); --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans KR',sans-serif;line-height:1.55;}
+  h1,h2,h3{font-family:'Fraunces',serif;}
+  button{font-family:inherit;cursor:pointer;}
+  a{color:inherit;}
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  body.chat-page{overflow:hidden;}
+  body.chat-page #app{height:100dvh;min-height:0;}
+  body.chat-page .discord-layout{height:auto;min-height:0;flex:1;}
+  .topbar{background:var(--marigold);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 0 var(--marigold-deep);flex-wrap:wrap;gap:10px;}
+  .brand{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .brand-mark{width:36px;height:36px;border-radius:10px;background:var(--ink);display:flex;align-items:center;justify-content:center;color:var(--marigold);font-weight:700;font-size:15px;font-family:'Fraunces',serif;}
+  .brand-name{font-family:'Fraunces',serif;font-size:20px;font-weight:700;}
+  .breadcrumb{font-size:13px;color:rgba(43,33,24,.65);margin-top:1px;}
+  .breadcrumb a{font-weight:600;cursor:pointer;}
+  .top-right{display:flex;align-items:center;gap:10px;}
+  .room-code{font-family:monospace;font-size:12px;font-weight:700;background:var(--ink);color:var(--marigold);padding:6px 10px;border-radius:8px;letter-spacing:1px;}
+  .avatar-chip{width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--marigold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid rgba(255,255,255,.6);cursor:pointer;}
+  .user-chip{
+    display:flex;align-items:center;gap:7px;background:var(--ink);color:var(--marigold);
+    border-radius:999px;padding:4px 14px 4px 4px;cursor:pointer;border:2px solid rgba(255,255,255,.5);
+    transition:transform .08s ease, background .15s ease;
+  }
+  .user-chip:hover{background:#3c2f20;}
+  .user-chip:active{transform:scale(.97);}
+  .user-chip-avatar{
+    width:26px;height:26px;border-radius:50%;background:var(--marigold);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+  }
+  .user-chip-name{font-size:13.5px;font-weight:700;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .topbar-logout{font-size:12.5px;font-weight:700;color:var(--ink);opacity:.65;cursor:pointer;}
+  .topbar-logout:hover{opacity:1;text-decoration:underline;}
+  .btn{border:1.5px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 16px;border-radius:10px;font-size:13.5px;font-weight:700;}
+  .btn:hover{border-color:var(--marigold-deep);}
+  .btn-primary{background:var(--ink);border-color:var(--ink);color:var(--marigold);}
+  .btn-danger{background:transparent;border-color:var(--danger);color:var(--danger);}
+  .btn-subtle{background:transparent;border-color:transparent;color:var(--ink-soft);font-weight:600;}
+  .btn-subtle:hover{border-color:var(--line);background:var(--paper);}
+  .btn-sm{padding:6px 12px;font-size:12.5px;border-radius:8px;}
+  .btn-block{width:100%;}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+  .page{flex:1;padding:36px 26px 60px;max-width:1040px;margin:0 auto;width:100%;}
+  .page-narrow{max-width:440px;}
+  .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--marigold-deep);font-weight:800;margin-bottom:6px;}
+  .page-title{font-size:28px;font-weight:700;margin:0 0 6px;}
+  .page-desc{color:var(--ink-soft);font-size:14px;margin:0 0 26px;}
+  .hero{background:var(--marigold);border-radius:20px;padding:40px 36px;margin-bottom:30px;box-shadow:var(--shadow);}
+  .hero h1{font-size:30px;margin:0 0 8px;}
+  .hero p{color:rgba(43,33,24,.72);font-size:14.5px;max-width:480px;margin:0 0 22px;}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin:34px 0 14px;}
+  .section-head h2{font-size:17px;margin:0;}
+  .section-head .count{color:var(--ink-soft);font-size:12.5px;}
+  .plaque-list{display:flex;flex-direction:column;gap:10px;}
+  .plaque{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;}
+  .plaque:hover{border-color:var(--marigold-deep);}
+  .plaque-code{font-family:monospace;font-size:12px;font-weight:700;color:var(--ink);background:var(--marigold-soft);padding:5px 9px;border-radius:6px;letter-spacing:1px;}
+  .plaque-icon{font-size:20px;flex-shrink:0;}
+  .plaque-info{flex:1;min-width:0;}
+  .plaque-info .name{font-weight:700;font-size:14.5px;}
+  .plaque-info .meta{color:var(--ink-soft);font-size:12px;margin-top:2px;}
+  .empty{color:var(--ink-soft);font-size:13.5px;padding:26px;text-align:center;border:1.5px dashed var(--line);border-radius:14px;}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}
+  .idx-card{background:var(--panel);border-radius:14px;padding:18px 16px 16px;position:relative;box-shadow:var(--shadow);border:1px solid var(--line);cursor:pointer;}
+  .idx-card .card-tag-space{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--marigold-deep);background:var(--marigold-soft);padding:3px 8px;border-radius:999px;margin-bottom:8px;}
+  .idx-card .card-name{font-family:'Fraunces',serif;font-weight:700;font-size:16px;}
+  .idx-card .rule{border-top:1px dashed var(--line);margin:10px 0;}
+  .idx-card .card-intro{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;}
+  .idx-card .card-tags{display:flex;flex-wrap:wrap;gap:5px;}
+  .tag{font-size:10.5px;font-weight:700;background:rgba(76,154,106,.14);color:#2d6b46;padding:3px 9px;border-radius:999px;border:1px solid rgba(76,154,106,.3);}
+  .tag.alt{background:var(--marigold-soft);color:var(--marigold-deep);border-color:rgba(246,185,59,.4);}
+  .idx-card .card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:11px;color:var(--ink-soft);}
+  .idx-card.space-browse-card .card-tag-space{background:var(--marigold);color:var(--ink);}
+  .space-browse-member{font-size:11.5px;color:var(--ink-soft);font-weight:700;margin:8px 0 4px;}
+  .idx-card.space-browse-card .card-name{
+    font-size:21px;line-height:1.3;padding-left:11px;border-left:3px solid var(--marigold-deep);margin-bottom:2px;
+  }
+  .tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--line);margin-bottom:22px;}
+  .tab{padding:10px 16px;font-size:13.5px;font-weight:700;color:var(--ink-soft);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;}
+  .tab.active{color:var(--marigold-deep);border-bottom-color:var(--marigold-deep);}
+  .form-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px;box-shadow:var(--shadow);}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+  .field input, .field textarea, .field select{width:100%;background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ink);font-size:14px;font-family:inherit;}
+  .field input:focus, .field textarea:focus, .field select:focus{outline:none;border-color:var(--marigold-deep);}
+  .field-hint{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
+  .form-msg{font-size:13px;padding:10px 12px;border-radius:10px;margin-bottom:16px;font-weight:600;}
+  .form-msg.error{background:rgba(217,97,76,.1);color:var(--danger);border:1px solid rgba(217,97,76,.3);}
+  .notice-banner{background:var(--marigold-soft);border:1px solid var(--marigold);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;margin-bottom:20px;}
+  .warn-banner{background:rgba(217,97,76,.08);border:1px solid rgba(217,97,76,.35);border-radius:12px;padding:12px 14px;font-size:12.5px;font-weight:600;margin-bottom:20px;color:var(--danger);}
+  .member-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:8px;}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--marigold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+  .info{flex:1;min-width:0;}
+  .name{font-weight:700;font-size:14px;}
+  .badge{font-size:9px;font-weight:800;color:var(--marigold-deep);background:var(--marigold-soft);padding:2px 7px;border-radius:999px;margin-left:6px;}
+  .tagline{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .row-actions{display:flex;gap:6px;flex-shrink:0;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(43,33,24,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .modal{background:var(--panel);border-radius:18px;padding:0;max-width:460px;width:100%;max-height:82vh;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+  .modal-scroll{padding:28px;max-height:82vh;overflow-y:auto;}
+  .close-x{position:absolute;top:16px;right:16px;background:var(--paper);border:none;width:28px;height:28px;border-radius:50%;font-size:14px;color:var(--ink-soft);z-index:10;cursor:pointer;}
+  .chat-layout{display:flex;flex:1;min-height:0;height:calc(100vh - 65px);}
+
+  /* ===== 디스코드 스타일 3분할(좌: 목록 / 중앙: 채팅 / 우: 목록) ===== */
+  .discord-layout{display:flex;flex:1;min-height:0;height:calc(100vh - 65px);}
+  .side-panel{width:230px;flex-shrink:0;background:var(--panel);padding:16px;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
+  .side-panel:first-child{border-right:1px solid var(--line);}
+  .side-panel:last-child{border-left:1px solid var(--line);}
+  .side-panel-head{margin-bottom:14px;}
+  .side-panel-title{font-family:'Fraunces',serif;font-weight:700;font-size:16px;margin-bottom:8px;}
+  .side-panel-actions{display:flex;flex-direction:column;gap:6px;}
+  .side-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:10px 0 8px;}
+  .rail-count{font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0;}
+  .side-list{display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;overflow-y:auto;}
+  .side-item{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:13.5px;font-weight:600;
+    cursor:pointer;color:var(--ink-soft);
+  }
+  .side-item:hover{background:var(--paper);color:var(--ink);}
+  .side-item.active{background:var(--marigold-soft);color:var(--ink);}
+  .side-item-hash{color:var(--ink-soft);font-weight:700;}
+  .member-mini-avatar{
+    width:28px;height:28px;border-radius:50%;background:var(--marigold);color:var(--ink);
+    display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;flex-shrink:0;
+    border:1.5px solid rgba(227,169,62,.4);
+  }
+  .side-panel-foot{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px;}
+  .empty-inline{color:var(--ink-soft);font-size:12.5px;}
+
+  /* 룸/스페이스 색상톤 구분(중앙 채팅+우측 멤버 패널만) */
+  .space-tone .chat{background:rgba(76,154,106,.05);}
+  .space-tone .chat-head, .space-tone .chat-subhead, .space-tone .info-banner{border-bottom-color:rgba(76,154,106,.35);}
+  .space-tone .send-btn{background:var(--sage);color:#fff;}
+  .space-tone .msg-row.mine .bubble{background:var(--sage);border-color:#3d7d55;color:#fff;}
+  .space-tone .side-panel:last-child{background:rgba(76,154,106,.05);border-left-color:rgba(76,154,106,.35);}
+  .space-tone .side-panel:last-child .side-section-title{color:#3d7d55;}
+  .space-tone .side-item:hover, .space-tone .side-item.active{background:rgba(76,154,106,.16);}
+
+  /* 좌측 스페이스 목록 — 버튼형 카드 */
+  .space-card-btn{
+    display:block;text-align:left;width:100%;border:1px solid var(--line);background:var(--paper);
+    border-radius:10px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s, transform .08s;
+  }
+  .space-card-btn:hover{border-color:var(--marigold-deep);transform:translateY(-1px);}
+  .space-card-btn.active{background:var(--marigold-soft);border-color:var(--marigold-deep);}
+  .space-card-btn-name{font-weight:700;font-size:13.5px;margin-bottom:4px;}
+
+  /* 중앙 채팅/스페이스 탭 */
+  .center-tabs{display:flex;gap:4px;padding:10px 20px 0;background:var(--panel);border-bottom:1px solid var(--line);flex-shrink:0;}
+  .center-tab{padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--ink-soft);background:none;border:none;border-bottom:2px solid transparent;}
+  .center-tab.active{color:var(--marigold-deep);border-bottom-color:var(--marigold-deep);}
+
+  /* 채팅 상단 룸/스페이스 정보 배너(항상 노출) */
+  .info-banner{padding:18px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;max-height:40vh;overflow-y:auto;}
+  .info-banner h2{margin:0 0 4px;font-size:19px;}
+  .chat-subhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;}
+
+  /* 스페이스 브라우저(중앙 탭 - 스페이스) */
+  .space-browser{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .space-browser-head{display:flex;justify-content:space-between;align-items:center;padding:16px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;}
+  .search-panel{padding:14px 26px;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0;}
+  .space-browser-body{flex:1;overflow-y:auto;padding:20px 26px;}
+  .search-toggle{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;}
+  .toggle-switch{
+    position:relative;display:inline-block;width:38px;height:22px;border-radius:999px;
+    background:var(--line);transition:background .15s ease;flex-shrink:0;cursor:pointer;
+  }
+  .toggle-switch.on{background:var(--marigold-deep);}
+  .toggle-knob{
+    position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s ease;
+  }
+  .toggle-switch.on .toggle-knob{transform:translateX(16px);}
+  .rail{width:240px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:20px 16px;overflow-y:auto;}
+  .rail-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:0 4px 10px;}
+  .chat{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;}
+  .chat-head{padding:16px 26px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .chat-head h2{margin:0;font-size:17px;}
+  .chat-head .sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .chat-scroll{flex:1;min-height:0;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:14px;}
+  .msg-row{display:flex;gap:10px;max-width:70%;}
+  .msg-row.mine{align-self:flex-end;flex-direction:row-reverse;}
+  .msg-avatar{width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--marigold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+  .msg-body{display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
+  .msg-row.mine .msg-body{align-items:flex-end;}
+  .msg-meta{display:flex;gap:6px;align-items:baseline;font-size:11.5px;color:var(--ink-soft);}
+  .msg-meta .name{font-weight:700;color:var(--ink);}
+  .bubble{position:relative;background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:4px 14px 14px 14px;font-size:14px;box-shadow:var(--shadow);word-break:break-word;white-space:pre-wrap;}
+  .msg-row.mine .bubble{background:var(--marigold);border-color:var(--marigold-deep);color:var(--ink);border-radius:14px 4px 14px 14px;}
+  .composer{flex-shrink:0;padding:16px 26px 20px;background:var(--panel);border-top:1px solid var(--line);}
+  .composer-box{display:flex;align-items:flex-end;gap:10px;background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:8px 10px 8px 16px;}
+  .composer-box textarea{flex:1;border:none;background:transparent;resize:none;outline:none;font-family:inherit;font-size:14px;color:var(--ink);padding:8px 0;max-height:120px;}
+  .send-btn{border:none;background:var(--ink);color:var(--marigold);width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .send-btn[disabled]{opacity:.4;}
+  .ws-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block;margin-right:6px;}
+  .ws-dot.on{background:var(--sage);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--marigold);padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  .toast.show{opacity:1;}
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--marigold-deep);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  ::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+
+  /* 칩 입력(#태그 + 스페이스바) */
+  .chip-input{
+    display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--paper);
+    border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;
+  }
+  .chip-input:focus-within{border-color:var(--marigold-deep);}
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;background:var(--marigold-soft);color:var(--ink);
+    font-size:12.5px;font-weight:700;padding:4px 6px 4px 10px;border-radius:999px;border:1px solid rgba(227,169,62,.4);
+  }
+  .chip-x{border:none;background:none;color:var(--ink-soft);font-size:13px;line-height:1;cursor:pointer;padding:2px;}
+  .chip-x:hover{color:var(--danger);}
+  .chip-input-field{
+    flex:1;min-width:120px;border:none;background:transparent;outline:none;font-size:14px;
+    color:var(--ink);font-family:inherit;padding:4px 2px;
+  }
+  .option-box-list{display:flex;flex-direction:column;gap:6px;}
+  .option-box-row{display:flex;align-items:center;gap:6px;}
+  .option-box-row .cf-option-box{
+    flex:1;background:var(--paper);border:1.5px solid var(--line);border-radius:8px;
+    padding:8px 10px;font-size:13.5px;color:var(--ink);font-family:inherit;
+  }
+  .option-box-row .cf-option-box:focus{outline:none;border-color:var(--marigold-deep);}
+  .option-box-row .cf-option-box:disabled{background:var(--panel);color:var(--ink-soft);}
+  .radio-group{display:flex;flex-direction:column;gap:8px;}
+  .radio-option{
+    display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:pointer;
+    padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);
+    transition:border-color .15s ease, background .15s ease, transform .08s ease;
+  }
+  .radio-option:hover{border-color:var(--marigold-deep);transform:translateY(-1px);}
+  .radio-option:has(input:checked){border-color:var(--marigold-deep);background:var(--marigold-soft);color:var(--ink);}
+  .radio-option input[type="radio"], .radio-option input[type="checkbox"]{
+    width:18px;height:18px;accent-color:var(--marigold-deep);cursor:pointer;flex-shrink:0;
+  }
+
+  /* 스페이스 상세 화면 */
+  .space-hero{
+    background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 30px;
+    box-shadow:var(--shadow);margin-bottom:20px;
+  }
+  .space-hero h1{margin:8px 0 12px;font-size:26px;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip-row .chip-static{font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;}
+  .chip-row .chip-static.tag-c{background:rgba(76,154,106,.14);color:#2d6b46;border:1px solid rgba(76,154,106,.3);}
+  .chip-row .chip-static.tech-c{background:var(--marigold-soft);color:var(--marigold-deep);border:1px solid rgba(227,169,62,.4);}
+  .meta-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);font-size:13px;color:var(--ink-soft);}
+  .meta-row b{color:var(--ink);}
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:20px;}
+  .detail-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+  .detail-card h3{margin:0 0 12px;font-size:13px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;font-family:'Noto Sans KR',sans-serif;}
+  .detail-card .empty-inline{color:var(--ink-soft);font-size:12.5px;}
+  .custom-field-row{margin-bottom:10px;}
+  .custom-field-row:last-child{margin-bottom:0;}
+  .custom-field-row .cf-label{font-size:11.5px;color:var(--ink-soft);margin-bottom:2px;}
+  .custom-field-row .cf-value{font-size:13.5px;font-weight:600;}
+  .actions-bar{display:flex;gap:8px;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   설정 — 백엔드 주소만 바꿔주면 됨
+===================================================================== */
+const API_BASE = 'http://localhost:8080';
+
+/* =====================================================================
+   상태
+===================================================================== */
+const state = {
+  page:'login', params:{},
+  accessToken:null, refreshToken:null,
+  me:null,               // {id, email} — JWT 디코딩 결과, 이름 정보는 서버에 없음
+  loginError:'', signupError:'', joinError:'',
+  cache:{ room:null, spaces:null, spaceDetail:null, spaceMembers:null, roomMembers:null, roomTags:null, invites:null, memberNames:{}, myRooms:null },
+  roomContextId:null,
+  loading:false,
+  ws:{ client:null, sub:null },
+};
+
+// 새로고침 후에도 로그인 유지 — accessToken/refreshToken을 localStorage에 저장
+const TOKEN_STORAGE_KEY = 'narangnorang_tokens';
+function persistTokens(){
+  try{
+    localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify({ accessToken: state.accessToken, refreshToken: state.refreshToken }));
+  }catch(e){ /* 프리뷰 샌드박스 등으로 storage가 막혀 있으면 조용히 무시 — 실제 배포 환경에서는 정상 동작함 */ }
+}
+function restoreTokens(){
+  try{
+    const raw = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if(!raw) return false;
+    const { accessToken, refreshToken } = JSON.parse(raw);
+    if(!accessToken) return false;
+    state.accessToken = accessToken;
+    state.refreshToken = refreshToken;
+    const payload = decodeJwt(accessToken);
+    if(!payload) return false;
+    state.me = { id: payload.id, email: payload.sub, name: payload.username || payload.sub };
+    return true;
+  }catch(e){ return false; }
+}
+function clearPersistedTokens(){
+  try{ localStorage.removeItem(TOKEN_STORAGE_KEY); }catch(e){}
+}
+
+/* =====================================================================
+   API 유틸
+===================================================================== */
+function decodeJwt(token){
+  try{
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const binary = atob(base64);
+    // atob는 바이너리 문자열(1글자=1바이트)만 반환하므로, UTF-8(한글 등 멀티바이트)로 다시 디코딩해야 안 깨짐
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+    const json = new TextDecoder('utf-8').decode(bytes);
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+async function apiFetch(path, opts={}){
+  opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  if(state.accessToken) opts.headers['Authorization'] = 'Bearer ' + state.accessToken;
+
+  let res = await fetch(API_BASE + path, opts);
+
+  if (res.status === 401) {
+    if (state.refreshToken) {
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        opts.headers['Authorization'] = 'Bearer ' + state.accessToken;
+        res = await fetch(API_BASE + path, opts);
+      } else {
+        // 리프레시 실패 (tryRefresh 안에서 이미 로그인 화면으로 이동됨)
+        throw new Error('세션이 만료되었습니다.');
+      }
+    } else {
+      // 리프레시 토큰이 아예 없는 경우 (로그아웃 후 뒤로가기 등) 바로 강제 이동
+      doLogout(true);
+      throw new Error('로그인이 필요합니다.');
+    }
+ }
+
+  let json = null;
+  try{ json = await res.json(); }catch(e){ /* 204 No Content 등 */ }
+
+  if(!res.ok || (json && json.success===false)){
+    const msg = (json && json.message) || `요청 실패 (HTTP ${res.status})`;
+    throw new Error(msg);
+  }
+  return json ? json.result : null;
+}
+
+async function tryRefresh(){
+  try{
+    const res = await fetch(API_BASE + '/users/checkRefreshToken', {
+      method:'POST',
+      headers:{ 'Refresh-Token': state.refreshToken }
+    });
+    const json = await res.json();
+    if(json.success && json.result){
+      state.accessToken = json.result.token;
+      state.refreshToken = json.result.refreshToken;
+      persistTokens();
+      return true;
+    }
+  }catch(e){}
+  // 리프레시 실패 -> 로그아웃 처리
+  doLogout(true);
+  return false;
+}
+
+/* =====================================================================
+   화면 공통
+===================================================================== */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function disconnectChat(){
+  if(state.ws.sub){
+    try{ state.ws.sub.unsubscribe(); }catch(e){}
+  }
+  if(state.ws.client){
+    try{ state.ws.client.disconnect(); }catch(e){}
+  }
+  state.ws.sub = null;
+  state.ws.client = null;
+}
+function resetRoomContext(nextRoom=null){
+  disconnectChat();
+  state.cache.room = nextRoom;
+  state.roomContextId = nextRoom?.id!=null ? String(nextRoom.id) : null;
+  state.cache.spaces = null;
+  state.cache.spaceDetail = null;
+  state.cache.spaceMembers = null;
+  state.cache.roomMembers = null;
+  state.cache.roomTags = null;
+  state.cache.memberNames = {};
+}
+function setRoomContext(room){
+  const currentRoomId = state.cache.room?.id;
+  if(currentRoomId!=null && String(currentRoomId)!==String(room.id)){
+    resetRoomContext(room);
+    return;
+  }
+  state.cache.room = room;
+  state.roomContextId = String(room.id);
+}
+function isCurrentRoomContext(roomId){
+  return state.roomContextId!=null
+      && String(state.roomContextId)===String(roomId);
+}
+function isCurrentSpaceContext(roomId, spaceId){
+  return state.page==='space'
+      && isCurrentRoomContext(roomId)
+      && String(state.params.spaceId)===String(spaceId);
+}
+function prepareRoomNavigation(page, params){
+  const roomPages = ['room','space','space-create','room-join-card'];
+  const nextRoomId = params?.roomId;
+  const currentRoomId = state.cache.room?.id;
+  if(roomPages.includes(page) && nextRoomId!=null
+      && currentRoomId!=null && String(currentRoomId)!==String(nextRoomId)){
+    resetRoomContext();
+  }
+  if(roomPages.includes(page) && nextRoomId!=null){
+    state.roomContextId = String(nextRoomId);
+  }
+  if(page!=='room' && page!=='space'){
+    disconnectChat();
+  }
+}
+function navigate(page, params={}, opts={}){
+  prepareRoomNavigation(page, params);
+  state.page=page; state.params=params; state.modal=null;
+  if(!opts.fromPopstate){
+    history.pushState({page, params}, '', location.pathname + location.search);
+  }
+  render(); window.scrollTo(0,0);
+  enterPageSideEffects(page, params);
+}
+function enterPageSideEffects(page, params){
+  // room/space 진입 시 채팅 초기화(중앙 패널에 내장됨) — 중앙탭이 채팅일 때만
+  const roomReady = state.cache.room
+      && String(state.cache.room.id)===String(params.roomId)
+      && state.cache.roomMembers!==null;
+  if(page==='room' && roomReady && (params.centerTab||'chat')==='chat'){
+    if(!openRequiredProfileUpdateIfNeeded(params.roomId)){
+      initRoomChat(params.roomId);
+    }
+  }
+  const spaceReady = state.cache.spaceDetail
+      && String(state.cache.spaceDetail._id)===String(params.spaceId);
+  if(page==='space' && spaceReady){
+    initSpaceChatIfMember(params.roomId, params.spaceId);
+  }
+}
+window.addEventListener('popstate', (e)=>{
+  const s = e.state;
+  if(!s) return; // 히스토리 시작 지점(로그인 이전) — 그냥 브라우저 기본 동작(페이지 이탈)에 맡김
+  prepareRoomNavigation(s.page, s.params || {});
+  state.page = s.page; state.params = s.params || {}; state.modal = null;
+  render(); window.scrollTo(0,0);
+  enterPageSideEffects(s.page, s.params || {});
+});
+function openModal(type, payload){
+  state.modal={type,payload};
+  renderModalLayer();
+}
+function closeModal(){
+  if(state.modal?.payload?.requiredUpdate){
+    showToast('새로 추가된 필수 항목을 입력해야 룸을 이용할 수 있어요.');
+    return;
+  }
+  state.modal=null;
+  renderModalLayer();
+}
+function enableProfileCardEdit(){
+  if(state.modal) state.modal.payload.editMode = true;
+  renderModalLayer();
+}
+function disableProfileCardEdit(){
+  if(state.modal?.payload?.requiredUpdate){
+    showToast('필수 항목을 모두 입력해주세요.');
+    return;
+  }
+  if(state.modal) state.modal.payload.editMode = false;
+  renderModalLayer();
+}
+function esc(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function initials(name){ return name ? name[0] : '?'; }
+
+/* ===== 칩 입력: 태그는 "#키워드"+스페이스바/엔터, 기술스택은 #없이 엔터로 확정, x로 개별 삭제 ===== */
+function chipHtml(value, hash){
+  return `<span class="chip" data-value="${esc(value)}">${hash?'#':''}${esc(value)}<button type="button" class="chip-x" onclick="this.closest('.chip').remove()">×</button></span>`;
+}
+function chipInputHtml(containerId, initialValues, placeholder, opts){
+  opts = opts || {};
+  const hash = !!opts.hash;
+  const spaceCommit = opts.spaceCommit!==false;
+  const chips = (initialValues||[]).map(v=>chipHtml(v, hash)).join('');
+  return `<div class="chip-input" id="${containerId}" data-hash="${hash?1:0}" data-space-commit="${spaceCommit?1:0}">${chips}<input type="text" class="chip-input-field" placeholder="${esc(placeholder||'')}" onkeydown="chipInputKeydown(event)"></div>`;
+}
+function chipInputKeydown(e){
+  const container = e.target.closest('.chip-input');
+  const hash = container.dataset.hash==='1';
+  const spaceCommit = container.dataset.spaceCommit==='1';
+  const isCommitKey = e.key==='Enter' || (e.key===' ' && spaceCommit);
+  if(!isCommitKey) return;
+  e.preventDefault();
+  let val = e.target.value.trim();
+  if(hash){
+    if(!(val.startsWith('#') && val.length>1)) return;
+    val = val.slice(1);
+  }
+  if(!val) return;
+  e.target.insertAdjacentHTML('beforebegin', chipHtml(val, hash));
+  e.target.value='';
+}
+function getChipValues(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .chip')).map(el=>el.dataset.value);
+}
+/* ===== 선택 보기 입력: 엔터 누르면 아래에 새 텍스트박스가 생기는 방식 ===== */
+function optionBoxesHtml(options, disabled){
+  const vals = (options||[]).map(o=>o.optionValue);
+  if(vals.length===0) vals.push('');
+  return `<div class="option-box-list" onkeydown="optionBoxKeydown(event)">${vals.map(v=>optionBoxRowHtml(v, disabled)).join('')}</div>
+  ${disabled ? '' : `<button type="button" class="btn btn-sm btn-subtle" style="margin-top:6px;" onclick="addOptionBoxRow(this)">+ 선택지 추가</button>`}`;
+}
+function addOptionBoxRow(btn){
+  const list = btn.previousElementSibling;
+  list.insertAdjacentHTML('beforeend', optionBoxRowHtml(''));
+  const boxes = list.querySelectorAll('.cf-option-box');
+  boxes[boxes.length-1].focus();
+}
+function optionBoxRowHtml(value, disabled){
+  return `<div class="option-box-row"><input type="text" class="cf-option-box" value="${esc(value)}" placeholder="선택 보기 입력 후 엔터" ${disabled?'disabled':''}>${disabled?'':`<button type="button" class="chip-x" onclick="this.closest('.option-box-row').remove()">×</button>`}</div>`;
+}
+function optionBoxKeydown(e){
+  if(e.target.classList && e.target.classList.contains('cf-option-box') && e.key==='Enter'){
+    e.preventDefault();
+    if(!e.target.value.trim()) return;
+    const row = e.target.closest('.option-box-row');
+    row.insertAdjacentHTML('afterend', optionBoxRowHtml(''));
+    row.nextElementSibling.querySelector('.cf-option-box').focus();
+  }
+}
+function getOptionBoxValues(scopeEl){
+  return Array.from(scopeEl.querySelectorAll('.cf-option-box')).map(i=>i.value.trim()).filter(Boolean);
+}
+/* ===== 텍스트 목록: 엔터 또는 + 버튼으로 아래에 새 텍스트박스 추가 (예: 필요 기술) ===== */
+function textListHtml(containerId, values, placeholder){
+  const vals = (values && values.length) ? values : [''];
+  return `<div class="option-box-list" id="${containerId}" onkeydown="textListKeydown(event)">${vals.map(v=>textListRowHtml(v, placeholder)).join('')}</div>
+  <button type="button" class="btn btn-sm" style="margin-top:6px;" onclick="addTextListRow('${containerId}','${esc(placeholder||'')}')">+ 항목 추가</button>`;
+}
+function textListRowHtml(value, placeholder){
+  return `<div class="option-box-row"><input type="text" class="tl-box" value="${esc(value)}" placeholder="${esc(placeholder||'')}"><button type="button" class="chip-x" onclick="this.closest('.option-box-row').remove()">×</button></div>`;
+}
+function textListKeydown(e){
+  if(e.target.classList && e.target.classList.contains('tl-box') && e.key==='Enter'){
+    e.preventDefault();
+    if(!e.target.value.trim()) return;
+    const row = e.target.closest('.option-box-row');
+    row.insertAdjacentHTML('afterend', textListRowHtml('', e.target.placeholder));
+    row.nextElementSibling.querySelector('.tl-box').focus();
+  }
+}
+function addTextListRow(containerId, placeholder){
+  const container = document.getElementById(containerId);
+  container.insertAdjacentHTML('beforeend', textListRowHtml('', placeholder));
+  const rows = container.querySelectorAll('.tl-box');
+  rows[rows.length-1].focus();
+}
+function getTextListValues(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .tl-box')).map(i=>i.value.trim()).filter(Boolean);
+}
+function formatDateTime(iso){
+  if(!iso) return null;
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return esc(iso);
+  return d.toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', weekday:'short', hour:'2-digit', minute:'2-digit' });
+}
+// 선호 시간은 실제로는 시각(time)만 의미 있음 — 저장은 LocalDateTime이라 더미 날짜를 붙여서 보내고, 표시/입력은 시각만 다룸
+const PREF_TIME_DUMMY_DATE = '1970-01-01';
+function formatTimeOnly(iso){
+  if(!iso) return null;
+  const m = String(iso).match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : null;
+}
+function extractTimeValue(iso){
+  const m = String(iso||'').match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : '';
+}
+function timeToIsoDateTime(timeStr){
+  return timeStr ? `${PREF_TIME_DUMMY_DATE}T${timeStr}:00` : null;
+}
+
+async function withLoading(fn){
+  const modalAction = !!state.modal;
+  state.loading = true;
+  if(modalAction) renderModalLayer();
+  else render();
+  try{ await fn(); }
+  catch(e){ showToast(e.message || '오류가 발생했어요.'); }
+  finally{
+    state.loading = false;
+    if(modalAction) renderModalLayer();
+    else render();
+  }
+}
+
+function render(){
+  document.body.classList.toggle('chat-page', state.page==='room' || state.page==='space');
+  const app = document.getElementById('app');
+  const currentChat = document.getElementById('chatScroll');
+  
+  if(currentChat){
+    state.cache.chatSnapshot = {
+      key: state.page==='room'
+          ? `room:${state.params.roomId}`
+          : state.page==='space'
+              ? `space:${state.params.spaceId}`
+              : null,
+      html: currentChat.innerHTML,
+      scrollTop: currentChat.scrollTop
+    };
+  }
+
+  app.innerHTML = `
+    ${state.page!=='login' && state.page!=='signup' ? renderTopbar() : ''}
+    ${renderPage()}
+  `;
+
+  const nextChat = document.getElementById('chatScroll');
+  const nextChatKey = state.page==='room'
+      ? `room:${state.params.roomId}`
+      : state.page==='space'
+          ? `space:${state.params.spaceId}`
+          : null;
+          
+  if(nextChat && state.cache.chatSnapshot?.key && state.cache.chatSnapshot.key===nextChatKey){
+    nextChat.innerHTML = state.cache.chatSnapshot.html;
+    nextChat.scrollTop = state.cache.chatSnapshot.scrollTop;
+  }
+
+  renderModalLayer();
+}
+
+function renderModalLayer(){
+  const modalRoot = document.getElementById('modal-root');
+  if(modalRoot) modalRoot.innerHTML = state.modal ? renderModal() : '';
+}
+
+function renderTopbar(){
+  const room = state.cache.room;
+  let crumb = '나랑노랑';
+  if(['room','space','space-create'].includes(state.page) && room){
+    crumb = `<a onclick="navigate('main')">나랑노랑</a> / <a onclick="navigate('room',{roomId:'${room.id}'})">${esc(room.name)}</a>`;
+    if(state.page==='space' && state.cache.spaceDetail){
+      crumb += ` / ${esc(state.cache.spaceDetail.name)}`;
+    }
+  }
+  return `
+  <div class="topbar">
+    <div>
+      <div class="brand" onclick="navigate('main')">
+        <div class="brand-mark">NN</div><div class="brand-name">나랑노랑</div>
+      </div>
+      <div class="breadcrumb">${crumb}</div>
+    </div>
+    <div class="top-right">
+      ${state.me ? `<button class="btn btn-sm" onclick="openModal('invites-inbox',{})" title="내 초대함">📨 초대함</button>` : ''}
+      <div class="user-chip" title="내 정보" onclick="openModal('user-detail',{})">
+        <span class="user-chip-avatar">👤</span>
+        <span class="user-chip-name">${esc(myDisplayName())}</span>
+      </div>
+      <span class="topbar-logout" onclick="doLogout()">로그아웃</span>
+    </div>
+  </div>`;
+}
+function myDisplayName(){
+  const id = state.me?.id;
+  const inRoomContext = state.page==='room' || state.page==='space' || state.page==='space-create';
+  if(inRoomContext && id!=null && state.cache.memberNames && state.cache.memberNames[id]) return state.cache.memberNames[id];
+  return state.me?.name || state.me?.email || '';
+}
+
+function renderPage(){
+  if(state.loading) return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  switch(state.page){
+    case 'login': return renderLogin();
+    case 'signup': return renderSignup();
+    case 'main': return renderMain();
+    case 'room-create': return renderRoomCreate();
+    case 'room-join': return renderRoomJoin();
+    case 'room-join-card': return renderRoomJoinCard();
+    case 'room': return renderRoom();
+    case 'space-create': return renderSpaceCreate();
+    case 'space': return renderSpace();
+    default: return `<div class="page"><div class="empty">페이지를 찾을 수 없어요.</div></div>`;
+  }
+}
+
+/* =====================================================================
+   인증
+===================================================================== */
+function renderLogin(){
+  return `
+  <div class="page page-narrow" style="padding-top:80px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div class="brand-mark" style="margin:0 auto 14px;width:48px;height:48px;font-size:19px;">NN</div>
+      <h1 class="page-title" style="font-size:24px;">나랑노랑</h1>
+      <p class="page-desc" style="margin:0;">룸에서 스페이스로, 팀원을 찾아보세요</p>
+    </div>
+    <div class="form-card">
+      ${state.loginError ? `<div class="form-msg error">${esc(state.loginError)}</div>` : ''}
+      <div class="field"><label>이메일</label><input id="li-email" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>비밀번호</label><input id="li-pw" type="password" placeholder="비밀번호"></div>
+      <button class="btn btn-primary btn-block" onclick="onLogin()">로그인</button>
+      <div style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--ink-soft);">
+        계정이 없나요? <a onclick="navigate('signup')" style="color:var(--marigold-deep);font-weight:700;cursor:pointer;">회원가입</a>
+      </div>
+    </div>
+  </div>`;
+}
+function onLogin(){
+  const email = document.getElementById('li-email').value.trim();
+  const password = document.getElementById('li-pw').value;
+  if(!email || !password){ state.loginError='이메일과 비밀번호를 입력해주세요.'; render(); return; }
+  withLoading(async ()=>{
+    const result = await apiFetch('/users/login', { method:'POST', body: JSON.stringify({email, password}) });
+    state.accessToken = result.token;
+    state.refreshToken = result.refreshToken;
+    const payload = decodeJwt(result.token);
+    state.me = { id: payload?.id, email: payload?.sub || email, name: payload?.username || payload?.sub || email };
+    state.loginError='';
+    persistTokens();
+    showToast('로그인됐어요.');
+    navigate('main');
+  }).catch(()=>{});
+}
+function doLogout(silent){
+  const done = ()=>{
+    state.accessToken=null; state.refreshToken=null; state.me=null;
+    state.cache = { room:null, spaces:null, spaceDetail:null, spaceMembers:null, roomMembers:null, roomTags:null, invites:null, memberNames:{}, myRooms:null, myUser:null };
+    state.roomContextId = null;
+    clearPersistedTokens();
+    if(!silent) showToast('로그아웃 됐어요.');
+    navigate('login');
+  };
+  if(state.accessToken){
+    apiFetch('/users/logout', { method:'POST' }).finally(done);
+  } else { done(); }
+}
+
+/* ===== 유저 상세정보 모달 (조회/수정/탈퇴) ===== */
+async function loadUserDetailBody(){
+  try{
+    const u = await apiFetch('/users/details', { method:'GET' });
+    state.cache.myUser = u;
+    renderUserDetailBody(u, false);
+  }catch(e){ showToast(e.message); }
+}
+function renderUserDetailBody(u, editMode){
+  const body = document.getElementById('user-detail-body');
+  if(!body) return;
+  if(editMode){
+    body.innerHTML = `
+      <div class="field"><label>이름</label><input id="ud-name" type="text" value="${esc(u.name)}"></div>
+      <div class="field"><label>이메일</label><input id="ud-email" type="email" value="${esc(u.email)}"></div>
+      <div class="field"><label>새 비밀번호</label><input id="ud-password" type="password" placeholder="변경하지 않으려면 비워두세요"></div>
+      <button class="btn btn-primary btn-block" onclick="onSaveUserDetail()">저장</button>
+      <button class="btn btn-block" style="margin-top:8px;" onclick="renderUserDetailBody(state.cache.myUser, false)">취소</button>
+    `;
+  } else {
+    body.innerHTML = `
+      <div class="member-row"><div class="info"><span class="name">${esc(u.name)}</span><div class="tagline">${esc(u.email)}</div></div></div>
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="renderUserDetailBody(state.cache.myUser, true)">회원 정보 수정</button>
+      <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteAccount()">회원 탈퇴</button>
+    `;
+  }
+}
+function onSaveUserDetail(){
+  const name = document.getElementById('ud-name').value.trim();
+  const email = document.getElementById('ud-email').value.trim();
+  const password = document.getElementById('ud-password').value;
+  if(!name || !email){ showToast('이름과 이메일을 입력해주세요.'); return; }
+  const body = { name, email };
+  if(password) body.password = password;
+  apiFetch('/users', { method:'PATCH', body: JSON.stringify(body) })
+    .then(u=>{
+      state.cache.myUser = u;
+      showToast('회원 정보를 수정했어요. (이름/이메일 변경은 다음 로그인부터 반영돼요)');
+      renderUserDetailBody(u, false);
+    })
+    .catch(e=> showToast(e.message));
+}
+function onDeleteAccount(){
+  if(!confirm('정말 탈퇴하시겠어요? 되돌릴 수 없어요.')) return;
+  const email = state.cache.myUser?.email || state.me?.email;
+  apiFetch('/users?email=' + encodeURIComponent(email), { method:'DELETE' })
+    .then(()=>{
+      showToast('탈퇴 처리됐어요.');
+      doLogout(true);
+    })
+    .catch(e=> showToast(e.message));
+}
+
+function renderSignup(){
+  return `
+  <div class="page page-narrow" style="padding-top:80px;">
+    <div class="eyebrow">Join Narang-Norang</div>
+    <h1 class="page-title">회원가입</h1>
+    <div class="form-card">
+      ${state.signupError ? `<div class="form-msg error">${esc(state.signupError)}</div>` : ''}
+      <div class="field"><label>이름</label><input id="su-name" type="text"></div>
+      <div class="field"><label>이메일</label><input id="su-email" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>비밀번호</label><input id="su-pw" type="password" placeholder="6자 이상"></div>
+      <button class="btn btn-primary btn-block" onclick="onSignup()">가입하기</button>
+      <div style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--ink-soft);">
+        이미 계정이 있나요? <a onclick="navigate('login')" style="color:var(--marigold-deep);font-weight:700;cursor:pointer;">로그인</a>
+      </div>
+    </div>
+  </div>`;
+}
+function onSignup(){
+  const name = document.getElementById('su-name').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const password = document.getElementById('su-pw').value;
+  if(!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length<6){
+    state.signupError='이름, 이메일, 6자 이상 비밀번호를 확인해주세요.'; render(); return;
+  }
+  withLoading(async ()=>{
+    await apiFetch('/users/register', { method:'POST', body: JSON.stringify({name, email, password}) });
+    state.signupError='';
+    showToast('회원가입이 완료됐어요. 로그인해주세요.');
+    navigate('login');
+  }).catch(e=>{ state.signupError = e.message; render(); });
+}
+
+/* =====================================================================
+   메인 (룸 목록) — GET /memberProfileCard/roomsList
+===================================================================== */
+function renderMain(){
+  if(!state.cache.myRooms){
+    withLoading(async ()=>{
+      const result = await apiFetch('/memberProfileCard/roomsList', { method:'GET' });
+      state.cache.myRooms = result.rooms || [];
+    }).catch(()=>{ state.cache.myRooms = []; });
+    return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  }
+  const rooms = state.cache.myRooms;
+  return `
+  <div class="page">
+    <div class="hero">
+      <div class="eyebrow" style="color:rgba(43,33,24,.6);">Narang-Norang</div>
+      <h1>룸에서 만나고, 스페이스에서 팀이 되어요</h1>
+      <p>초대 코드로 룸에 참여하거나, 새로운 룸을 만들어 팀원을 모아보세요.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="navigate('room-create')">+ 룸 만들기</button>
+        <button class="btn" onclick="navigate('room-join')">초대 코드로 참여하기</button>
+      </div>
+    </div>
+    <div class="section-head"><h2>내 룸</h2><span class="count">${rooms.length}개</span></div>
+    ${rooms.length ? `<div class="plaque-list">${rooms.map(r=>`
+      <div class="plaque" onclick="openRoom('${r.id}')">
+        <span class="plaque-icon">🏠</span>
+        <div class="plaque-info"><div class="name">${esc(r.name)}</div><div class="meta">멤버 ${r.currentMember}${r.maxMember?'/'+r.maxMember:''}명</div></div>
+      </div>`).join('')}</div>`
+      : `<div class="empty">아직 참여한 룸이 없어요. 룸을 만들거나 초대 코드로 참여해보세요.</div>`}
+  </div>`;
+}
+
+/* =====================================================================
+   룸 생성
+===================================================================== */
+function renderRoomCreate(){
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">New Room</div>
+    <h1 class="page-title">룸 생성하기</h1>
+    <div class="form-card">
+      <div class="field"><label>룸 이름</label><input id="rc-name" type="text"></div>
+      <div class="field"><label>룸 소개</label><textarea id="rc-desc" rows="3"></textarea></div>
+      <div class="field"><label>최대 인원</label><input id="rc-max" type="number" min="1"></div>
+      <div class="field-hint" style="margin-bottom:10px;">멤버가 참여할 때 작성할 프로필 카드 항목을 정해주세요. (나중에 상세 화면에서도 수정할 수 있어요)</div>
+      <div id="rc-cf-rows"></div>
+      <button class="btn btn-sm" style="margin-bottom:16px;" onclick="document.getElementById('rc-cf-rows').insertAdjacentHTML('beforeend', customFieldRowHtml())">+ 카드 항목 추가</button>
+      <button class="btn btn-primary btn-block" onclick="onCreateRoom()">룸 만들기</button>
+    </div>
+  </div>`;
+}
+function onCreateRoom(){
+  const name = document.getElementById('rc-name').value.trim();
+  if(!name){ showToast('룸 이름을 입력해주세요.'); return; }
+  const description = document.getElementById('rc-desc').value.trim();
+  const maxMemberRaw = document.getElementById('rc-max').value;
+  const maxMember = parseInt(maxMemberRaw);
+  if(!maxMemberRaw || isNaN(maxMember) || maxMember < 1){ showToast('최대 인원은 1명 이상 필수로 입력해야 해요.'); return; }
+  // RoomCreateRequestDto.customFields는 RoomProfileCustomFieldCreateRequestDto 형태(id 없음)
+  let cfError = null;
+  const customFields = Array.from(document.querySelectorAll('#rc-cf-rows .cf-row')).map(row=>{
+    const fieldName = row.querySelector('.cf-name').value.trim();
+    if(!fieldName) return null;
+    const optionType = row.querySelector('.cf-type').value;
+    const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
+    const optionValues = getOptionBoxValues(row);
+    if(isSelect && optionValues.length===0){ cfError = '선택형 항목은 선택 보기를 1개 이상 입력해야 해요.'; return null; }
+    if(!isSelect && optionValues.length>0){ cfError = '글/숫자 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return null; }
+    return {
+      fieldName, required: row.querySelector('.cf-required').checked, optionType,
+      options: isSelect ? optionValues.map((v,i)=>({optionValue:v, displayOrder:i})) : []
+    };
+  }).filter(Boolean);
+  if(cfError){ showToast(cfError); return; }
+  withLoading(async ()=>{
+    const room = await apiFetch('/rooms', { method:'POST', body: JSON.stringify({name, description, maxMember, customFields}) });
+    state.cache.myRooms = null;
+    // 생성 응답의 currentMember는 오너 카드 자동생성 커밋 시점보다 먼저 계산됐을 수 있어(0으로 보일 수 있음) —
+    // 캐시를 비워서 룸 진입 시 GET으로 다시 불러오게 해서 정확한 인원수를 받도록 함
+    resetRoomContext();
+    showToast('룸이 생성됐어요.');
+    // A room creator must complete a member profile card before opening the room.
+    setRoomContext(room);
+    navigate('room-join-card', {roomId: room.id, roomCode: room.roomCode});
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   룸 참여 (① GET /rooms/join/{code} 로 참여 처리 → ② 카드 작성)
+===================================================================== */
+function renderRoomJoin(){
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">Join Room</div>
+    <h1 class="page-title">초대 코드로 참여하기</h1>
+    <div class="form-card">
+      ${state.joinError ? `<div class="form-msg error">${esc(state.joinError)}</div>` : ''}
+      <div class="field"><label>초대 코드</label><input id="jr-code" type="text" style="text-transform:uppercase;"></div>
+      <button class="btn btn-primary btn-block" onclick="onJoinRoom()">참여하기</button>
+    </div>
+  </div>`;
+}
+function onJoinRoom(){
+  const code = document.getElementById('jr-code').value.trim().toUpperCase();
+  if(!code){ state.joinError='초대 코드를 입력해주세요.'; render(); return; }
+  withLoading(async ()=>{
+    // ① 참여 처리
+    const joinResult = await apiFetch('/rooms/join/' + code, { method:'GET' });
+    state.joinError='';
+    const room = joinResult.room;
+    state.cache.myRooms = null;
+    setRoomContext(room);
+    if(joinResult.member){
+      // 이미 카드까지 있는 기존 멤버
+      navigate('room', {roomId: room.id});
+    } else {
+      navigate('room-join-card', {roomId: room.id, roomCode: code});
+    }
+  }).catch(e=>{ state.joinError = e.message; render(); });
+}
+function renderRoomJoinCard(){
+  const room = state.cache.room;
+  if(!room) return `<div class="page"><div class="empty">룸 정보를 불러오지 못했어요.</div></div>`;
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">${esc(room.name)}</div>
+    <h1 class="page-title">프로필 카드 작성</h1>
+    <p class="page-desc">룸을 이용하려면 프로필 카드를 작성해야 해요.</p>
+    <div class="form-card">
+      <div class="field"><label>이름</label><input id="jc-name" type="text" value="${esc(state.me?.name||state.me?.email||'')}"></div>
+      ${(room.customFields||[]).map(f=>`
+        <div class="field">
+          <label style="display:flex; align-items:center;">${esc(f.fieldName)}${f.required?' <span style="color:#c5221f; font-size:11px; margin-left:4px; font-weight:700;">필수</span>':''}</label>
+          ${renderCustomFieldInput(f, 'jc-field-'+f.id)}
+        </div>`).join('')}
+      <button class="btn btn-primary btn-block" onclick="onSubmitJoinCard()">카드 저장하고 시작하기</button>
+    </div>
+  </div>`;
+}
+function renderCustomFieldInput(f, id, currentValue){
+  const cur = currentValue!=null ? currentValue : '';
+  if(f.optionType==='TEXT') return `<input id="${id}" type="text" value="${esc(cur)}">`;
+  if(f.optionType==='NUMBER') return `<input id="${id}" type="number" value="${esc(cur)}">`;
+  if(f.optionType==='SINGLE_SELECT') return `<div id="${id}" class="radio-group">${(f.options||[]).map(o=>`
+    <label class="radio-option"><input type="radio" name="${id}" value="${esc(o.optionValue)}" ${cur===o.optionValue?'checked':''}> ${esc(o.optionValue)}</label>`).join('')}</div>`;
+  if(f.optionType==='MULTI_SELECT'){
+    const curVals = cur ? cur.split(',').map(s=>s.trim()) : [];
+    return `<div id="${id}" class="radio-group">${(f.options||[]).map(o=>`
+      <label class="radio-option"><input type="checkbox" class="mc-box" value="${esc(o.optionValue)}" ${curVals.includes(o.optionValue)?'checked':''}> ${esc(o.optionValue)}</label>`).join('')}</div>`;
+  }
+  return `<input id="${id}" type="text" value="${esc(cur)}">`;
+}
+function readCustomFieldAnswer(f, id){
+  if(f.optionType==='SINGLE_SELECT'){
+    const checked = document.querySelector(`input[name="${id}"]:checked`);
+    return checked ? checked.value : '';
+  }
+  if(f.optionType==='MULTI_SELECT'){
+    const container = document.getElementById(id);
+    if(!container) return '';
+    return Array.from(container.querySelectorAll('.mc-box:checked')).map(c=>c.value).join(', ');
+  }
+  const el = document.getElementById(id);
+  return el ? el.value : '';
+}
+function validateRequiredCustomFieldAnswers(fields, inputIdPrefix){
+  for(const f of (fields||[])){
+    if(!f.required) continue;
+    const answer = readCustomFieldAnswer(f, inputIdPrefix + f.id);
+    if(!String(answer||'').trim()){
+      showToast(`필수 항목 '${f.fieldName}'을(를) 입력해주세요.`);
+      return false;
+    }
+  }
+  return true;
+}
+function onSubmitJoinCard(){
+  const { roomId, roomCode } = state.params;
+  const room = state.cache.room;
+  const name = document.getElementById('jc-name').value.trim();
+  if(!validateRequiredCustomFieldAnswers(room.customFields, 'jc-field-')) return;
+  const answers = {};
+  (room.customFields||[]).forEach(f=>{
+    answers[f.id] = readCustomFieldAnswer(f, 'jc-field-'+f.id);
+  });
+  withLoading(async ()=>{
+    // ② 프로필 카드 생성 — 트랜잭션이 룸참여(①)와 분리되어 있어 순차 호출
+    await apiFetch('/memberProfileCard/create', { method:'POST', body: JSON.stringify({ name, roomCode, answers }) });
+    showToast('룸 참여가 완료됐어요.');
+    navigate('room', {roomId});
+  }).catch(e=>{
+    showToast('카드 저장 실패: ' + e.message + ' (룸 참여는 이미 완료된 상태예요)');
+  });
+}
+function openRoom(roomId){ navigate('room', {roomId}); }
+
+/* =====================================================================
+   멤버 필터 유틸
+===================================================================== */
+function setMemberFilterState(key, val){
+  state.params.memberFilter = { ...(state.params.memberFilter||{}), [key]: val };
+  render();
+}
+function clearMemberFilterState(){
+  state.params.memberFilter = {};
+  render();
+}
+function toggleMemberFilterMultiSelect(fieldId, optionValue, isChecked) {
+  const filter = state.params.memberFilter || {};
+  const current = filter[fieldId] ? new Set(filter[fieldId]) : new Set();
+  if (isChecked) current.add(optionValue);
+  else current.delete(optionValue);
+  setMemberFilterState(fieldId, Array.from(current));
+}
+function filterMembersByCustomFields(members, filterObj){
+  if(!filterObj || Object.keys(filterObj).length===0) return members;
+  return (members||[]).filter(m => {
+    if(filterObj._name && !m.name.toLowerCase().includes(filterObj._name.toLowerCase())) return false;
+    for(const key of Object.keys(filterObj)){
+      if(key === '_name') continue;
+      const fval = filterObj[key];
+      if(!fval || (Array.isArray(fval) && fval.length===0)) continue;
+      const ans = (m.answers||[]).find(a=>String(a.fieldId)===String(key));
+      const ansValue = (ans?.value||'').toLowerCase();
+      
+      if(Array.isArray(fval)){
+        const ansSet = ansValue.split(',').map(s=>s.trim());
+        const hasOverlap = fval.some(v => ansSet.includes(String(v).toLowerCase()));
+        if(!hasOverlap) return false;
+      } else {
+        if(!ansValue.includes(String(fval).toLowerCase())) return false;
+      }
+    }
+    return true;
+  });
+}
+function renderMemberFilterUI(room){
+  if(!room) return '';
+  const filter = state.params.memberFilter || {};
+  const fields = room.customFields || [];
+  return `
+    <div style="background:var(--paper);padding:10px;border-radius:10px;margin-top:10px;border:1px solid var(--line);flex-shrink:0;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--ink-soft);display:flex;justify-content:space-between;">
+        <span>멤버 검색 필터</span>
+        ${Object.keys(filter).some(k=>(Array.isArray(filter[k])?filter[k].length>0:filter[k])) ? `<a style="cursor:pointer;color:var(--danger);" onclick="clearMemberFilterState()">초기화</a>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input type="text" placeholder="이름 검색 (엔터)" value="${esc(filter._name||'')}" onchange="setMemberFilterState('_name', this.value)" style="width:100%;padding:4px 8px;font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);">
+        ${fields.map(f=>{
+          if(f.optionType==='SINGLE_SELECT'){
+            return `<select onchange="setMemberFilterState('${f.id}', this.value)" style="width:100%;padding:4px 8px;font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);">
+              <option value="">${esc(f.fieldName)} 전체</option>
+              ${(f.options||[]).map(o=>`<option value="${esc(o.optionValue)}" ${filter[f.id]===o.optionValue?'selected':''}>${esc(o.optionValue)}</option>`).join('')}
+            </select>`;
+          }
+          if(f.optionType==='MULTI_SELECT'){
+            const checkedSet = new Set(filter[f.id]||[]);
+            return `<div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:2px;">${esc(f.fieldName)}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;max-height:80px;overflow-y:auto;">
+                ${(f.options||[]).map(o=>{
+                  const isChecked = checkedSet.has(o.optionValue);
+                  return `<label style="font-size:11.5px;display:flex;align-items:center;gap:4px;cursor:pointer;background:var(--panel);border:1px solid var(--line);padding:2px 6px;border-radius:4px;">
+                    <input type="checkbox" onchange="toggleMemberFilterMultiSelect('${f.id}', '${esc(o.optionValue)}', this.checked)" ${isChecked?'checked':''}>
+                    ${esc(o.optionValue)}
+                  </label>`;
+                }).join('')}
+              </div>`;
+          }
+          return `<input type="text" placeholder="${esc(f.fieldName)} 검색 (엔터)" value="${esc(filter[f.id]||'')}" onchange="setMemberFilterState('${f.id}', this.value)" style="width:100%;padding:4px 8px;font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);">`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* =====================================================================
+   룸 상세
+===================================================================== */
+async function loadRoom(roomId){
+  const room = await apiFetch('/rooms/' + roomId, { method:'GET' });
+  if(!isCurrentRoomContext(roomId)) return null;
+  setRoomContext(room);
+  return room;
+}
+function renderRoom(){
+  const roomId = state.params.roomId;
+  const roomDataMissing = !state.cache.room
+      || String(state.cache.room.id)!==String(roomId)
+      || state.cache.roomMembers===null
+      || state.cache.spaces===null
+      || state.cache.roomTags===null;
+  if(roomDataMissing){
+    (async ()=>{
+      try {
+        if(!state.cache.room || String(state.cache.room.id)!==String(roomId)){
+          await loadRoom(roomId);
+        }
+        await Promise.all([loadRoomMembers(roomId), loadSpaces(roomId), loadRoomTags(roomId)]);
+        if(!isCurrentRoomContext(roomId)) return;
+        render();
+        if(!openRequiredProfileUpdateIfNeeded(roomId)){
+          initRoomChat(roomId);
+        }
+      } catch(e) {
+        showToast(e.message || '오류가 발생했어요.');
+      }
+    })();
+    return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  }
+  const room = state.cache.room;
+  const isOwner = room.ownerId===state.me?.id;
+  const spaces = state.cache.spaces || [];
+  const tags = state.cache.roomTags || [];
+  const active = state.params.activeTags || [];
+  const members = state.cache.roomMembers || [];
+  const filteredMembers = filterMembersByCustomFields(members, state.params.memberFilter);
+  const centerTab = state.params.centerTab || 'chat';
+  return `
+  <div class="discord-layout">
+    <aside class="side-panel">
+      <div class="side-panel-head">
+        <div class="side-panel-title">${esc(room.name)}</div>
+        <div class="side-panel-actions">
+          <button class="btn btn-sm" onclick="openMyProfileCard()">👤 내 카드 수정</button>
+          <button class="btn btn-sm" onclick="openModal('room-invite',{})">🔑 초대코드</button>
+        </div>
+      </div>
+      <div class="side-section-title">스페이스 <span class="rail-count">· ${spaces.length}개</span></div>
+      <div class="side-list">
+        ${spaces.length ? spaces.map(s=>`
+          <div class="space-card-btn" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
+            <div class="space-card-btn-name">${esc(s.name)}</div>
+            <div style="margin-top:6px; display:flex; gap:4px; align-items:center;">
+              <span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e8f0fe; color:#1967d2;">👥 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</span>
+              <span style="font-size:10px; padding:2px 4px; border-radius:4px; background:${s.isMember?'#e6f4ea':'#f1f3f4'}; color:${s.isMember?'#137333':'#5f6368'};">${s.isMember?'참여중':'미참여'}</span>
+              ${s.ownerId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+            </div>
+            <div class="chip-row" style="margin-top:8px;">${(s.tags||[]).length ? s.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
+          </div>`).join('') : `<div class="empty-inline" style="padding:8px;">${active.length?'해당 태그의 스페이스가 없어요':'아직 스페이스가 없어요'}</div>`}
+      </div>
+      <button class="btn btn-sm btn-block" style="margin-top:10px;" onclick="navigate('space-create',{roomId:'${room.id}'})">+ 스페이스 만들기</button>
+      ${isOwner ? `
+        <div class="side-panel-foot">
+          <button class="btn btn-sm btn-block" onclick="openSpaceManageModal()">🛠 스페이스 관리</button>
+          <button class="btn btn-sm btn-block" onclick="openModal('room-edit',{})">룸 정보 수정</button>
+          <button class="btn btn-sm btn-block" onclick="openModal('custom-fields',{})">카드 형식 관리</button>
+          <button class="btn btn-sm btn-danger btn-block" onclick="onDeleteRoom('${room.id}')">룸 삭제</button>
+        </div>` : `
+        <div class="side-panel-foot">
+          <button class="btn btn-sm btn-danger btn-block" onclick="onLeaveRoom(${(members.find(m=>m.userId===state.me?.id)||{}).id||'null'},'${room.id}')">룸 탈퇴</button>
+        </div>`}
+    </aside>
+
+    <section class="chat">
+      <div class="center-tabs">
+        <button class="center-tab ${centerTab==='chat'?'active':''}" onclick="setCenterTab('chat')">💬 채팅</button>
+        <button class="center-tab ${centerTab==='spaces'?'active':''}" onclick="setCenterTab('spaces')">🗂 스페이스</button>
+      </div>
+      ${centerTab==='spaces' ? renderRoomSpacesBrowser(room, spaces, tags, active) : renderRoomChatPanel(room)}
+    </section>
+
+    <aside class="side-panel">
+      ${renderMemberFilterUI(room)}
+      <div class="side-section-title" style="margin-top:16px;">룸 멤버 <span class="rail-count">· ${filteredMembers.length}명</span></div>
+      <div class="side-list">
+        ${filteredMembers.length ? filteredMembers.map(m=>`
+          <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
+            <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
+            ${m.userId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:6px; background:#e6f4ea; color:#137333;">나</span>` : ''}
+            ${m.userId === room.ownerId ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+          </div>`).join('') : `<div class="empty-inline" style="padding:8px;">조건에 맞는 멤버가 없어요</div>`}
+      </div>
+    </aside>
+  </div>`;
+}
+function setCenterTab(tab){
+  state.params = {...state.params, centerTab: tab};
+  render();
+  if(tab==='chat') initRoomChat(state.params.roomId);
+}
+function renderRoomChatPanel(room){
+  return `
+  <div class="info-banner">
+    <h2>${esc(room.name)}</h2>
+    <p class="page-desc" style="margin:6px 0 10px;">${esc(room.description)||'소개가 아직 없어요.'}</p>
+    <div class="meta-row" style="margin:0;padding:0;border:none;">
+      <span>👑 오너 <b>${esc(room.ownerName)}</b></span>
+      <span>👥 멤버 <b>${room.currentMember}${room.maxMember?'/'+room.maxMember:''}명</b></span>
+      <span>📅 개설 <b>${esc(formatDateTime(room.createdAt)||'-')}</b></span>
+    </div>
+    ${(room.customFields||[]).length ? `
+      <div class="side-section-title" style="margin:12px 0 6px;">멤버 카드 항목</div>
+      <div class="chip-row">${room.customFields.map(f=>`<span class="chip-static tech-c">${esc(f.fieldName)}${f.required?' <span style="color:#c5221f; font-size:10px; margin-left:2px; font-weight:700;">필수</span>':''}</span>`).join('')}</div>
+    ` : ''}
+  </div>
+  ${chatBodyHtml('room', room.id)}`;
+}
+function renderRoomSpacesBrowser(room, spaces, tags, active){
+  const searchOpen = !!state.params.searchOpen;
+  const pending = state.params.pendingTags || active;
+  return `
+  <div class="space-browser">
+    <div class="space-browser-head">
+      <h2 style="margin:0;">스페이스</h2>
+      <label class="search-toggle">
+        <span>태그 검색${active.length?` (${active.length})`:''}</span>
+        <span class="toggle-switch ${searchOpen?'on':''}" onclick="toggleSpaceSearch()"><span class="toggle-knob"></span></span>
+      </label>
+    </div>
+    ${searchOpen ? `
+      <div class="search-panel">
+        <div class="field-hint" style="margin-bottom:8px;">태그를 선택하고 검색을 눌러주세요.</div>
+        <div class="chip-row" style="margin-bottom:12px;">
+          ${tags.length ? tags.map(t=>`<span class="chip-static ${pending.includes(t)?'tech-c':'tag-c'}" style="cursor:pointer;" onclick="togglePendingTag('${esc(t)}')">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 태그가 없어요</span>`}
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="applySpaceSearch()">검색</button>
+        <button class="btn btn-sm" onclick="clearSpaceSearch()">초기화</button>
+      </div>` : ''}
+    <div class="space-browser-body">
+      ${spaces.length ? `<div class="card-grid">${spaces.map(s=>`
+        <div class="idx-card space-browse-card" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
+          <span class="card-tag-space">SPACE</span>
+          <div class="space-browse-member">👥 멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</div>
+          <div class="card-name">${esc(s.name)}</div>
+          <div style="margin-top:6px; display:flex; gap:4px; align-items:center;">
+            ${s.isMember ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e6f4ea; color:#137333;">참여중</span>` : `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#f1f3f4; color:#5f6368;">미참여</span>`}
+            ${s.ownerId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+          </div>
+          <div class="rule"></div>
+          <div class="card-tags">${(s.tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join('') || `<span class="empty-inline">태그 없음</span>`}</div>
+        </div>`).join('')}</div>` : `<div class="empty">${active.length?'해당 태그의 스페이스가 없어요.':'아직 만들어진 스페이스가 없어요.'}</div>`}
+    </div>
+  </div>`;
+}
+function toggleSpaceSearch(){
+  state.params = {...state.params, searchOpen: !state.params.searchOpen, pendingTags: state.params.activeTags || []};
+  render();
+}
+function togglePendingTag(tag){
+  const list = state.params.pendingTags || [];
+  const i = list.indexOf(tag);
+  if(i>-1) list.splice(i,1); else list.push(tag);
+  state.params.pendingTags = list;
+  render();
+}
+function applySpaceSearch(){
+  const tags = state.params.pendingTags || [];
+  state.params.activeTags = tags;
+  state.params.searchOpen = false;
+  withLoading(async ()=> loadSpaces(state.params.roomId, tags)).catch(()=>{});
+}
+function clearSpaceSearch(){
+  state.params.activeTags = []; state.params.pendingTags = []; state.params.searchOpen = false;
+  withLoading(async ()=> loadSpaces(state.params.roomId, [])).catch(()=>{});
+}
+function openSpaceManageModal(){
+  openModal('space-manage', {tags:[], searchOpen:false});
+}
+function toggleManageSpaceSearch(){
+  const payload = state.modal.payload;
+  payload.searchOpen = !payload.searchOpen;
+  if(!payload.searchOpen) payload.tags = [];
+  renderModalLayer();
+}
+function toggleManageTag(tag){
+  const list = state.modal.payload.tags;
+  const i = list.indexOf(tag);
+  if(i>-1) list.splice(i,1); else list.push(tag);
+  renderModalLayer();
+}
+async function manageEditSpace(spaceId){
+  const roomId = state.params.roomId;
+  try{
+    const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+    detail._id = String(spaceId);
+    detail.isOwner = detail.ownerId === state.me?.id;
+    state.cache.spaceDetail = detail;
+    openModal('space-edit', {});
+  }catch(e){
+    showToast(e.message || '스페이스 정보를 불러오지 못했어요.');
+  }
+}
+async function manageTransferSpace(spaceId){
+  const roomId = state.params.roomId;
+  try{
+    const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+    detail._id = String(spaceId);
+    detail.isOwner = detail.ownerId === state.me?.id;
+    state.cache.spaceDetail = detail;
+    state.cache.spaceMembers = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/spaceMembers`, { method:'GET' });
+    openModal('space-transfer', {spaceId: String(spaceId)});
+  }catch(e){
+    showToast(e.message || '스페이스 멤버 정보를 불러오지 못했어요.');
+  }
+}
+function manageDeleteSpace(spaceId){
+  if(!confirm('스페이스를 삭제할까요? 되돌릴 수 없어요.')) return;
+  const roomId = state.params.roomId;
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'DELETE' });
+    showToast('스페이스가 삭제됐어요.');
+    await loadSpaces(roomId);
+  }).catch(()=>{});
+}
+function onDeleteRoom(roomId){
+  if(!confirm('룸을 삭제할까요? 되돌릴 수 없어요.')) return;
+  withLoading(async ()=>{
+    await apiFetch('/rooms/' + roomId, { method:'DELETE' });
+    state.cache.myRooms = null;
+    showToast('룸이 삭제됐어요.');
+    navigate('main');
+  }).catch(()=>{});
+}
+async function loadRoomMembers(roomId){
+  // 룸 멤버 목록 API가 없어 MemberProfileCard 필터(roomId만 지정)로 대체
+  const roomMembers = await apiFetch('/memberProfileCard/filter', { method:'POST', body: JSON.stringify({ roomId: Number(roomId) }) });
+  if(!isCurrentRoomContext(roomId)) return [];
+  state.cache.roomMembers = roomMembers;
+  buildMemberNameMap(roomMembers);
+  return roomMembers;
+}
+// 룸 내 표시 이름은 User 이름이 아니라 해당 룸의 MemberProfileCard.name 기준
+function buildMemberNameMap(cards){
+  const map = {};
+  (cards||[]).forEach(c => { map[c.userId] = c.name; });
+  state.cache.memberNames = map;
+  return map;
+}
+async function ensureMemberNames(roomId){
+  if(Object.keys(state.cache.memberNames||{}).length) return state.cache.memberNames;
+  const cards = await apiFetch('/memberProfileCard/filter', { method:'POST', body: JSON.stringify({ roomId: Number(roomId) }) });
+  if(!isCurrentRoomContext(roomId)) return {};
+  return buildMemberNameMap(cards);
+}
+function nameOf(userId){
+  return (state.cache.memberNames && state.cache.memberNames[userId]) || ('유저 ' + userId);
+}
+async function loadSpaces(roomId, tags){
+  let path = '/rooms/' + roomId + '/spaces';
+  if(tags && tags.length) path += '?' + tags.map(t=>'tags=' + encodeURIComponent(t)).join('&');
+  const spaces = await apiFetch(path, { method:'GET' });
+  if(!isCurrentRoomContext(roomId)) return [];
+  
+  const meId = state.me?.id;
+  if (meId) {
+    await Promise.all(spaces.map(async s => {
+      const members = await apiFetch(`/rooms/${roomId}/spaces/${s.id}/spaceMembers`, { method:'GET' }).catch(()=>[]);
+      s.isMember = members.some(m => m.userId === meId);
+    }));
+  }
+
+  state.cache.spaces = spaces;
+  return spaces;
+}
+async function loadRoomTags(roomId){
+  const roomTags = await apiFetch('/rooms/' + roomId + '/tags', { method:'GET' });
+  if(!isCurrentRoomContext(roomId)) return [];
+  state.cache.roomTags = roomTags;
+  return roomTags;
+}
+async function initRoomChat(roomId){
+  await ensureMemberNames(roomId).catch(()=>{});
+  await initChatCore('room', roomId);
+}
+async function openMyProfileCard(){
+  const roomId = state.params.roomId;
+  const found = (state.cache.roomMembers||[]).find(m=>m.userId===state.me?.id);
+  if(found){
+    openModal('profile-card', {card: JSON.stringify(found), editMode: true});
+    return;
+  }
+  try{
+    await loadRoomMembers(roomId);
+    const m = (state.cache.roomMembers||[]).find(m=>m.userId===state.me?.id);
+    if(m) openModal('profile-card', {card: JSON.stringify(m), editMode: true});
+    else showToast('아직 이 룸의 프로필 카드가 없어요.');
+  }catch(e){
+    showToast(e.message || '프로필 카드를 불러오지 못했어요.');
+  }
+}
+function findMissingRequiredFields(room, memberProfileCard){
+  const answerMap = new Map(
+    (memberProfileCard?.answers||[]).map(answer=>[
+      String(answer.fieldId),
+      String(answer.value||'').trim()
+    ])
+  );
+
+  return (room?.customFields||[]).filter(field=>
+    field.required && !answerMap.get(String(field.id))
+  );
+}
+function openRequiredProfileUpdateIfNeeded(roomId){
+  const room = state.cache.room;
+  if(!room || String(room.id)!==String(roomId)) return false;
+
+  const myCard = (state.cache.roomMembers||[])
+      .find(card=>card.userId===state.me?.id);
+  if(!myCard) return false;
+
+  const missingFields = findMissingRequiredFields(room, myCard);
+  if(!missingFields.length) return false;
+
+  state.modal = {
+    type:'profile-card',
+    payload:{
+      card:JSON.stringify(myCard),
+      editMode:true,
+      requiredUpdate:true
+    }
+  };
+  showToast(`새 필수 항목 '${missingFields[0].fieldName}'을(를) 입력해주세요.`);
+  render();
+  return true;
+}
+
+/* =====================================================================
+   스페이스 생성 (카드 동시 설정)
+===================================================================== */
+function renderSpaceCreate(){
+  const room = state.cache.room;
+  return `
+  <div class="page page-narrow">
+    <div class="eyebrow">${esc(room?.name||'')}</div>
+    <h1 class="page-title">스페이스 만들기</h1>
+    <div class="form-card">
+      <div class="field"><label>스페이스 이름</label><input id="sc-name" type="text"></div>
+      <div class="field"><label>최대 인원</label><input id="sc-max" type="number"></div>
+      <div class="field"><label>태그</label>${chipInputHtml('sc-tags-chips', [], '#태그 입력 후 스페이스바', {hash:true})}</div>
+      <div class="field">
+        <label>커스텀 필드</label>
+        <div id="sc-custom-rows"></div>
+        <button type="button" class="btn btn-sm" onclick="addSpaceCustomFieldRow('sc-custom-rows')">+ 항목 추가</button>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="onCreateSpace()">만들기</button>
+    </div>
+  </div>`;
+}
+// 스페이스 커스텀 필드 동적 UI 헬퍼
+function spaceCustomFieldRowHtml(k='', v=''){
+  return `
+  <div class="scf-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+    <input type="text" class="scf-key" placeholder="항목명" value="${esc(k)}" style="flex:1;">
+    <input type="text" class="scf-val" placeholder="값" value="${esc(v)}" style="flex:2;">
+    <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.scf-row').remove()">삭제</button>
+  </div>`;
+}
+function addSpaceCustomFieldRow(containerId){
+  document.getElementById(containerId).insertAdjacentHTML('beforeend', spaceCustomFieldRowHtml());
+}
+function getSpaceCustomFields(containerId){
+  const map = {};
+  document.querySelectorAll(`#${containerId} .scf-row`).forEach(row=>{
+    const k = row.querySelector('.scf-key').value.trim();
+    const v = row.querySelector('.scf-val').value.trim();
+    if(k) {
+      if(!map[k]) map[k] = [];
+      map[k].push(...v.split(',').map(s=>s.trim()).filter(Boolean));
+    }
+  });
+  return map;
+}
+function onCreateSpace(){
+  const name = document.getElementById('sc-name').value.trim();
+  if(!name){ showToast('스페이스 이름을 입력해주세요.'); return; }
+  const roomId = state.params.roomId;
+  const body = {
+    name,
+    maxMemberCount: parseInt(document.getElementById('sc-max').value) || null,
+    techStack: [],
+    tags: getChipValues('sc-tags-chips'),
+    preferredStartTime: null,
+    preferredEndTime: null,
+    customField: getSpaceCustomFields('sc-custom-rows'),
+  };
+  withLoading(async ()=>{
+    await apiFetch('/rooms/' + roomId + '/spaces', { method:'POST', body: JSON.stringify(body) });
+    showToast('스페이스가 생성됐어요.');
+    await Promise.all([loadSpaces(roomId), loadRoomTags(roomId)]);
+    navigate('room', {roomId, tab:'spaces'});
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   스페이스 상세
+===================================================================== */
+function renderSpace(){
+  const { roomId, spaceId } = state.params;
+  if(!state.cache.spaceDetail || String(state.cache.spaceDetail._id)!==String(spaceId)){
+    (async ()=>{
+      try {
+        const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+        if(!isCurrentSpaceContext(roomId, spaceId)) return;
+        detail._id = spaceId;
+        if(!state.cache.room || String(state.cache.room.id)!==String(roomId)) await loadRoom(roomId);
+        await ensureMemberNames(roomId).catch(()=>{});
+        if(!state.cache.spaces) await loadSpaces(roomId).catch(()=>{});
+        detail.isOwner = detail.ownerId === state.me?.id;
+        const spaceMembers = await loadSpaceMembers(roomId, spaceId).catch(()=>[]);
+        detail.isMember = spaceMembers.some(m=>m.userId===state.me?.id);
+        if(!isCurrentSpaceContext(roomId, spaceId)) return;
+        state.cache.spaceDetail = detail;
+        render();
+        initSpaceChatIfMember(roomId, spaceId);
+      } catch (e) {
+        showToast(e.message || '오류가 발생했어요.');
+      }
+    })();
+    return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
+  }
+  const s = state.cache.spaceDetail;
+  const canManageSpace = s.isOwner || state.cache.room?.ownerId===state.me?.id;
+  return s.isMember
+    ? renderSpaceChatView(s, roomId, spaceId, canManageSpace)
+    : renderSpaceInfoView(s, roomId, spaceId, canManageSpace);
+}
+async function loadSpaceMembers(roomId, spaceId){
+  const members = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/spaceMembers`, { method:'GET' });
+  if(!isCurrentSpaceContext(roomId, spaceId)) return [];
+  state.cache.spaceMembers = members;
+  return members;
+}
+function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
+  const room = state.cache.room;
+  const spaces = state.cache.spaces || [];
+  const extraBtns = `
+    ${canManageSpace ? `<button class="btn btn-sm" onclick="openModal('space-edit',{})">✏️ 카드수정</button>` : ''}
+    ${s.isOwner ? `<span data-space-owner-only><button class="btn btn-sm" onclick="openSpaceInviteModal()">➕ 초대</button><button class="btn btn-sm" onclick="openModal('space-invite-list',{})">📋 신청확인</button></span>` : ''}
+    <button class="btn btn-sm btn-danger" onclick="onLeaveSpace('${roomId}','${spaceId}')">탈퇴</button>
+  `;
+  const start = formatTimeOnly(s.preferredStartTime);
+  const end = formatTimeOnly(s.preferredEndTime);
+  const customEntries = Object.entries(s.customField||{});
+  const infoBanner = `
+  <div class="info-banner">
+    <h2>${esc(s.name)}</h2>
+    <div class="chip-row" style="margin:8px 0;">${(s.tags||[]).length ? s.tags.map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 태그가 없어요</span>`}</div>
+    <div class="meta-row" style="margin:0 0 10px;padding:0;border:none;">
+      <span>👑 오너 <b data-space-owner>${esc(s.owner)}</b></span>
+      <span>👥 멤버 <b>${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</b></span>
+    </div>
+    ${customEntries.length ? customEntries.map(([k,v])=>`
+      <div class="side-section-title" style="margin:10px 0 4px;">${esc(k)}</div>
+      <div class="cf-value">${esc((v||[]).join(', '))}</div>
+    `).join('') : ''}
+  </div>`;
+  return `
+  <div class="discord-layout space-tone">
+    <aside class="side-panel">
+      <div class="side-panel-head">
+        <div class="side-panel-title">${esc(room?.name||'')}</div>
+        <div class="side-panel-actions"><button class="btn btn-sm" onclick="navigate('room',{roomId:'${roomId}'})">← 룸으로</button></div>
+      </div>
+      <div class="side-section-title">스페이스</div>
+      <div class="side-list">
+        ${spaces.map(sp=>`
+          <div class="space-card-btn ${String(sp.id)===String(spaceId)?'active':''}" onclick="navigate('space',{roomId:'${roomId}',spaceId:'${sp.id}'})">
+            <div class="space-card-btn-name">${esc(sp.name)}</div>
+            <div style="margin-top:6px; display:flex; gap:4px; align-items:center;">
+              <span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e8f0fe; color:#1967d2;">👥 ${sp.currentMemberCount}${sp.maxMemberCount?'/'+sp.maxMemberCount:''}명</span>
+              ${sp.isMember ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e6f4ea; color:#137333;">참여중</span>` : `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#f1f3f4; color:#5f6368;">미참여</span>`}
+              ${sp.ownerId === state.me?.id ? `<span data-space-list-owner-badge style="font-size:10px; padding:2px 4px; border-radius:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+            </div>
+            <div class="chip-row" style="margin-top:8px;">${(sp.tags||[]).length ? sp.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
+          </div>`).join('')}
+      </div>
+    </aside>
+
+    <section class="chat">
+      ${infoBanner}
+      ${chatBodyHtml('space', spaceId, extraBtns)}
+    </section>
+
+    <aside class="side-panel">
+      ${(()=>{
+        const spaceMembers = state.cache.spaceMembers || [];
+        const filtered = filterMembersByCustomFields(spaceMembers, state.params.memberFilter);
+        return `
+          ${renderMemberFilterUI(room)}
+          <div class="side-section-title" style="margin-top:16px;">스페이스 멤버 <span class="rail-count">· ${filtered.length}명</span></div>
+          <div class="side-list">
+            ${filtered.length ? filtered.map(m=>`
+              <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
+                <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
+                ${m.userId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:6px; background:#e6f4ea; color:#137333;">나</span>` : ''}
+                ${m.userId === s.ownerId ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+              </div>`).join('') : `<div class="empty-inline" style="padding:8px;">조건에 맞는 멤버가 없어요</div>`}
+          </div>
+        `;
+      })()}
+      ${canManageSpace ? `<div class="side-panel-foot"><button class="btn btn-sm btn-block" onclick="openModal('space-transfer',{})">오너 위임</button><button class="btn btn-sm btn-danger btn-block" onclick="onDeleteSpace('${roomId}','${spaceId}')">스페이스 삭제</button></div>` : ''}
+    </aside>
+  </div>`;
+}
+function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
+  const start = formatTimeOnly(s.preferredStartTime);
+  const end = formatTimeOnly(s.preferredEndTime);
+  const customEntries = Object.entries(s.customField||{});
+  return `
+  <div class="page">
+    <div class="space-hero">
+      <span class="tag alt">SPACE</span>
+      <h1>${esc(s.name)}</h1>
+      <div class="chip-row">
+        ${(s.tags||[]).length ? (s.tags||[]).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 태그가 없어요</span>`}
+      </div>
+      <div class="meta-row">
+        <span>👑 오너 <b data-space-owner>${esc(s.owner)}</b></span>
+        <span>👥 멤버 <b>${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</b></span>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      ${customEntries.length ? customEntries.map(([k,v])=>`
+        <div class="detail-card">
+          <h3>${esc(k)}</h3>
+          <div class="custom-field-row">
+            <div class="cf-value">${esc((v||[]).join(', '))}</div>
+          </div>
+        </div>`).join('') : ''}
+      <div class="detail-card">
+        <h3>멤버</h3>
+        ${(state.cache.spaceMembers||[]).length ? (state.cache.spaceMembers||[]).map(m=>`
+          <div class="custom-field-row" style="cursor:pointer;" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
+            <div class="cf-value">
+              ${esc(m.name)}
+              ${m.userId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:6px; background:#e6f4ea; color:#137333;">나</span>` : ''}
+              ${m.userId === s.ownerId ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+            </div>
+          </div>`).join('') : `<span class="empty-inline">멤버가 없어요</span>`}
+      </div>
+    </div>
+
+    <div class="notice-banner">가입된 스페이스가 아니라서 정보 조회는 가능하지만 채팅은 가입 후 이용할 수 있어요.</div>
+
+    <div class="actions-bar">
+      <button class="btn btn-primary btn-sm" onclick="onApplySpace('${spaceId}')">가입 신청하기</button>
+      ${canManageSpace ? `
+        <button class="btn btn-sm" onclick="openModal('space-edit',{})">카드 수정</button>
+        <button class="btn btn-sm" onclick="openModal('space-transfer',{})">오너 위임</button>
+        <button class="btn btn-danger btn-sm" onclick="onDeleteSpace('${roomId}','${spaceId}')">스페이스 삭제</button>
+      ` : ''}
+    </div>
+  </div>`;
+}
+function chatBodyHtml(targetType, targetId, extraButtons){
+  return `
+  <div class="chat-subhead">
+    <span class="ws-dot" id="wsDot"></span><span id="wsStatus" class="field-hint" style="margin:0;">연결 중...</span>
+    <div style="flex:1;"></div>
+    ${extraButtons||''}
+  </div>
+  <div class="chat-scroll" id="chatScroll"><div class="empty">불러오는 중...</div></div>
+  <div class="composer">
+    <div class="composer-box">
+      <textarea id="msgInput" rows="1" placeholder="메시지를 입력하세요"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendChat('${targetType}','${targetId}')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L14 20L11 13L4 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+async function openSpaceInviteModal(){
+  state.params.inviteChecked = new Set();
+  state.params.memberFilter = {};
+  try{
+    // 초대 후보 = 룸 멤버 (스페이스 멤버 목록 API가 없어 "이미 스페이스에 있는지"는 걸러내지 못함)
+    await loadRoomMembers(state.params.roomId);
+    openModal('space-invite', {});
+  }catch(e){
+    showToast(e.message || '룸 멤버 정보를 불러오지 못했어요.');
+  }
+}
+function toggleInviteCheck(userId, checked){
+  if(!state.params.inviteChecked) state.params.inviteChecked = new Set();
+  if(checked) state.params.inviteChecked.add(String(userId));
+  else state.params.inviteChecked.delete(String(userId));
+}
+function onLeaveSpace(roomId, spaceId){
+  if(!confirm('스페이스에서 탈퇴할까요?')) return;
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/leave`, { method:'DELETE' });
+    disconnectChat();
+    state.cache.spaceDetail = null;
+    state.cache.spaceMembers = null;
+    showToast('스페이스에서 탈퇴했어요.');
+    await Promise.all([loadSpaces(roomId, state.params.activeTags).catch(()=>{}), loadRoomMembers(roomId).catch(()=>{})]);
+    navigate('room', {roomId});
+  }).catch(()=>{});
+}
+function onDeleteSpace(roomId, spaceId){
+  if(!confirm('스페이스를 삭제할까요? 되돌릴 수 없어요.')) return;
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'DELETE' });
+    disconnectChat();
+    state.cache.spaceDetail = null;
+    state.cache.spaceMembers = null;
+    showToast('스페이스가 삭제됐어요.');
+    await Promise.all([loadSpaces(roomId, state.params.activeTags).catch(()=>{}), loadRoomTags(roomId).catch(()=>{})]);
+    navigate('room', {roomId});
+  }).catch(()=>{});
+}
+async function initSpaceChatIfMember(roomId, spaceId){
+  if(state.cache.spaceDetail && state.cache.spaceDetail.isMember){
+    await initChatCore('space', spaceId);
+  }
+}
+/* =====================================================================
+   내 초대함 — GET /invites/members, accept/reject
+===================================================================== */
+function onApplySpace(spaceId){
+  withLoading(async ()=>{
+    await apiFetch('/invites/apply', { method:'POST', body: JSON.stringify({ spaceId: Number(spaceId) }) });
+    showToast('가입 신청을 보냈어요.');
+  }).catch(()=>{});
+}
+async function loadInvitesInboxBody(){
+  try{
+    const list = await apiFetch('/invites/members', { method:'GET' });
+    state.cache.invites = list;
+    renderInvitesInboxBody(list);
+  }catch(e){ showToast(e.message); }
+}
+function renderInvitesInboxBody(list){
+  const body = document.getElementById('invites-inbox-body');
+  if(!body) return;
+  body.innerHTML = list.length ? list.map(inv=>`
+    <div class="member-row">
+      <div class="info">
+        <span class="name">${esc(inv.spaceName)} <span class="badge">${inv.type==='MemberToSpace'?'내 신청':'받은 권유'}</span></span>
+        <div class="tagline">${inv.status}</div>
+      </div>
+      ${inv.status==='PENDING' ? `
+      <div class="row-actions">
+        <button class="btn btn-sm btn-primary" onclick="onInviteAction('${inv.id}','accept')">수락</button>
+        <button class="btn btn-sm btn-danger" onclick="onInviteAction('${inv.id}','reject')">거절</button>
+      </div>` : ''}
+    </div>`).join('') : `<div class="empty">대기 중인 초대/신청이 없어요.</div>`;
+}
+function onInviteAction(inviteId, action){
+  apiFetch(`/invites/${inviteId}/${action}`, { method:'POST' })
+    .then(async ()=>{
+      state.cache.spaceDetail = null;
+      state.cache.spaces = null;
+      state.cache.spaceMembers = null;
+      showToast(action==='accept' ? '수락했어요.' : '거절했어요.');
+      const tasks = [];
+      if(document.getElementById('invites-inbox-body')) tasks.push(loadInvitesInboxBody());
+      if(document.getElementById('space-invite-list-body')) tasks.push(loadSpaceInviteListBody());
+      await Promise.all(tasks);
+
+      if(state.page === 'room' && state.params.roomId) {
+        await loadSpaces(state.params.roomId, state.params.activeTags);
+      } else if(state.page === 'space' && state.params.spaceId) {
+        await loadSpaceMembers(state.params.roomId, state.params.spaceId);
+        await loadSpaces(state.params.roomId, state.params.activeTags);
+      }
+      render();
+    })
+    .catch(e=> showToast(e.message));
+}
+async function loadSpaceInviteListBody(){
+  try{
+    const list = await loadSpacePendingInvites(state.params.spaceId);
+    const body = document.getElementById('space-invite-list-body');
+    if(!body) return;
+    body.innerHTML = list.length ? list.map(inv=>`
+      <div class="member-row">
+        <div class="info"><span class="name">${esc(inv.memberName)}</span><div class="tagline">${inv.status}</div></div>
+        ${inv.status==='PENDING' ? `
+        <div class="row-actions">
+          <button class="btn btn-sm btn-primary" onclick="onInviteAction('${inv.id}','accept')">수락</button>
+          <button class="btn btn-sm btn-danger" onclick="onInviteAction('${inv.id}','reject')">거절</button>
+        </div>` : ''}
+      </div>`).join('') : `<div class="empty">대기 중인 신청이 없어요.</div>`;
+  }catch(e){ showToast(e.message); }
+}
+
+/* =====================================================================
+   Room 관리 (수정/삭제/카드형식) API
+===================================================================== */
+function onSaveRoomEdit(){
+  const room = state.cache.room;
+  const maxMemberRaw = document.getElementById('re-max').value;
+  const maxMember = parseInt(maxMemberRaw);
+  if(!maxMemberRaw || isNaN(maxMember) || maxMember < 1){ showToast('최대 인원은 1명 이상 필수로 입력해야 해요.'); return; }
+  if(maxMember < room.currentMember){ showToast(`최대 인원은 현재 인원(${room.currentMember}명)보다 작을 수 없어요.`); return; }
+  const body = {
+    name: document.getElementById('re-name').value.trim() || room.name,
+    description: document.getElementById('re-desc').value.trim(),
+    maxMember,
+  };
+  withLoading(async ()=>{
+    const updated = await apiFetch('/rooms/' + room.id, { method:'PATCH', body: JSON.stringify(body) });
+    state.cache.room = updated;
+    showToast('룸 정보를 수정했어요.');
+    closeModal();
+  }).catch(()=>{});
+}
+function onSaveCustomFields(){
+  const room = state.cache.room;
+  const rows = document.querySelectorAll('.cf-row');
+  const customFields = [];
+  let error = null;
+  rows.forEach(row=>{
+    const existingId = row.dataset.fieldId ? Number(row.dataset.fieldId) : null;
+    if(existingId){
+      // 기존 필드는 절대 재구성하지 않고 원본 그대로 재전송(옵션 id 보존 — 안 그러면 서버가 "수정 불가" 에러를 던짐)
+      const original = (room.customFields||[]).find(f=>f.id===existingId);
+      if(original){
+        customFields.push({
+          id: original.id, fieldName: original.fieldName, required: original.required,
+          optionType: original.optionType,
+          options: (original.options||[]).map(o=>({ id:o.id, optionValue:o.optionValue, displayOrder:o.displayOrder }))
+        });
+      }
+      return;
+    }
+    // 신규 필드
+    const optionType = row.querySelector('.cf-type').value;
+    const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
+    const optionValues = getOptionBoxValues(row);
+    if(isSelect && optionValues.length===0){ error = '선택형 항목은 선택 보기를 1개 이상 입력해야 해요.'; return; }
+    if(!isSelect && optionValues.length>0){ error = '글/숫자 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return; }
+    customFields.push({
+      id: null,
+      fieldName: row.querySelector('.cf-name').value.trim(),
+      required: row.querySelector('.cf-required').checked,
+      optionType,
+      options: isSelect ? optionValues.map((v,i)=>({id:null, optionValue:v, displayOrder:i})) : []
+    });
+  });
+  if(error){ showToast(error); return; }
+  const filtered = customFields.filter(f=>f.id || f.fieldName);
+  withLoading(async ()=>{
+    const updated = await apiFetch(`/rooms/${room.id}/customFields`, { method:'PATCH', body: JSON.stringify({ customFields: filtered }) });
+    state.cache.room = { ...room, customFields: updated };
+    showToast('카드 형식을 저장했어요.');
+    closeModal();
+  }).catch(()=>{});
+}
+function addCustomFieldRow(){
+  document.getElementById('cf-rows').insertAdjacentHTML('beforeend', customFieldRowHtml());
+  render.skipNext = true; // no-op, 그냥 DOM만 추가
+}
+function customFieldRowHtml(f){
+  f = f || {fieldName:'', required:false, optionType:'TEXT', options:[]};
+  const isExisting = !!f.id;
+  const typeLabels = {
+    TEXT: '글',
+    NUMBER: '숫자',
+    SINGLE_SELECT: '여러 보기 중 하나 선택',
+    MULTI_SELECT: '여러 보기 중 여러 개 선택'
+  };
+  const isSelect = f.optionType==='SINGLE_SELECT' || f.optionType==='MULTI_SELECT';
+  return `
+  <div class="cf-row" data-field-id="${f.id||''}" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;">
+    ${isExisting ? `<div class="field-hint" style="margin-bottom:8px;">이미 만들어진 항목이에요. 이름이나 방식은 여기서 바꿀 수 없고, 바꾸려면 삭제 후 새로 추가해주세요.</div>` : ''}
+    <div class="field"><label>항목 이름</label><input class="cf-name" type="text" placeholder="예: 포지션, 한줄소개" value="${esc(f.fieldName)}" ${isExisting?'disabled':''}></div>
+    <div class="field"><label>입력 방식</label>
+      <select class="cf-type" ${isExisting?'disabled':''} onchange="const opt=this.closest('.cf-row').querySelector('.cf-options-field'); if(opt) opt.style.display=(this.value==='SINGLE_SELECT'||this.value==='MULTI_SELECT')?'':'none';">
+        ${Object.entries(typeLabels).map(([t,label])=>`<option value="${t}" ${f.optionType===t?'selected':''}>${label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field cf-options-field" style="display:${isSelect?'':'none'};"><label>선택 보기</label>${optionBoxesHtml(f.options, isExisting)}</div>
+    <label style="font-size:12.5px;font-weight:600;display:flex;gap:6px;align-items:center;margin-bottom:8px;"><input class="cf-required" type="checkbox" ${f.required?'checked':''} ${isExisting?'disabled':''}> 반드시 입력해야 하는 항목으로 설정</label>
+    <button type="button" class="btn btn-sm ${isExisting?'btn-danger':''}" onclick="this.closest('.cf-row').remove()">${isExisting?'이 항목 삭제(답변도 함께 삭제돼요)':'이 항목 취소'}</button>
+  </div>`;
+}
+
+/* =====================================================================
+   Space 관리 (수정/초대/신청확인/위임) API
+===================================================================== */
+function onSaveSpaceEdit(){
+  const roomId = state.params.roomId;
+  const spaceId = state.modal?.payload?.detail?._id || state.modal?.payload?.detail?.id || state.params.spaceId || state.cache.spaceDetail?._id || state.cache.spaceDetail?.id;
+  const body = {
+    name: document.getElementById('se-name').value.trim(),
+    maxMemberCount: parseInt(document.getElementById('se-max').value) || null,
+    techStack: [],
+    tags: getChipValues('se-tags-chips'),
+    preferredStartTime: null,
+    preferredEndTime: null,
+    customField: getSpaceCustomFields('se-custom-rows'),
+  };
+  withLoading(async ()=>{
+    const updated = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'PATCH', body: JSON.stringify(body) });
+    showToast('스페이스 카드를 수정했어요.');
+    state.cache.spaceDetail = { ...state.cache.spaceDetail, ...updated, _id:String(spaceId) };
+    await loadSpaces(roomId, state.params.activeTags).catch(()=>{});
+    closeModal();
+  }).catch(()=>{});
+}
+async function onSendSpaceInvite(){
+  const { roomId, spaceId } = state.params;
+  const checkedIds = state.params.inviteChecked ? Array.from(state.params.inviteChecked) : [];
+  
+  // 현재 보이는 체크박스 중 선택된 것들도 추가 (렌더링 안 거친 경우 대비)
+  document.querySelectorAll('.si-check:checked').forEach(cb => {
+    if(!checkedIds.includes(cb.value)) checkedIds.push(cb.value);
+  });
+
+  if(!checkedIds.length){ showToast('초대할 멤버를 1명 이상 선택해주세요.'); return; }
+  
+  try{
+    const promises = checkedIds.map(uid => 
+      apiFetch('/invites/invite', { method:'POST', body: JSON.stringify({ spaceId: Number(spaceId), targetUserId: Number(uid) }) })
+    );
+    await Promise.all(promises);
+    showToast(`${promises.length}명에게 초대를 보냈어요.`);
+    closeModal();
+  }catch(e){
+    showToast(e.message || '초대 전송에 실패했어요.');
+  }
+}
+async function loadSpacePendingInvites(spaceId){
+  return apiFetch('/invites/spaces/' + spaceId, { method:'GET' });
+}
+function refreshSpaceOwnerDisplay(ownerId, ownerName){
+  document.querySelectorAll('[data-space-owner]').forEach(el=>{
+    el.textContent = ownerName;
+  });
+  document.querySelectorAll('[data-space-owner-only]').forEach(el=>{
+    el.remove();
+  });
+  document.querySelectorAll('[data-space-list-owner-badge]').forEach(el=>{
+    el.remove();
+  });
+  const ownerBadgeStyle = 'font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;';
+  const members = state.cache.spaceMembers || [];
+  const newOwner = members.find(member=>Number(member.userId)===Number(ownerId));
+  document.querySelectorAll('.side-item, .custom-field-row').forEach(row=>{
+    if(!row.getAttribute('onclick')?.includes("openModal('profile-card'")) return;
+    row.querySelectorAll('span').forEach(span=>{
+      if(span.textContent.trim()==='오너') span.remove();
+    });
+    if(!newOwner || !row.textContent.includes(newOwner.name)) return;
+    const badge = document.createElement('span');
+    badge.style.cssText = ownerBadgeStyle;
+    badge.textContent = '오너';
+    (row.querySelector('.cf-value') || row).append(badge);
+  });
+}
+function onTransferOwner(){
+  const roomId = state.params.roomId;
+  const spaceId = state.modal?.payload?.spaceId
+    || state.params.spaceId
+    || state.cache.spaceDetail?._id;
+  const ownerSelect = document.getElementById('to-userid');
+  const newOwnerId = ownerSelect.value.trim();
+  const newOwnerName = ownerSelect.options[ownerSelect.selectedIndex]?.textContent?.trim() || '';
+  if(!newOwnerId){ showToast('위임할 멤버를 선택해주세요.'); return; }
+  if(!confirm('오너를 위임할까요?')) return;
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/owner`, { method:'PATCH', body: JSON.stringify({ newOwnerId: Number(newOwnerId) }) });
+    const updatedDetail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+    updatedDetail._id = String(spaceId);
+    updatedDetail.isOwner = Number(updatedDetail.ownerId) === Number(state.me?.id);
+    updatedDetail.isMember = state.cache.spaceDetail?.isMember ?? true;
+    showToast('오너를 위임했어요.');
+    state.cache.spaceDetail = updatedDetail;
+    if(state.cache.spaces) {
+      state.cache.spaces = state.cache.spaces.map(space=>
+        String(space.id) === String(spaceId)
+          ? { ...space, ownerId: Number(updatedDetail.ownerId), owner: updatedDetail.owner || newOwnerName || space.owner }
+          : space
+      );
+    }
+    refreshSpaceOwnerDisplay(updatedDetail.ownerId, updatedDetail.owner || newOwnerName);
+    closeModal();
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   MemberProfileCard 관리 (수정/삭제) API
+===================================================================== */
+function onUpdateProfileCard(cardId, roomId){
+  const room = state.cache.room;
+  if(!validateRequiredCustomFieldAnswers(room?.customFields, 'pc-answer-')) return;
+  const answers = {};
+  (room?.customFields||[]).forEach(f=>{
+    answers[f.id] = readCustomFieldAnswer(f, 'pc-answer-'+f.id);
+  });
+  const name = document.getElementById('pc-edit-name').value.trim();
+  withLoading(async ()=>{
+    await apiFetch('/memberProfileCard/update', { method:'PATCH', body: JSON.stringify({ memberProfileCardId: Number(cardId), name, isMemberProfileCardUpdated:true, answers }) });
+    showToast('카드를 수정했어요.');
+    state.cache.roomMembers = null; state.cache.memberNames = {};
+    // 새 필수 항목을 저장한 뒤에는 강제 수정 모달의 닫기 제한을 해제한다.
+    if(state.modal?.type==='profile-card') state.modal.payload.requiredUpdate = false;
+    closeModal();
+    await loadRoomMembers(roomId);
+    if(!openRequiredProfileUpdateIfNeeded(roomId)) {
+      // 채팅 DOM과 스크롤은 render()가 보존하므로, 멤버 목록의 카드 데이터만 최신으로 바꾼다.
+      render();
+      initRoomChat(roomId);
+    }
+  }).catch(e=>{
+    showToast(e.message || '프로필 카드 수정에 실패했습니다.');
+  });
+}
+function onLeaveRoom(cardId, roomId){
+  if(!cardId){ showToast('내 프로필 카드를 찾지 못했어요.'); return; }
+  if(!confirm('이 룸에서 탈퇴할까요? 작성한 프로필 카드가 함께 삭제돼요.')) return;
+  withLoading(async ()=>{
+    await apiFetch('/memberProfileCard/' + cardId, { method:'DELETE' });
+    showToast('룸에서 탈퇴했어요.');
+    state.cache.myRooms = null;
+    resetRoomContext();
+    navigate('main');
+  }).catch(()=>{});
+}
+
+/* =====================================================================
+   채팅 (room · space 공용, 3분할 레이아웃 중앙 패널에 내장) — REST 전송 + STOMP 구독
+===================================================================== */
+async function initChatCore(targetType, targetId){
+  const historyLoaded = await loadChatHistory(targetType, targetId);
+  if(!historyLoaded || !isCurrentChatTarget(targetType, targetId)) return;
+  connectWs(targetType, targetId);
+}
+function isCurrentChatTarget(targetType, targetId){
+  if(targetType==='room'){
+    return state.page==='room'
+        && isCurrentRoomContext(targetId)
+        && String(state.params.roomId)===String(targetId);
+  }
+  if(targetType==='space'){
+    return isCurrentSpaceContext(state.params.roomId, targetId);
+  }
+  return false;
+}
+async function loadChatHistory(targetType, targetId){
+  if(!isCurrentChatTarget(targetType, targetId)) return false;
+  try{
+    const history = await apiFetch(`/chat/${targetType}/${targetId}?size=50`, { method:'GET' });
+    if(!isCurrentChatTarget(targetType, targetId)) return false;
+    const scroll = document.getElementById('chatScroll');
+    if(!scroll) return false;
+    if(!history.chats.length){
+      scroll.innerHTML = `<div class="empty">아직 대화가 없어요. 첫 메시지를 보내보세요.</div>`;
+      return true;
+    }
+    scroll.innerHTML = history.chats.reverse().map(renderMsgHtml).join('');
+    scroll.scrollTop = scroll.scrollHeight;
+    return true;
+  }catch(e){
+    if(isCurrentChatTarget(targetType, targetId)){
+      showToast('대화 내역을 불러오지 못했어요: ' + e.message);
+    }
+    return false;
+  }
+}
+function renderMsgHtml(c){
+  const mine = c.senderId === state.me?.id;
+  const senderName = nameOf(c.senderId);
+  return `
+  <div class="msg-row ${mine?'mine':''}">
+    <div class="msg-avatar">${esc(initials(senderName))}</div>
+    <div class="msg-body">
+      <div class="msg-meta"><span class="name">${esc(senderName)}</span><span>${esc(formatDateTime(c.createdAt) || '')}</span></div>
+      <div class="bubble">${esc(c.content)}</div>
+    </div>
+  </div>`;
+}
+function connectWs(targetType, targetId){
+  if(!isCurrentChatTarget(targetType, targetId)) return;
+  if(state.ws.client){ try{ state.ws.client.disconnect(); }catch(e){} }
+  const socket = new SockJS(API_BASE + '/ws');
+  const client = Stomp.over(socket);
+  client.debug = null;
+  state.ws.client = client;
+  client.connect(
+    { Authorization: 'Bearer ' + state.accessToken },
+    () => {
+      if(!isCurrentChatTarget(targetType, targetId)){
+        try{ client.disconnect(); }catch(e){}
+        return;
+      }
+      const dot = document.getElementById('wsDot'); const st = document.getElementById('wsStatus');
+      if(dot){ dot.classList.add('on'); }
+      if(st){ st.textContent = '실시간 연결됨'; }
+      state.ws.sub = client.subscribe('/sub/' + targetType + '/' + targetId, (frame)=>{
+        if(!isCurrentChatTarget(targetType, targetId)) return;
+        const msg = JSON.parse(frame.body);
+        if(msg.senderId === state.me?.id) return; // 내가 보낸 건 낙관적 렌더로 이미 표시됨
+        const scroll = document.getElementById('chatScroll');
+        if(!scroll) return;
+        scroll.insertAdjacentHTML('beforeend', renderMsgHtml(msg));
+        scroll.scrollTop = scroll.scrollHeight;
+      });
+    },
+    (err) => {
+      const st = document.getElementById('wsStatus');
+      if(st) st.textContent = '연결 실패 — 새로고침 해주세요';
+      showToast('실시간 채팅 연결 실패: ' + (err?.headers?.message || '알 수 없는 오류'));
+    }
+  );
+}
+function sendChat(targetType, targetId){
+  const input = document.getElementById('msgInput');
+  const content = input.value.trim();
+  if(!content) return;
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  apiFetch('/chat/send', { method:'POST', body: JSON.stringify({ targetType, targetId: Number(targetId), content }) })
+    .then(msg=>{
+      const scroll = document.getElementById('chatScroll');
+      if(scroll){
+        if(scroll.querySelector('.empty')) scroll.innerHTML='';
+        scroll.insertAdjacentHTML('beforeend', renderMsgHtml(msg));
+        scroll.scrollTop = scroll.scrollHeight;
+      }
+      input.value='';
+    })
+    .catch(e=> showToast('전송 실패: ' + e.message))
+    .finally(()=>{ btn.disabled=false; });
+}
+document.addEventListener('keydown', (e)=>{
+  if(e.target && e.target.id==='msgInput' && e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    if(state.page==='room') sendChat('room', state.params.roomId);
+    if(state.page==='space' && state.cache.spaceDetail?.isMember) sendChat('space', state.params.spaceId);
+  }
+});
+
+/* =====================================================================
+   모달
+===================================================================== */
+function renderModal(){
+  const {type, payload} = state.modal;
+  let inner = '';
+  if(type==='profile-card'){
+    const m = JSON.parse(payload.card.replace(/&quot;/g,'"'));
+    const mine = m.userId === state.me?.id;
+    const room = state.cache.room;
+    const editMode = mine && payload.editMode;
+    if(editMode){
+      const requiredUpdate = !!payload.requiredUpdate;
+      inner = `
+      <h3>내 프로필 카드 수정</h3>
+      ${requiredUpdate ? '<div class="notice-banner">새로 추가된 필수 항목을 입력해야 룸을 이용할 수 있어요.</div>' : ''}
+      <div style="margin-top:14px;">
+        <div class="field"><label>이름</label><input id="pc-edit-name" type="text" value="${esc(m.name)}"></div>
+        ${(room?.customFields||[]).map(f=>{
+          const cur = (m.answers||[]).find(a=>a.fieldId===f.id);
+          return `<div class="field"><label style="display:flex; align-items:center;">${esc(f.fieldName)}${f.required?' <span style="color:#c5221f; font-size:11px; margin-left:4px; font-weight:700;">필수</span>':''}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
+        }).join('')}
+        <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
+        ${requiredUpdate ? '' : `<button class="btn" style="margin-top:8px;" onclick="disableProfileCardEdit()">취소</button>`}
+      </div>`;
+    } else {
+      inner = `
+      <div class="idx-card" style="cursor:default;">
+        <span class="card-tag-space">PROFILE</span>
+        <div class="card-name">${esc(m.name)}</div>
+        <div class="rule"></div>
+        ${(m.answers||[]).map(a=>{
+          const f = room?.customFields?.find(f=>f.id===a.fieldId);
+          const fieldName = f?.fieldName || `필드 #${a.fieldId}`;
+          const reqBadge = f?.required ? ` <span style="color:#c5221f; font-size:11px; margin-left:4px; font-weight:700;">필수</span>` : '';
+          return `<div style="margin-bottom:8px;"><div class="field-hint" style="margin:0; display:flex; align-items:center;">${esc(fieldName)}${reqBadge}</div><div style="font-size:13.5px;font-weight:600;">${esc(a.value)}</div></div>`;
+        }).join('') || '<div class="field-hint">등록된 항목이 없어요.</div>'}
+      </div>
+      ${mine ? `<button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="enableProfileCardEdit()">✏️ 수정</button>` : ''}`;
+    }
+  }
+  if(type==='user-detail'){
+    inner = `
+    <h3>내 정보</h3>
+    <div id="user-detail-body" style="margin-top:14px;"><div class="empty">불러오는 중...</div></div>`;
+    setTimeout(loadUserDetailBody, 0);
+  }
+  if(type==='room-invite'){
+    const room = state.cache.room;
+    inner = `
+    <h3>초대 코드</h3>
+    <p class="page-desc" style="margin:8px 0 16px;">이 코드를 팀원에게 공유해서 룸에 초대하세요.</p>
+    <div style="text-align:center;padding:20px;background:var(--paper);border-radius:12px;">
+      <div style="font-family:monospace;font-size:28px;font-weight:800;letter-spacing:4px;">${esc(room.roomCode)}</div>
+    </div>
+    <button class="btn btn-block" style="margin-top:14px;" onclick="navigator.clipboard.writeText('${esc(room.roomCode)}').then(()=>showToast('복사했어요.'))">복사하기</button>`;
+  }
+  if(type==='invites-inbox'){
+    inner = `
+    <h3>내 초대함</h3>
+    <p class="page-desc" style="margin:8px 0 16px;">스페이스에 보낸 가입 신청, 받은 가입 권유를 확인해요.</p>
+    <div id="invites-inbox-body"><div class="empty">불러오는 중...</div></div>`;
+    setTimeout(loadInvitesInboxBody, 0);
+  }
+  if(type==='space-manage'){
+    const spaces = state.cache.spaces || [];
+    const tags = state.cache.roomTags || [];
+    const activeTags = payload.tags || [];
+    const searchOpen = !!payload.searchOpen;
+    const filtered = activeTags.length ? spaces.filter(s=>(s.tags||[]).some(t=>activeTags.includes(t))) : spaces;
+    inner = `
+    <h3>스페이스 관리</h3>
+    <p class="page-desc" style="margin:8px 0 14px;">룸 안의 모든 스페이스를 한 곳에서 관리할 수 있어요.</p>
+    <label class="search-toggle" style="margin-bottom:14px;">
+      <span>태그 검색${activeTags.length?` (${activeTags.length})`:''}</span>
+      <span class="toggle-switch ${searchOpen?'on':''}" onclick="toggleManageSpaceSearch()"><span class="toggle-knob"></span></span>
+    </label>
+    ${searchOpen && tags.length ? `<div class="chip-row" style="margin-bottom:14px;">${tags.map(t=>`<span class="chip-static ${activeTags.includes(t)?'tech-c':'tag-c'}" style="cursor:pointer;" onclick="toggleManageTag('${esc(t)}')">#${esc(t)}</span>`).join('')}</div>` : ''}
+    ${filtered.length ? filtered.map(s=>`
+      <div class="member-row">
+        <div class="info">
+          <span class="name">${esc(s.name)}</span>
+          <div class="tagline">멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명${(s.tags||[]).length ? ' · '+s.tags.map(t=>'#'+esc(t)).join(' ') : ''}</div>
+        </div>
+        <div class="row-actions">
+          <button class="btn btn-sm" onclick="manageEditSpace('${s.id}')">수정</button>
+          <button class="btn btn-sm" onclick="manageTransferSpace('${s.id}')">위임</button>
+          <button class="btn btn-sm btn-danger" onclick="manageDeleteSpace('${s.id}')">삭제</button>
+        </div>
+      </div>`).join('') : `<div class="empty">${activeTags.length?'해당 태그의 스페이스가 없어요.':'스페이스가 없어요.'}</div>`}`;
+  }
+  if(type==='room-edit'){
+    const room = state.cache.room;
+    inner = `
+    <h3>룸 정보 수정</h3>
+    <div class="field" style="margin-top:16px;"><label>룸 이름</label><input id="re-name" type="text" value="${esc(room.name)}"></div>
+    <div class="field"><label>룸 소개</label><textarea id="re-desc" rows="3">${esc(room.description)}</textarea></div>
+    <div class="field"><label>최대 인원</label><input id="re-max" type="number" value="${room.maxMember||''}"></div>
+    <button class="btn btn-primary btn-block" onclick="onSaveRoomEdit()">저장</button>`;
+  }
+  if(type==='custom-fields'){
+    const room = state.cache.room;
+    inner = `
+    <h3>멤버 프로필 카드 형식</h3>
+    <div class="notice-banner">⚠️ 기존 항목은 이름/타입/옵션을 수정할 수 없어요(삭제 후 새로 추가해야 해요). 항목을 삭제하면 그 항목에 대한 멤버 답변만 사라지고, 카드 자체가 통째로 삭제되진 않아요.</div>
+    <div id="cf-rows">${(room.customFields||[]).map(f=>customFieldRowHtml(f)).join('') || customFieldRowHtml()}</div>
+    <button class="btn btn-primary btn-sm" style="margin-bottom:14px;" onclick="addCustomFieldRow()">+ 새 항목 추가</button>
+    <button class="btn btn-primary btn-block" onclick="onSaveCustomFields()">저장</button>`;
+  }
+  if(type==='space-edit'){
+    const s = payload.detail || state.cache.spaceDetail;
+    const customFieldsHtml = Object.entries(s.customField||{}).map(([k,vs])=> spaceCustomFieldRowHtml(k, (vs||[]).join(', '))).join('');
+    inner = `
+    <h3>스페이스 카드 수정</h3>
+    <div class="field" style="margin-top:16px;"><label>이름</label><input id="se-name" type="text" value="${esc(s.name)}"></div>
+    <div class="field"><label>최대 인원</label><input id="se-max" type="number" value="${s.maxMemberCount||''}"></div>
+    <div class="field"><label>태그</label>${chipInputHtml('se-tags-chips', s.tags||[], '#태그 입력 후 스페이스바', {hash:true})}</div>
+    <div class="field">
+      <label>커스텀 필드</label>
+      <div id="se-custom-rows">${customFieldsHtml}</div>
+      <button type="button" class="btn btn-sm" onclick="addSpaceCustomFieldRow('se-custom-rows')">+ 항목 추가</button>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="onSaveSpaceEdit()">저장</button>`;
+  }
+  if(type==='space-invite'){
+    const room = state.cache.room;
+    const filter = state.params.memberFilter || {};
+    const existingIds = new Set((state.cache.spaceMembers||[]).map(m=>m.userId));
+    const members = (state.cache.roomMembers || []).filter(m=> m.userId!==state.me?.id && !existingIds.has(m.userId));
+    const filteredMembers = filterMembersByCustomFields(members, filter);
+    const checkedSet = state.params.inviteChecked || new Set();
+    
+    inner = `
+    <h3>멤버 초대</h3>
+    <div class="field-hint" style="margin:6px 0 14px;">스페이스에 초대할 멤버를 선택해주세요. 여러 명을 선택할 수 있어요.</div>
+    ${renderMemberFilterUI(room)}
+    <div class="radio-group" style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--paper);">
+      ${filteredMembers.length ? filteredMembers.map(m=>`
+        <label class="radio-option" style="margin:0;">
+          <input type="checkbox" class="si-check" value="${m.userId}" onchange="toggleInviteCheck('${m.userId}', this.checked)" ${checkedSet.has(String(m.userId))?'checked':''}>
+          ${esc(m.name)}
+        </label>
+      `).join('') : `<div class="empty-inline">조건에 맞는 멤버가 없어요</div>`}
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="onSendSpaceInvite()">초대 보내기</button>`;
+  }
+  if(type==='space-invite-list'){
+    inner = `
+    <h3>가입 신청 확인</h3>
+    <div id="space-invite-list-body"><div class="empty">불러오는 중...</div></div>`;
+    setTimeout(loadSpaceInviteListBody, 0);
+  }
+  if(type==='space-transfer'){
+    const s = payload.detail || state.cache.spaceDetail;
+    const members = (payload.members || state.cache.spaceMembers || []).filter(m=>m.userId!==s?.ownerId);
+    inner = `
+    <h3>오너 위임</h3>
+    <div class="field-hint" style="margin:6px 0 14px;">새 오너로 위임할 스페이스 멤버를 선택해주세요.</div>
+    <div class="field">
+      <label>새 오너</label>
+      <select id="to-userid">
+        ${members.length ? members.map(m=>`<option value="${m.userId}">${esc(m.name)}</option>`).join('') : `<option value="">위임 가능한 멤버가 없어요</option>`}
+      </select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="onTransferOwner()">위임하기</button>`;
+  }
+  const hideClose = type==='profile-card' && payload.editMode && payload.requiredUpdate;
+  return `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal">${hideClose?'':'<button class="close-x" onclick="closeModal()">✕</button>'}<div class="modal-scroll">${inner}</div></div></div>`;
+}
+
+/* ===================== INIT ===================== */
+if(restoreTokens()){ state.page = 'main'; }
+history.replaceState({page: state.page, params: state.params}, '', location.pathname + location.search);
+render();
+</script>
+</body>
+</html>
