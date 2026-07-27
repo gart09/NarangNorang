@@ -20,6 +20,9 @@
   button{font-family:inherit;cursor:pointer;}
   a{color:inherit;}
   #app{min-height:100vh;display:flex;flex-direction:column;}
+  body.chat-page{overflow:hidden;}
+  body.chat-page #app{height:100dvh;min-height:0;}
+  body.chat-page .discord-layout{height:auto;min-height:0;flex:1;}
   .topbar{background:var(--marigold);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 0 var(--marigold-deep);flex-wrap:wrap;gap:10px;}
   .brand{display:flex;align-items:center;gap:10px;cursor:pointer;}
   .brand-mark{width:36px;height:36px;border-radius:10px;background:var(--ink);display:flex;align-items:center;justify-content:center;color:var(--marigold);font-weight:700;font-size:15px;font-family:'Fraunces',serif;}
@@ -116,7 +119,7 @@
 
   /* ===== 디스코드 스타일 3분할(좌: 목록 / 중앙: 채팅 / 우: 목록) ===== */
   .discord-layout{display:flex;flex:1;min-height:0;height:calc(100vh - 65px);}
-  .side-panel{width:230px;flex-shrink:0;background:var(--panel);padding:16px;overflow-y:auto;display:flex;flex-direction:column;}
+  .side-panel{width:230px;flex-shrink:0;background:var(--panel);padding:16px;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
   .side-panel:first-child{border-right:1px solid var(--line);}
   .side-panel:last-child{border-left:1px solid var(--line);}
   .side-panel-head{margin-bottom:14px;}
@@ -124,7 +127,7 @@
   .side-panel-actions{display:flex;flex-direction:column;gap:6px;}
   .side-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:10px 0 8px;}
   .rail-count{font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0;}
-  .side-list{display:flex;flex-direction:column;gap:2px;flex:1;}
+  .side-list{display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;overflow-y:auto;}
   .side-item{
     display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:13.5px;font-weight:600;
     cursor:pointer;color:var(--ink-soft);
@@ -186,11 +189,11 @@
   .toggle-switch.on .toggle-knob{transform:translateX(16px);}
   .rail{width:240px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:20px 16px;overflow-y:auto;}
   .rail-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:0 4px 10px;}
-  .chat{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .chat{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;}
   .chat-head{padding:16px 26px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
   .chat-head h2{margin:0;font-size:17px;}
   .chat-head .sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
-  .chat-scroll{flex:1;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:14px;}
+  .chat-scroll{flex:1;min-height:0;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:14px;}
   .msg-row{display:flex;gap:10px;max-width:70%;}
   .msg-row.mine{align-self:flex-end;flex-direction:row-reverse;}
   .msg-avatar{width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--marigold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
@@ -632,6 +635,7 @@ async function withLoading(fn){
 }
 
 function render(){
+  document.body.classList.toggle('chat-page', state.page==='room' || state.page==='space');
   const app = document.getElementById('app');
   const currentChat = document.getElementById('chatScroll');
   
@@ -1187,11 +1191,7 @@ function renderRoom(){
           <button class="btn btn-sm" onclick="openModal('room-invite',{})">🔑 초대코드</button>
         </div>
       </div>
-      <div class="side-section-title" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="toggleSpaceList()">
-        <span>스페이스 <span class="rail-count">· ${spaces.length}개</span></span>
-        <span style="font-size:10px; color:var(--ink-soft);">${state.params.spaceListCollapsed ? '▼' : '▲'}</span>
-      </div>
-      ${state.params.spaceListCollapsed ? '' : `
+      <div class="side-section-title">스페이스 <span class="rail-count">· ${spaces.length}개</span></div>
       <div class="side-list">
         ${spaces.length ? spaces.map(s=>`
           <div class="space-card-btn" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
@@ -1203,7 +1203,7 @@ function renderRoom(){
             </div>
             <div class="chip-row" style="margin-top:8px;">${(s.tags||[]).length ? s.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
           </div>`).join('') : `<div class="empty-inline" style="padding:8px;">${active.length?'해당 태그의 스페이스가 없어요':'아직 스페이스가 없어요'}</div>`}
-      </div>`}
+      </div>
       <button class="btn btn-sm btn-block" style="margin-top:10px;" onclick="navigate('space-create',{roomId:'${room.id}'})">+ 스페이스 만들기</button>
       ${isOwner ? `
         <div class="side-panel-foot">
@@ -1300,10 +1300,6 @@ function renderRoomSpacesBrowser(room, spaces, tags, active){
 }
 function toggleSpaceSearch(){
   state.params = {...state.params, searchOpen: !state.params.searchOpen, pendingTags: state.params.activeTags || []};
-  render();
-}
-function toggleSpaceList(){
-  state.params.spaceListCollapsed = !state.params.spaceListCollapsed;
   render();
 }
 function togglePendingTag(tag){
@@ -1621,11 +1617,7 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
         <div class="side-panel-title">${esc(room?.name||'')}</div>
         <div class="side-panel-actions"><button class="btn btn-sm" onclick="navigate('room',{roomId:'${roomId}'})">← 룸으로</button></div>
       </div>
-      <div class="side-section-title" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="toggleSpaceList()">
-        <span>스페이스</span>
-        <span style="font-size:10px; color:var(--ink-soft);">${state.params.spaceListCollapsed ? '▼' : '▲'}</span>
-      </div>
-      ${state.params.spaceListCollapsed ? '' : `
+      <div class="side-section-title">스페이스</div>
       <div class="side-list">
         ${spaces.map(sp=>`
           <div class="space-card-btn ${String(sp.id)===String(spaceId)?'active':''}" onclick="navigate('space',{roomId:'${roomId}',spaceId:'${sp.id}'})">
@@ -1637,7 +1629,7 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
             </div>
             <div class="chip-row" style="margin-top:8px;">${(sp.tags||[]).length ? sp.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
           </div>`).join('')}
-      </div>`}
+      </div>
     </aside>
 
     <section class="chat">
