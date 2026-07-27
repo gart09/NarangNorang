@@ -121,7 +121,7 @@
   .discord-layout{display:flex;flex:1;min-height:0;height:calc(100vh - 65px);}
   .side-panel{width:230px;flex-shrink:0;background:var(--panel);padding:16px;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
   .side-panel:first-child{border-right:1px solid var(--line);}
-  .side-panel:last-child{border-left:1px solid var(--line);}
+  .side-panel:last-child{width:280px;border-left:1px solid var(--line);}
   .side-panel-head{margin-bottom:14px;}
   .side-panel-title{font-family:'Fraunces',serif;font-weight:700;font-size:16px;margin-bottom:8px;}
   .side-panel-actions{display:flex;flex-direction:column;gap:6px;}
@@ -170,6 +170,7 @@
   .info-banner{padding:18px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;max-height:40vh;overflow-y:auto;}
   .info-banner h2{margin:0 0 4px;font-size:19px;}
   .chat-subhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;}
+  [data-space-owner-only]{display:inline-flex;gap:8px;}
 
   /* 스페이스 브라우저(중앙 탭 - 스페이스) */
   .space-browser{flex:1;display:flex;flex-direction:column;min-height:0;}
@@ -272,6 +273,7 @@
   .custom-field-row:last-child{margin-bottom:0;}
   .custom-field-row .cf-label{font-size:11.5px;color:var(--ink-soft);margin-bottom:2px;}
   .custom-field-row .cf-value{font-size:13.5px;font-weight:600;}
+  .space-member-list{max-height:135px;overflow-y:auto;padding-right:4px;}
   .actions-bar{display:flex;gap:8px;flex-wrap:wrap;}
 </style>
 </head>
@@ -1690,6 +1692,7 @@ function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
         </div>`).join('') : ''}
       <div class="detail-card">
         <h3>멤버</h3>
+        <div class="space-member-list">
         ${(state.cache.spaceMembers||[]).length ? (state.cache.spaceMembers||[]).map(m=>`
           <div class="custom-field-row" style="cursor:pointer;" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
             <div class="cf-value">
@@ -1698,6 +1701,7 @@ function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
               ${m.userId === s.ownerId ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
             </div>
           </div>`).join('') : `<span class="empty-inline">멤버가 없어요</span>`}
+        </div>
       </div>
     </div>
 
