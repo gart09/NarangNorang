@@ -1044,6 +1044,85 @@ function onSubmitJoinCard(){
 function openRoom(roomId){ navigate('room', {roomId}); }
 
 /* =====================================================================
+   멤버 필터 유틸
+===================================================================== */
+function setMemberFilterState(key, val){
+  state.params.memberFilter = { ...(state.params.memberFilter||{}), [key]: val };
+  render();
+}
+function clearMemberFilterState(){
+  state.params.memberFilter = {};
+  render();
+}
+function toggleMemberFilterMultiSelect(fieldId, optionValue, isChecked) {
+  const filter = state.params.memberFilter || {};
+  const current = filter[fieldId] ? new Set(filter[fieldId]) : new Set();
+  if (isChecked) current.add(optionValue);
+  else current.delete(optionValue);
+  setMemberFilterState(fieldId, Array.from(current));
+}
+function filterMembersByCustomFields(members, filterObj){
+  if(!filterObj || Object.keys(filterObj).length===0) return members;
+  return (members||[]).filter(m => {
+    if(filterObj._name && !m.name.toLowerCase().includes(filterObj._name.toLowerCase())) return false;
+    for(const key of Object.keys(filterObj)){
+      if(key === '_name') continue;
+      const fval = filterObj[key];
+      if(!fval || (Array.isArray(fval) && fval.length===0)) continue;
+      const ans = (m.answers||[]).find(a=>String(a.fieldId)===String(key));
+      const ansValue = (ans?.value||'').toLowerCase();
+      
+      if(Array.isArray(fval)){
+        const ansSet = ansValue.split(',').map(s=>s.trim());
+        const hasOverlap = fval.some(v => ansSet.includes(String(v).toLowerCase()));
+        if(!hasOverlap) return false;
+      } else {
+        if(!ansValue.includes(String(fval).toLowerCase())) return false;
+      }
+    }
+    return true;
+  });
+}
+function renderMemberFilterUI(room){
+  if(!room) return '';
+  const filter = state.params.memberFilter || {};
+  const fields = room.customFields || [];
+  return `
+    <div style="background:var(--paper);padding:10px;border-radius:10px;margin-top:10px;border:1px solid var(--line);flex-shrink:0;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--ink-soft);display:flex;justify-content:space-between;">
+        <span>멤버 검색 필터</span>
+        ${Object.keys(filter).some(k=>(Array.isArray(filter[k])?filter[k].length>0:filter[k])) ? `<a style="cursor:pointer;color:var(--danger);" onclick="clearMemberFilterState()">초기화</a>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input type="text" placeholder="이름 검색 (엔터)" value="${esc(filter._name||'')}" onchange="setMemberFilterState('_name', this.value)" style="width:100%;padding:4px 8px;font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);">
+        ${fields.map(f=>{
+          if(f.optionType==='SINGLE_SELECT'){
+            return `<select onchange="setMemberFilterState('${f.id}', this.value)" style="width:100%;padding:4px 8px;font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);">
+              <option value="">${esc(f.fieldName)} 전체</option>
+              ${(f.options||[]).map(o=>`<option value="${esc(o.optionValue)}" ${filter[f.id]===o.optionValue?'selected':''}>${esc(o.optionValue)}</option>`).join('')}
+            </select>`;
+          }
+          if(f.optionType==='MULTI_SELECT'){
+            const checkedSet = new Set(filter[f.id]||[]);
+            return `<div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:2px;">${esc(f.fieldName)}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;max-height:80px;overflow-y:auto;">
+                ${(f.options||[]).map(o=>{
+                  const isChecked = checkedSet.has(o.optionValue);
+                  return `<label style="font-size:11.5px;display:flex;align-items:center;gap:4px;cursor:pointer;background:var(--panel);border:1px solid var(--line);padding:2px 6px;border-radius:4px;">
+                    <input type="checkbox" onchange="toggleMemberFilterMultiSelect('${f.id}', '${esc(o.optionValue)}', this.checked)" ${isChecked?'checked':''}>
+                    ${esc(o.optionValue)}
+                  </label>`;
+                }).join('')}
+              </div>`;
+          }
+          return `<input type="text" placeholder="${esc(f.fieldName)} 검색 (엔터)" value="${esc(filter[f.id]||'')}" onchange="setMemberFilterState('${f.id}', this.value)" style="width:100%;padding:4px 8px;font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);">`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* =====================================================================
    룸 상세
 ===================================================================== */
 async function loadRoom(roomId){
@@ -1079,6 +1158,7 @@ function renderRoom(){
   const tags = state.cache.roomTags || [];
   const active = state.params.activeTags || [];
   const members = state.cache.roomMembers || [];
+  const filteredMembers = filterMembersByCustomFields(members, state.params.memberFilter);
   const centerTab = state.params.centerTab || 'chat';
   return `
   <div class="discord-layout">
@@ -1120,13 +1200,14 @@ function renderRoom(){
     </section>
 
     <aside class="side-panel">
-      <div class="side-section-title">룸 멤버 <span class="rail-count">· ${members.length}명</span></div>
+      <div class="side-section-title">룸 멤버 <span class="rail-count">· ${filteredMembers.length}명</span></div>
       <div class="side-list">
-        ${members.length ? members.map(m=>`
+        ${filteredMembers.length ? filteredMembers.map(m=>`
           <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
             <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
-          </div>`).join('') : `<div class="empty-inline" style="padding:8px;">멤버 카드가 없어요</div>`}
+          </div>`).join('') : `<div class="empty-inline" style="padding:8px;">조건에 맞는 멤버가 없어요</div>`}
       </div>
+      ${renderMemberFilterUI(room)}
     </aside>
   </div>`;
 }
@@ -1489,13 +1570,20 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
     </section>
 
     <aside class="side-panel">
-      <div class="side-section-title">스페이스 멤버 <span class="rail-count">· ${(state.cache.spaceMembers||[]).length}명</span></div>
-      <div class="side-list">
-        ${(state.cache.spaceMembers||[]).length ? (state.cache.spaceMembers||[]).map(m=>`
-          <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
-            <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
-          </div>`).join('') : `<div class="empty-inline" style="padding:8px;">멤버 카드가 없어요</div>`}
-      </div>
+      ${(()=>{
+        const spaceMembers = state.cache.spaceMembers || [];
+        const filtered = filterMembersByCustomFields(spaceMembers, state.params.memberFilter);
+        return `
+          <div class="side-section-title">스페이스 멤버 <span class="rail-count">· ${filtered.length}명</span></div>
+          <div class="side-list">
+            ${filtered.length ? filtered.map(m=>`
+              <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
+                <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
+              </div>`).join('') : `<div class="empty-inline" style="padding:8px;">조건에 맞는 멤버가 없어요</div>`}
+          </div>
+        `;
+      })()}
+      ${renderMemberFilterUI(room)}
       ${canManageSpace ? `<div class="side-panel-foot"><button class="btn btn-sm btn-block" onclick="openModal('space-transfer',{})">오너 위임</button><button class="btn btn-sm btn-danger btn-block" onclick="onDeleteSpace('${roomId}','${spaceId}')">스페이스 삭제</button></div>` : ''}
     </aside>
   </div>`;
@@ -1576,10 +1664,17 @@ function chatBodyHtml(targetType, targetId, extraButtons){
   </div>`;
 }
 function openSpaceInviteModal(){
+  state.params.inviteChecked = new Set();
+  state.params.memberFilter = {};
   withLoading(async ()=>{
     // 초대 후보 = 룸 멤버 (스페이스 멤버 목록 API가 없어 "이미 스페이스에 있는지"는 걸러내지 못함)
     await loadRoomMembers(state.params.roomId);
   }).then(()=> openModal('space-invite', {})).catch(()=>{});
+}
+function toggleInviteCheck(userId, checked){
+  if(!state.params.inviteChecked) state.params.inviteChecked = new Set();
+  if(checked) state.params.inviteChecked.add(String(userId));
+  else state.params.inviteChecked.delete(String(userId));
 }
 function onLeaveSpace(roomId, spaceId){
   if(!confirm('스페이스에서 탈퇴할까요?')) return;
@@ -1788,11 +1883,21 @@ function onSaveSpaceEdit(){
 }
 function onSendSpaceInvite(){
   const { roomId, spaceId } = state.params;
-  const targetUserId = document.getElementById('si-userid').value.trim();
-  if(!targetUserId){ showToast('초대할 유저 id를 입력해주세요.'); return; }
+  const checkedIds = state.params.inviteChecked ? Array.from(state.params.inviteChecked) : [];
+  
+  // 현재 보이는 체크박스 중 선택된 것들도 추가 (렌더링 안 거친 경우 대비)
+  document.querySelectorAll('.si-check:checked').forEach(cb => {
+    if(!checkedIds.includes(cb.value)) checkedIds.push(cb.value);
+  });
+
+  if(!checkedIds.length){ showToast('초대할 멤버를 1명 이상 선택해주세요.'); return; }
+  
   withLoading(async ()=>{
-    await apiFetch('/invites/invite', { method:'POST', body: JSON.stringify({ spaceId: Number(spaceId), targetUserId: Number(targetUserId) }) });
-    showToast('초대를 보냈어요.');
+    const promises = checkedIds.map(uid => 
+      apiFetch('/invites/invite', { method:'POST', body: JSON.stringify({ spaceId: Number(spaceId), targetUserId: Number(uid) }) })
+    );
+    await Promise.all(promises);
+    showToast(`${promises.length}명에게 초대를 보냈어요.`);
     closeModal();
   }).catch(()=>{});
 }
@@ -2080,18 +2185,26 @@ function renderModal(){
     <button class="btn btn-primary btn-block" onclick="onSaveSpaceEdit()">저장</button>`;
   }
   if(type==='space-invite'){
+    const room = state.cache.room;
+    const filter = state.params.memberFilter || {};
     const existingIds = new Set((state.cache.spaceMembers||[]).map(m=>m.userId));
     const members = (state.cache.roomMembers || []).filter(m=> m.userId!==state.me?.id && !existingIds.has(m.userId));
+    const filteredMembers = filterMembersByCustomFields(members, filter);
+    const checkedSet = state.params.inviteChecked || new Set();
+    
     inner = `
     <h3>멤버 초대</h3>
-    <div class="field-hint" style="margin:6px 0 14px;">룸 멤버 중에서 초대할 사람을 선택해주세요.</div>
-    <div class="field">
-      <label>초대할 멤버</label>
-      <select id="si-userid">
-        ${members.length ? members.map(m=>`<option value="${m.userId}">${esc(m.name)}</option>`).join('') : `<option value="">초대할 수 있는 멤버가 없어요</option>`}
-      </select>
+    <div class="field-hint" style="margin:6px 0 14px;">스페이스에 초대할 멤버를 선택해주세요. 여러 명을 선택할 수 있어요.</div>
+    ${renderMemberFilterUI(room)}
+    <div class="radio-group" style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--paper);">
+      ${filteredMembers.length ? filteredMembers.map(m=>`
+        <label class="radio-option" style="margin:0;">
+          <input type="checkbox" class="si-check" value="${m.userId}" onchange="toggleInviteCheck('${m.userId}', this.checked)" ${checkedSet.has(String(m.userId))?'checked':''}>
+          ${esc(m.name)}
+        </label>
+      `).join('') : `<div class="empty-inline">조건에 맞는 멤버가 없어요</div>`}
     </div>
-    <button class="btn btn-primary btn-block" onclick="onSendSpaceInvite()">초대 보내기</button>`;
+    <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="onSendSpaceInvite()">초대 보내기</button>`;
   }
   if(type==='space-invite-list'){
     inner = `
