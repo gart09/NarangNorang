@@ -11,6 +11,8 @@ import com.narangnorang.space.entity.Space;
 
 public interface SpaceRepository extends JpaRepository<Space, Long> {
 
+    boolean existsByOwnerId(Long ownerId);
+
 	List<Space> findByRoomId(Long roomId);
 	
     @Query("""

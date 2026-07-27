@@ -631,7 +631,8 @@ async function withLoading(fn){
   catch(e){ showToast(e.message || '오류가 발생했어요.'); }
   finally{
     state.loading = false;
-    if(modalAction) renderModalLayer();
+    // 저장 과정에서 모달이 닫혔다면 전체 화면을 다시 그려 로딩 화면이 남지 않게 한다.
+    if(state.modal) renderModalLayer();
     else render();
   }
 }
