@@ -1318,8 +1318,8 @@ function manageEditSpace(spaceId){
     const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
     detail._id = String(spaceId);
     detail.isOwner = detail.ownerId === state.me?.id;
-    return detail;
-  }).then(detail => openModal('space-edit', { detail })).catch(()=>{});
+    openModal('space-edit', { detail });
+  });
 }
 function manageTransferSpace(spaceId){
   const roomId = state.params.roomId;
@@ -1327,9 +1327,9 @@ function manageTransferSpace(spaceId){
     const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
     detail._id = String(spaceId);
     detail.isOwner = detail.ownerId === state.me?.id;
-    state.cache.spaceDetail = detail;
-    await loadSpaceMembers(roomId, spaceId).catch(()=>{});
-  }).then(()=> openModal('space-transfer', {})).catch(()=>{});
+    const members = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/spaceMembers`, { method:'GET' }).catch(()=>[]);
+    openModal('space-transfer', { detail, members, spaceId });
+  });
 }
 function manageDeleteSpace(spaceId){
   if(!confirm('스페이스를 삭제할까요? 되돌릴 수 없어요.')) return;
@@ -1931,17 +1931,20 @@ async function loadSpacePendingInvites(spaceId){
   return apiFetch('/invites/spaces/' + spaceId, { method:'GET' });
 }
 function onTransferOwner(){
-  const { roomId, spaceId } = state.params;
+  const roomId = state.params.roomId;
+  const spaceId = state.modal?.payload?.spaceId || state.params.spaceId;
   const newOwnerId = document.getElementById('to-userid').value.trim();
   if(!newOwnerId){ showToast('위임할 멤버를 선택해주세요.'); return; }
   if(!confirm('오너를 위임할까요?')) return;
   withLoading(async ()=>{
-    await apiFetch(`/rooms/${roomId}/${spaceId}/owner`, { method:'PATCH', body: JSON.stringify({ newOwnerId: Number(newOwnerId) }) });
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/owner`, { method:'PATCH', body: JSON.stringify({ newOwnerId: Number(newOwnerId) }) });
     showToast('오너를 위임했어요.');
-    state.cache.spaceDetail = null;
-    state.cache.spaceMembers = null;
+    if(state.cache.spaceDetail?._id === String(spaceId)) {
+      state.cache.spaceDetail = null;
+      state.cache.spaceMembers = null;
+    }
     closeModal();
-    navigate('space', {roomId, spaceId});
+    if(state.params.spaceId) navigate('space', {roomId, spaceId});
   }).catch(()=>{});
 }
 
@@ -2246,8 +2249,8 @@ function renderModal(){
     setTimeout(loadSpaceInviteListBody, 0);
   }
   if(type==='space-transfer'){
-    const s = state.cache.spaceDetail;
-    const members = (state.cache.spaceMembers||[]).filter(m=>m.userId!==s?.ownerId);
+    const s = payload.detail || state.cache.spaceDetail;
+    const members = (payload.members || state.cache.spaceMembers || []).filter(m=>m.userId!==s?.ownerId);
     inner = `
     <h3>오너 위임</h3>
     <div class="field-hint" style="margin:6px 0 14px;">새 오너로 위임할 스페이스 멤버를 선택해주세요.</div>
