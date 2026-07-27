@@ -87,10 +87,10 @@ public class UserServiceImpl implements UserService{
 	    String password = resolvePassword(userRequestDto.getPassword(), user.getPassword());
 	    String name = resolveName(userRequestDto.getName(), user.getName());
 
-	    User updatedUser = userRequestDto.toEntity(name, password, user.getUserRoles());
-	    userRepository.save(updatedUser);
+	    user.updateName(name);
+	    user.updatePassword(password);
 
-	    return UserResponseDto.from(updatedUser);
+	    return UserResponseDto.from(user);
 	}
 
 	@Override
