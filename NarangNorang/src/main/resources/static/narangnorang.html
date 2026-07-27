@@ -1354,7 +1354,7 @@ async function manageTransferSpace(spaceId){
     detail.isOwner = detail.ownerId === state.me?.id;
     state.cache.spaceDetail = detail;
     state.cache.spaceMembers = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/spaceMembers`, { method:'GET' });
-    openModal('space-transfer', {});
+    openModal('space-transfer', {spaceId: String(spaceId)});
   }catch(e){
     showToast(e.message || '스페이스 멤버 정보를 불러오지 못했어요.');
   }
@@ -1984,7 +1984,9 @@ async function loadSpacePendingInvites(spaceId){
 }
 function onTransferOwner(){
   const roomId = state.params.roomId;
-  const spaceId = state.modal?.payload?.spaceId || state.params.spaceId;
+  const spaceId = state.modal?.payload?.spaceId
+    || state.params.spaceId
+    || state.cache.spaceDetail?._id;
   const newOwnerId = document.getElementById('to-userid').value.trim();
   if(!newOwnerId){ showToast('위임할 멤버를 선택해주세요.'); return; }
   if(!confirm('오너를 위임할까요?')) return;
