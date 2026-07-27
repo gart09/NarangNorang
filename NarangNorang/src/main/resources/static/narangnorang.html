@@ -930,7 +930,9 @@ function onCreateRoom(){
     // 캐시를 비워서 룸 진입 시 GET으로 다시 불러오게 해서 정확한 인원수를 받도록 함
     resetRoomContext();
     showToast('룸이 생성됐어요.');
-    navigate('room', {roomId: room.id});
+    // A room creator must complete a member profile card before opening the room.
+    setRoomContext(room);
+    navigate('room-join-card', {roomId: room.id, roomCode: room.roomCode});
   }).catch(()=>{});
 }
 
