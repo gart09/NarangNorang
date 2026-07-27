@@ -41,10 +41,14 @@
     display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
   }
   .user-chip-name{font-size:13.5px;font-weight:700;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .topbar-logout{font-size:12.5px;font-weight:700;color:var(--ink);opacity:.65;cursor:pointer;}
+  .topbar-logout:hover{opacity:1;text-decoration:underline;}
   .btn{border:1.5px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 16px;border-radius:10px;font-size:13.5px;font-weight:700;}
   .btn:hover{border-color:var(--marigold-deep);}
   .btn-primary{background:var(--ink);border-color:var(--ink);color:var(--marigold);}
   .btn-danger{background:transparent;border-color:var(--danger);color:var(--danger);}
+  .btn-subtle{background:transparent;border-color:transparent;color:var(--ink-soft);font-weight:600;}
+  .btn-subtle:hover{border-color:var(--line);background:var(--paper);}
   .btn-sm{padding:6px 12px;font-size:12.5px;border-radius:8px;}
   .btn-block{width:100%;}
   .btn[disabled]{opacity:.5;cursor:not-allowed;}
@@ -79,6 +83,11 @@
   .tag{font-size:10.5px;font-weight:700;background:rgba(76,154,106,.14);color:#2d6b46;padding:3px 9px;border-radius:999px;border:1px solid rgba(76,154,106,.3);}
   .tag.alt{background:var(--marigold-soft);color:var(--marigold-deep);border-color:rgba(246,185,59,.4);}
   .idx-card .card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:11px;color:var(--ink-soft);}
+  .idx-card.space-browse-card .card-tag-space{background:var(--marigold);color:var(--ink);}
+  .space-browse-member{font-size:11.5px;color:var(--ink-soft);font-weight:700;margin:8px 0 4px;}
+  .idx-card.space-browse-card .card-name{
+    font-size:21px;line-height:1.3;padding-left:11px;border-left:3px solid var(--marigold-deep);margin-bottom:2px;
+  }
   .tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--line);margin-bottom:22px;}
   .tab{padding:10px 16px;font-size:13.5px;font-weight:700;color:var(--ink-soft);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;}
   .tab.active{color:var(--marigold-deep);border-bottom-color:var(--marigold-deep);}
@@ -100,8 +109,9 @@
   .tagline{font-size:12px;color:var(--ink-soft);margin-top:2px;}
   .row-actions{display:flex;gap:6px;flex-shrink:0;}
   .modal-overlay{position:fixed;inset:0;background:rgba(43,33,24,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
-  .modal{background:var(--panel);border-radius:18px;padding:28px;max-width:460px;width:100%;max-height:82vh;overflow-y:auto;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.25);}
-  .close-x{position:absolute;top:16px;right:16px;background:var(--paper);border:none;width:28px;height:28px;border-radius:50%;font-size:14px;color:var(--ink-soft);}
+  .modal{background:var(--panel);border-radius:18px;padding:0;max-width:460px;width:100%;max-height:82vh;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+  .modal-scroll{padding:28px;max-height:82vh;overflow-y:auto;}
+  .close-x{position:absolute;top:16px;right:16px;background:var(--paper);border:none;width:28px;height:28px;border-radius:50%;font-size:14px;color:var(--ink-soft);z-index:10;cursor:pointer;}
   .chat-layout{display:flex;flex:1;min-height:0;height:calc(100vh - 65px);}
 
   /* ===== 디스코드 스타일 3분할(좌: 목록 / 중앙: 채팅 / 우: 목록) ===== */
@@ -130,6 +140,15 @@
   .side-panel-foot{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px;}
   .empty-inline{color:var(--ink-soft);font-size:12.5px;}
 
+  /* 룸/스페이스 색상톤 구분(중앙 채팅+우측 멤버 패널만) */
+  .space-tone .chat{background:rgba(76,154,106,.05);}
+  .space-tone .chat-head, .space-tone .chat-subhead, .space-tone .info-banner{border-bottom-color:rgba(76,154,106,.35);}
+  .space-tone .send-btn{background:var(--sage);color:#fff;}
+  .space-tone .msg-row.mine .bubble{background:var(--sage);border-color:#3d7d55;color:#fff;}
+  .space-tone .side-panel:last-child{background:rgba(76,154,106,.05);border-left-color:rgba(76,154,106,.35);}
+  .space-tone .side-panel:last-child .side-section-title{color:#3d7d55;}
+  .space-tone .side-item:hover, .space-tone .side-item.active{background:rgba(76,154,106,.16);}
+
   /* 좌측 스페이스 목록 — 버튼형 카드 */
   .space-card-btn{
     display:block;text-align:left;width:100%;border:1px solid var(--line);background:var(--paper);
@@ -154,6 +173,17 @@
   .space-browser-head{display:flex;justify-content:space-between;align-items:center;padding:16px 26px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;}
   .search-panel{padding:14px 26px;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0;}
   .space-browser-body{flex:1;overflow-y:auto;padding:20px 26px;}
+  .search-toggle{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;}
+  .toggle-switch{
+    position:relative;display:inline-block;width:38px;height:22px;border-radius:999px;
+    background:var(--line);transition:background .15s ease;flex-shrink:0;cursor:pointer;
+  }
+  .toggle-switch.on{background:var(--marigold-deep);}
+  .toggle-knob{
+    position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s ease;
+  }
+  .toggle-switch.on .toggle-knob{transform:translateX(16px);}
   .rail{width:240px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:20px 16px;overflow-y:auto;}
   .rail-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:0 4px 10px;}
   .chat{flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -508,7 +538,7 @@ function optionBoxesHtml(options, disabled){
   const vals = (options||[]).map(o=>o.optionValue);
   if(vals.length===0) vals.push('');
   return `<div class="option-box-list" onkeydown="optionBoxKeydown(event)">${vals.map(v=>optionBoxRowHtml(v, disabled)).join('')}</div>
-  ${disabled ? '' : `<button type="button" class="btn btn-sm" style="margin-top:6px;" onclick="addOptionBoxRow(this)">+ 항목 추가</button>`}`;
+  ${disabled ? '' : `<button type="button" class="btn btn-sm btn-subtle" style="margin-top:6px;" onclick="addOptionBoxRow(this)">+ 선택지 추가</button>`}`;
 }
 function addOptionBoxRow(btn){
   const list = btn.previousElementSibling;
@@ -641,10 +671,12 @@ function renderTopbar(){
       <div class="breadcrumb">${crumb}</div>
     </div>
     <div class="top-right">
-      <div class="user-chip" title="로그아웃" onclick="doLogout()">
+      ${state.me ? `<button class="btn btn-sm" onclick="openModal('invites-inbox',{})" title="내 초대함">📨 초대함</button>` : ''}
+      <div class="user-chip" title="내 정보" onclick="openModal('user-detail',{})">
         <span class="user-chip-avatar">👤</span>
         <span class="user-chip-name">${esc(myDisplayName())}</span>
       </div>
+      <span class="topbar-logout" onclick="doLogout()">로그아웃</span>
     </div>
   </div>`;
 }
@@ -712,7 +744,7 @@ function onLogin(){
 function doLogout(silent){
   const done = ()=>{
     state.accessToken=null; state.refreshToken=null; state.me=null;
-    state.cache = { room:null, spaces:null, spaceDetail:null, spaceMembers:null, roomMembers:null, roomTags:null, invites:null, memberNames:{}, myRooms:null };
+    state.cache = { room:null, spaces:null, spaceDetail:null, spaceMembers:null, roomMembers:null, roomTags:null, invites:null, memberNames:{}, myRooms:null, myUser:null };
     state.roomContextId = null;
     clearPersistedTokens();
     if(!silent) showToast('로그아웃 됐어요.');
@@ -721,6 +753,59 @@ function doLogout(silent){
   if(state.accessToken){
     apiFetch('/users/logout', { method:'POST' }).finally(done);
   } else { done(); }
+}
+
+/* ===== 유저 상세정보 모달 (조회/수정/탈퇴) ===== */
+async function loadUserDetailBody(){
+  try{
+    const u = await apiFetch('/users/details', { method:'GET' });
+    state.cache.myUser = u;
+    renderUserDetailBody(u, false);
+  }catch(e){ showToast(e.message); }
+}
+function renderUserDetailBody(u, editMode){
+  const body = document.getElementById('user-detail-body');
+  if(!body) return;
+  if(editMode){
+    body.innerHTML = `
+      <div class="field"><label>이름</label><input id="ud-name" type="text" value="${esc(u.name)}"></div>
+      <div class="field"><label>이메일</label><input id="ud-email" type="email" value="${esc(u.email)}"></div>
+      <div class="field"><label>새 비밀번호</label><input id="ud-password" type="password" placeholder="변경하지 않으려면 비워두세요"></div>
+      <button class="btn btn-primary btn-block" onclick="onSaveUserDetail()">저장</button>
+      <button class="btn btn-block" style="margin-top:8px;" onclick="renderUserDetailBody(state.cache.myUser, false)">취소</button>
+    `;
+  } else {
+    body.innerHTML = `
+      <div class="member-row"><div class="info"><span class="name">${esc(u.name)}</span><div class="tagline">${esc(u.email)}</div></div></div>
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="renderUserDetailBody(state.cache.myUser, true)">회원 정보 수정</button>
+      <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteAccount()">회원 탈퇴</button>
+    `;
+  }
+}
+function onSaveUserDetail(){
+  const name = document.getElementById('ud-name').value.trim();
+  const email = document.getElementById('ud-email').value.trim();
+  const password = document.getElementById('ud-password').value;
+  if(!name || !email){ showToast('이름과 이메일을 입력해주세요.'); return; }
+  const body = { name, email };
+  if(password) body.password = password;
+  apiFetch('/users', { method:'PATCH', body: JSON.stringify(body) })
+    .then(u=>{
+      state.cache.myUser = u;
+      showToast('회원 정보를 수정했어요. (이름/이메일 변경은 다음 로그인부터 반영돼요)');
+      renderUserDetailBody(u, false);
+    })
+    .catch(e=> showToast(e.message));
+}
+function onDeleteAccount(){
+  if(!confirm('정말 탈퇴하시겠어요? 되돌릴 수 없어요.')) return;
+  const email = state.cache.myUser?.email || state.me?.email;
+  apiFetch('/users?email=' + encodeURIComponent(email), { method:'DELETE' })
+    .then(()=>{
+      showToast('탈퇴 처리됐어요.');
+      doLogout(true);
+    })
+    .catch(e=> showToast(e.message));
 }
 
 function renderSignup(){
@@ -823,7 +908,7 @@ function onCreateRoom(){
     const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
     const optionValues = getOptionBoxValues(row);
     if(isSelect && optionValues.length===0){ cfError = '선택형 항목은 선택 보기를 1개 이상 입력해야 해요.'; return null; }
-    if(!isSelect && optionValues.length>0){ cfError = '짧은 글/숫자 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return null; }
+    if(!isSelect && optionValues.length>0){ cfError = '글/숫자 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return null; }
     return {
       fieldName, required: row.querySelector('.cf-required').checked, optionType,
       options: isSelect ? optionValues.map((v,i)=>({optionValue:v, displayOrder:i})) : []
@@ -833,11 +918,11 @@ function onCreateRoom(){
   withLoading(async ()=>{
     const room = await apiFetch('/rooms', { method:'POST', body: JSON.stringify({name, description, maxMember, customFields}) });
     state.cache.myRooms = null;
-    setRoomContext(room);
-    showToast('룸이 생성됐어요. 이어서 내 프로필 카드를 작성해주세요.');
-    // ⚠️ RoomServiceImpl.createRoom이 오너용 MemberProfileCard를 만들어주지 않아서,
-    //    오너도 멤버 참여와 동일한 카드 작성 화면을 거치게 함(카드가 없으면 스페이스 생성이 막힘)
-    navigate('room-join-card', {roomId: room.id, roomCode: room.roomCode});
+    // 생성 응답의 currentMember는 오너 카드 자동생성 커밋 시점보다 먼저 계산됐을 수 있어(0으로 보일 수 있음) —
+    // 캐시를 비워서 룸 진입 시 GET으로 다시 불러오게 해서 정확한 인원수를 받도록 함
+    resetRoomContext();
+    showToast('룸이 생성됐어요.');
+    navigate('room', {roomId: room.id});
   }).catch(()=>{});
 }
 
@@ -995,7 +1080,6 @@ function renderRoom(){
         <div class="side-panel-actions">
           <button class="btn btn-sm" onclick="openMyProfileCard()">👤 내 카드 수정</button>
           <button class="btn btn-sm" onclick="openModal('room-invite',{})">🔑 초대코드</button>
-          <button class="btn btn-sm" onclick="openModal('invites-inbox',{})">📨 초대함</button>
         </div>
       </div>
       <div class="side-section-title">스페이스 <span class="rail-count">· ${spaces.length}개</span></div>
@@ -1009,10 +1093,14 @@ function renderRoom(){
       <button class="btn btn-sm btn-block" style="margin-top:10px;" onclick="navigate('space-create',{roomId:'${room.id}'})">+ 스페이스 만들기</button>
       ${isOwner ? `
         <div class="side-panel-foot">
+          <button class="btn btn-sm btn-block" onclick="openSpaceManageModal()">🛠 스페이스 관리</button>
           <button class="btn btn-sm btn-block" onclick="openModal('room-edit',{})">룸 정보 수정</button>
           <button class="btn btn-sm btn-block" onclick="openModal('custom-fields',{})">카드 형식 관리</button>
           <button class="btn btn-sm btn-danger btn-block" onclick="onDeleteRoom('${room.id}')">룸 삭제</button>
-        </div>` : ''}
+        </div>` : `
+        <div class="side-panel-foot">
+          <button class="btn btn-sm btn-danger btn-block" onclick="onLeaveRoom(${(members.find(m=>m.userId===state.me?.id)||{}).id||'null'},'${room.id}')">룸 탈퇴</button>
+        </div>`}
     </aside>
 
     <section class="chat">
@@ -1024,7 +1112,7 @@ function renderRoom(){
     </section>
 
     <aside class="side-panel">
-      <div class="side-section-title">멤버 <span class="rail-count">· ${members.length}명</span></div>
+      <div class="side-section-title">룸 멤버 <span class="rail-count">· ${members.length}명</span></div>
       <div class="side-list">
         ${members.length ? members.map(m=>`
           <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
@@ -1063,7 +1151,10 @@ function renderRoomSpacesBrowser(room, spaces, tags, active){
   <div class="space-browser">
     <div class="space-browser-head">
       <h2 style="margin:0;">스페이스</h2>
-      <button class="btn btn-sm" onclick="toggleSpaceSearch()">🔍 검색 조건${active.length?` (${active.length})`:''}</button>
+      <label class="search-toggle">
+        <span>태그 검색${active.length?` (${active.length})`:''}</span>
+        <span class="toggle-switch ${searchOpen?'on':''}" onclick="toggleSpaceSearch()"><span class="toggle-knob"></span></span>
+      </label>
     </div>
     ${searchOpen ? `
       <div class="search-panel">
@@ -1076,12 +1167,12 @@ function renderRoomSpacesBrowser(room, spaces, tags, active){
       </div>` : ''}
     <div class="space-browser-body">
       ${spaces.length ? `<div class="card-grid">${spaces.map(s=>`
-        <div class="idx-card" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
+        <div class="idx-card space-browse-card" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
           <span class="card-tag-space">SPACE</span>
+          <div class="space-browse-member">👥 멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</div>
           <div class="card-name">${esc(s.name)}</div>
           <div class="rule"></div>
-          <div class="card-tags">${(s.tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join('')}</div>
-          <div class="card-foot"><span>멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</span></div>
+          <div class="card-tags">${(s.tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join('') || `<span class="empty-inline">태그 없음</span>`}</div>
         </div>`).join('')}</div>` : `<div class="empty">${active.length?'해당 태그의 스페이스가 없어요.':'아직 만들어진 스페이스가 없어요.'}</div>`}
     </div>
   </div>`;
@@ -1106,6 +1197,44 @@ function applySpaceSearch(){
 function clearSpaceSearch(){
   state.params.activeTags = []; state.params.pendingTags = []; state.params.searchOpen = false;
   withLoading(async ()=> loadSpaces(state.params.roomId, [])).catch(()=>{});
+}
+function openSpaceManageModal(){
+  state.modal = {type:'space-manage', payload:{tags:[]}};
+  render();
+}
+function toggleManageTag(tag){
+  const list = state.modal.payload.tags;
+  const i = list.indexOf(tag);
+  if(i>-1) list.splice(i,1); else list.push(tag);
+  render();
+}
+function manageEditSpace(spaceId){
+  const roomId = state.params.roomId;
+  withLoading(async ()=>{
+    const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+    detail._id = String(spaceId);
+    detail.isOwner = detail.ownerId === state.me?.id;
+    state.cache.spaceDetail = detail;
+  }).then(()=> openModal('space-edit', {})).catch(()=>{});
+}
+function manageTransferSpace(spaceId){
+  const roomId = state.params.roomId;
+  withLoading(async ()=>{
+    const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+    detail._id = String(spaceId);
+    detail.isOwner = detail.ownerId === state.me?.id;
+    state.cache.spaceDetail = detail;
+    await loadSpaceMembers(roomId, spaceId).catch(()=>{});
+  }).then(()=> openModal('space-transfer', {})).catch(()=>{});
+}
+function manageDeleteSpace(spaceId){
+  if(!confirm('스페이스를 삭제할까요? 되돌릴 수 없어요.')) return;
+  const roomId = state.params.roomId;
+  withLoading(async ()=>{
+    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'DELETE' });
+    showToast('스페이스가 삭제됐어요.');
+    await loadSpaces(roomId);
+  }).catch(()=>{});
 }
 function onDeleteRoom(roomId){
   if(!confirm('룸을 삭제할까요? 되돌릴 수 없어요.')) return;
@@ -1261,7 +1390,7 @@ function onCreateSpace(){
   withLoading(async ()=>{
     await apiFetch('/rooms/' + roomId + '/spaces', { method:'POST', body: JSON.stringify(body) });
     showToast('스페이스가 생성됐어요.');
-    await loadSpaces(roomId);
+    await Promise.all([loadSpaces(roomId), loadRoomTags(roomId)]);
     navigate('room', {roomId, tab:'spaces'});
   }).catch(()=>{});
 }
@@ -1330,7 +1459,7 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
     ` : ''}
   </div>`;
   return `
-  <div class="discord-layout">
+  <div class="discord-layout space-tone">
     <aside class="side-panel">
       <div class="side-panel-head">
         <div class="side-panel-title">${esc(room?.name||'')}</div>
@@ -1352,7 +1481,7 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
     </section>
 
     <aside class="side-panel">
-      <div class="side-section-title">멤버 <span class="rail-count">· ${(state.cache.spaceMembers||[]).length}명</span></div>
+      <div class="side-section-title">스페이스 멤버 <span class="rail-count">· ${(state.cache.spaceMembers||[]).length}명</span></div>
       <div class="side-list">
         ${(state.cache.spaceMembers||[]).length ? (state.cache.spaceMembers||[]).map(m=>`
           <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
@@ -1400,9 +1529,16 @@ function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
             <div class="cf-value">${esc((v||[]).join(', '))}</div>
           </div>`).join('') : `<span class="empty-inline">등록된 항목이 없어요</span>`}
       </div>
+      <div class="detail-card">
+        <h3>멤버</h3>
+        ${(state.cache.spaceMembers||[]).length ? (state.cache.spaceMembers||[]).map(m=>`
+          <div class="custom-field-row" style="cursor:pointer;" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
+            <div class="cf-value">${esc(m.name)}</div>
+          </div>`).join('') : `<span class="empty-inline">멤버가 없어요</span>`}
+      </div>
     </div>
 
-    <div class="notice-banner">가입된 스페이스가 아니라서 정보 조회와 가입 신청만 할 수 있어요. 채팅은 가입 후 이용할 수 있어요.</div>
+    <div class="notice-banner">가입된 스페이스가 아니라서 정보 조회는 가능하지만 채팅은 가입 후 이용할 수 있어요.</div>
 
     <div class="actions-bar">
       <button class="btn btn-primary btn-sm" onclick="onApplySpace('${spaceId}')">가입 신청하기</button>
@@ -1441,9 +1577,11 @@ function onLeaveSpace(roomId, spaceId){
   if(!confirm('스페이스에서 탈퇴할까요?')) return;
   withLoading(async ()=>{
     await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/leave`, { method:'DELETE' });
+    disconnectChat();
     state.cache.spaceDetail = null;
+    state.cache.spaceMembers = null;
     showToast('스페이스에서 탈퇴했어요.');
-    await loadSpaces(roomId);
+    await Promise.all([loadSpaces(roomId, state.params.activeTags).catch(()=>{}), loadRoomMembers(roomId).catch(()=>{})]);
     navigate('room', {roomId});
   }).catch(()=>{});
 }
@@ -1451,8 +1589,11 @@ function onDeleteSpace(roomId, spaceId){
   if(!confirm('스페이스를 삭제할까요? 되돌릴 수 없어요.')) return;
   withLoading(async ()=>{
     await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'DELETE' });
+    disconnectChat();
+    state.cache.spaceDetail = null;
+    state.cache.spaceMembers = null;
     showToast('스페이스가 삭제됐어요.');
-    await loadSpaces(roomId);
+    await Promise.all([loadSpaces(roomId, state.params.activeTags).catch(()=>{}), loadRoomTags(roomId).catch(()=>{})]);
     navigate('room', {roomId});
   }).catch(()=>{});
 }
@@ -1498,9 +1639,28 @@ function onInviteAction(inviteId, action){
     .then(()=>{
       state.cache.spaceDetail = null;
       showToast(action==='accept' ? '수락했어요.' : '거절했어요.');
-      return loadInvitesInboxBody();
+      const tasks = [];
+      if(document.getElementById('invites-inbox-body')) tasks.push(loadInvitesInboxBody());
+      if(document.getElementById('space-invite-list-body')) tasks.push(loadSpaceInviteListBody());
+      return Promise.all(tasks);
     })
     .catch(e=> showToast(e.message));
+}
+async function loadSpaceInviteListBody(){
+  try{
+    const list = await loadSpacePendingInvites(state.params.spaceId);
+    const body = document.getElementById('space-invite-list-body');
+    if(!body) return;
+    body.innerHTML = list.length ? list.map(inv=>`
+      <div class="member-row">
+        <div class="info"><span class="name">${esc(inv.memberName)}</span><div class="tagline">${inv.status}</div></div>
+        ${inv.status==='PENDING' ? `
+        <div class="row-actions">
+          <button class="btn btn-sm btn-primary" onclick="onInviteAction('${inv.id}','accept')">수락</button>
+          <button class="btn btn-sm btn-danger" onclick="onInviteAction('${inv.id}','reject')">거절</button>
+        </div>` : ''}
+      </div>`).join('') : `<div class="empty">대기 중인 신청이 없어요.</div>`;
+  }catch(e){ showToast(e.message); }
 }
 
 /* =====================================================================
@@ -1548,7 +1708,7 @@ function onSaveCustomFields(){
     const isSelect = optionType==='SINGLE_SELECT' || optionType==='MULTI_SELECT';
     const optionValues = getOptionBoxValues(row);
     if(isSelect && optionValues.length===0){ error = '선택형 항목은 선택 보기를 1개 이상 입력해야 해요.'; return; }
-    if(!isSelect && optionValues.length>0){ error = '짧은 글/숫자 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return; }
+    if(!isSelect && optionValues.length>0){ error = '글/숫자 방식에는 선택 보기를 입력할 수 없어요 — 지워주세요.'; return; }
     customFields.push({
       id: null,
       fieldName: row.querySelector('.cf-name').value.trim(),
@@ -1574,7 +1734,7 @@ function customFieldRowHtml(f){
   f = f || {fieldName:'', required:false, optionType:'TEXT', options:[]};
   const isExisting = !!f.id;
   const typeLabels = {
-    TEXT: '짧은 글',
+    TEXT: '글',
     NUMBER: '숫자',
     SINGLE_SELECT: '여러 보기 중 하나 선택',
     MULTI_SELECT: '여러 보기 중 여러 개 선택'
@@ -1640,6 +1800,7 @@ function onTransferOwner(){
     await apiFetch(`/rooms/${roomId}/${spaceId}/owner`, { method:'PATCH', body: JSON.stringify({ newOwnerId: Number(newOwnerId) }) });
     showToast('오너를 위임했어요.');
     state.cache.spaceDetail = null;
+    state.cache.spaceMembers = null;
     closeModal();
     navigate('space', {roomId, spaceId});
   }).catch(()=>{});
@@ -1670,15 +1831,15 @@ function onUpdateProfileCard(cardId, roomId){
     showToast(e.message || '프로필 카드 수정에 실패했습니다.');
   });
 }
-function onDeleteProfileCard(cardId, roomId){
-  if(!confirm('카드를 삭제할까요?')) return;
+function onLeaveRoom(cardId, roomId){
+  if(!cardId){ showToast('내 프로필 카드를 찾지 못했어요.'); return; }
+  if(!confirm('이 룸에서 탈퇴할까요? 작성한 프로필 카드가 함께 삭제돼요.')) return;
   withLoading(async ()=>{
     await apiFetch('/memberProfileCard/' + cardId, { method:'DELETE' });
-    showToast('카드를 삭제했어요.');
-    state.cache.roomMembers = null; state.cache.memberNames = {};
-    closeModal();
-    await loadRoomMembers(roomId);
-    render();
+    showToast('룸에서 탈퇴했어요.');
+    state.cache.myRooms = null;
+    resetRoomContext();
+    navigate('main');
   }).catch(()=>{});
 }
 
@@ -1809,7 +1970,6 @@ function renderModal(){
     if(editMode){
       const requiredUpdate = !!payload.requiredUpdate;
       inner = `
-      ${requiredUpdate ? '' : '<button class="close-x" onclick="closeModal()">✕</button>'}
       <h3>내 프로필 카드 수정</h3>
       ${requiredUpdate ? '<div class="notice-banner">새로 추가된 필수 항목을 입력해야 룸을 이용할 수 있어요.</div>' : ''}
       <div style="margin-top:14px;">
@@ -1819,12 +1979,10 @@ function renderModal(){
           return `<div class="field"><label>${esc(f.fieldName)}${f.required?' *':''}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
         }).join('')}
         <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
-        ${requiredUpdate ? '' : `<button class="btn" style="margin-top:8px;" onclick="disableProfileCardEdit()">취소</button>
-        <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="onDeleteProfileCard('${m.id}','${room?.id}')">카드 삭제</button>`}
+        ${requiredUpdate ? '' : `<button class="btn" style="margin-top:8px;" onclick="disableProfileCardEdit()">취소</button>`}
       </div>`;
     } else {
       inner = `
-      <button class="close-x" onclick="closeModal()">✕</button>
       <div class="idx-card" style="cursor:default;">
         <span class="card-tag-space">PROFILE</span>
         <div class="card-name">${esc(m.name)}</div>
@@ -1837,10 +1995,15 @@ function renderModal(){
       ${mine ? `<button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="enableProfileCardEdit()">✏️ 수정</button>` : ''}`;
     }
   }
+  if(type==='user-detail'){
+    inner = `
+    <h3>내 정보</h3>
+    <div id="user-detail-body" style="margin-top:14px;"><div class="empty">불러오는 중...</div></div>`;
+    setTimeout(loadUserDetailBody, 0);
+  }
   if(type==='room-invite'){
     const room = state.cache.room;
     inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
     <h3>초대 코드</h3>
     <p class="page-desc" style="margin:8px 0 16px;">이 코드를 팀원에게 공유해서 룸에 초대하세요.</p>
     <div style="text-align:center;padding:20px;background:var(--paper);border-radius:12px;">
@@ -1850,16 +2013,36 @@ function renderModal(){
   }
   if(type==='invites-inbox'){
     inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
     <h3>내 초대함</h3>
     <p class="page-desc" style="margin:8px 0 16px;">스페이스에 보낸 가입 신청, 받은 가입 권유를 확인해요.</p>
     <div id="invites-inbox-body"><div class="empty">불러오는 중...</div></div>`;
     setTimeout(loadInvitesInboxBody, 0);
   }
+  if(type==='space-manage'){
+    const spaces = state.cache.spaces || [];
+    const tags = state.cache.roomTags || [];
+    const activeTags = payload.tags || [];
+    const filtered = activeTags.length ? spaces.filter(s=>(s.tags||[]).some(t=>activeTags.includes(t))) : spaces;
+    inner = `
+    <h3>스페이스 관리</h3>
+    <p class="page-desc" style="margin:8px 0 14px;">룸 안의 모든 스페이스를 한 곳에서 관리할 수 있어요.</p>
+    ${tags.length ? `<div class="chip-row" style="margin-bottom:14px;">${tags.map(t=>`<span class="chip-static ${activeTags.includes(t)?'tech-c':'tag-c'}" style="cursor:pointer;" onclick="toggleManageTag('${esc(t)}')">#${esc(t)}</span>`).join('')}</div>` : ''}
+    ${filtered.length ? filtered.map(s=>`
+      <div class="member-row">
+        <div class="info">
+          <span class="name">${esc(s.name)}</span>
+          <div class="tagline">멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명${(s.tags||[]).length ? ' · '+s.tags.map(t=>'#'+esc(t)).join(' ') : ''}</div>
+        </div>
+        <div class="row-actions">
+          <button class="btn btn-sm" onclick="manageEditSpace('${s.id}')">수정</button>
+          <button class="btn btn-sm" onclick="manageTransferSpace('${s.id}')">위임</button>
+          <button class="btn btn-sm btn-danger" onclick="manageDeleteSpace('${s.id}')">삭제</button>
+        </div>
+      </div>`).join('') : `<div class="empty">${activeTags.length?'해당 태그의 스페이스가 없어요.':'스페이스가 없어요.'}</div>`}`;
+  }
   if(type==='room-edit'){
     const room = state.cache.room;
     inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
     <h3>룸 정보 수정</h3>
     <div class="field" style="margin-top:16px;"><label>룸 이름</label><input id="re-name" type="text" value="${esc(room.name)}"></div>
     <div class="field"><label>룸 소개</label><textarea id="re-desc" rows="3">${esc(room.description)}</textarea></div>
@@ -1869,17 +2052,15 @@ function renderModal(){
   if(type==='custom-fields'){
     const room = state.cache.room;
     inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
     <h3>멤버 프로필 카드 형식</h3>
     <div class="notice-banner">⚠️ 기존 항목은 이름/타입/옵션을 수정할 수 없어요(삭제 후 새로 추가해야 해요). 항목을 삭제하면 그 항목에 대한 멤버 답변만 사라지고, 카드 자체가 통째로 삭제되진 않아요.</div>
     <div id="cf-rows">${(room.customFields||[]).map(f=>customFieldRowHtml(f)).join('') || customFieldRowHtml()}</div>
-    <button class="btn btn-sm" style="margin-bottom:14px;" onclick="addCustomFieldRow()">+ 항목 추가</button>
+    <button class="btn btn-primary btn-sm" style="margin-bottom:14px;" onclick="addCustomFieldRow()">+ 새 항목 추가</button>
     <button class="btn btn-primary btn-block" onclick="onSaveCustomFields()">저장</button>`;
   }
   if(type==='space-edit'){
     const s = state.cache.spaceDetail;
     inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
     <h3>스페이스 카드 수정</h3>
     <div class="field" style="margin-top:16px;"><label>이름</label><input id="se-name" type="text" value="${esc(s.name)}"></div>
     <div class="field"><label>최대 인원</label><input id="se-max" type="number" value="${s.maxMemberCount||''}"></div>
@@ -1891,46 +2072,29 @@ function renderModal(){
     <button class="btn btn-primary btn-block" onclick="onSaveSpaceEdit()">저장</button>`;
   }
   if(type==='space-invite'){
-    const members = state.cache.roomMembers || [];
+    const existingIds = new Set((state.cache.spaceMembers||[]).map(m=>m.userId));
+    const members = (state.cache.roomMembers || []).filter(m=> m.userId!==state.me?.id && !existingIds.has(m.userId));
     inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
     <h3>멤버 초대</h3>
-    <div class="field-hint" style="margin:6px 0 14px;">룸 멤버 중에서 초대할 사람을 선택해주세요. ⚠️ 스페이스 멤버 목록 API가 없어 이미 가입된 멤버도 후보에 뜰 수 있어요.</div>
+    <div class="field-hint" style="margin:6px 0 14px;">룸 멤버 중에서 초대할 사람을 선택해주세요.</div>
     <div class="field">
       <label>초대할 멤버</label>
       <select id="si-userid">
-        ${members.length ? members.map(m=>`<option value="${m.userId}">${esc(m.name)}</option>`).join('') : `<option value="">룸 멤버가 없어요</option>`}
+        ${members.length ? members.map(m=>`<option value="${m.userId}">${esc(m.name)}</option>`).join('') : `<option value="">초대할 수 있는 멤버가 없어요</option>`}
       </select>
     </div>
     <button class="btn btn-primary btn-block" onclick="onSendSpaceInvite()">초대 보내기</button>`;
   }
   if(type==='space-invite-list'){
     inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
     <h3>가입 신청 확인</h3>
     <div id="space-invite-list-body"><div class="empty">불러오는 중...</div></div>`;
-    setTimeout(async ()=>{
-      try{
-        const list = await loadSpacePendingInvites(state.params.spaceId);
-        const body = document.getElementById('space-invite-list-body');
-        if(!body) return;
-        body.innerHTML = list.length ? list.map(inv=>`
-          <div class="member-row">
-            <div class="info"><span class="name">${esc(inv.memberName)}</span><div class="tagline">${inv.status}</div></div>
-            ${inv.status==='PENDING' ? `
-            <div class="row-actions">
-              <button class="btn btn-sm btn-primary" onclick="onInviteAction('${inv.id}','accept')">수락</button>
-              <button class="btn btn-sm btn-danger" onclick="onInviteAction('${inv.id}','reject')">거절</button>
-            </div>` : ''}
-          </div>`).join('') : `<div class="empty">대기 중인 신청이 없어요.</div>`;
-      }catch(e){ showToast(e.message); }
-    }, 0);
+    setTimeout(loadSpaceInviteListBody, 0);
   }
   if(type==='space-transfer'){
     const s = state.cache.spaceDetail;
     const members = (state.cache.spaceMembers||[]).filter(m=>m.userId!==s?.ownerId);
     inner = `
-    <button class="close-x" onclick="closeModal()">✕</button>
     <h3>오너 위임</h3>
     <div class="field-hint" style="margin:6px 0 14px;">새 오너로 위임할 스페이스 멤버를 선택해주세요.</div>
     <div class="field">
@@ -1941,7 +2105,8 @@ function renderModal(){
     </div>
     <button class="btn btn-primary btn-block" onclick="onTransferOwner()">위임하기</button>`;
   }
-  return `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal">${inner}</div></div>`;
+  const hideClose = type==='profile-card' && payload.editMode && payload.requiredUpdate;
+  return `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal">${hideClose?'':'<button class="close-x" onclick="closeModal()">✕</button>'}<div class="modal-scroll">${inner}</div></div></div>`;
 }
 
 /* ===================== INIT ===================== */
