@@ -1382,6 +1382,10 @@ async function loadRoomMembers(roomId){
   const roomMembers = await apiFetch('/memberProfileCard/filter', { method:'POST', body: JSON.stringify({ roomId: Number(roomId) }) });
   if(!isCurrentRoomContext(roomId)) return [];
   state.cache.roomMembers = roomMembers;
+  // 룸 상세 응답의 인원수는 프로필 카드 생성 직후 이전 값일 수 있으므로 실제 멤버 목록으로 동기화한다.
+  if(state.cache.room && String(state.cache.room.id)===String(roomId)) {
+    state.cache.room.currentMember = roomMembers.length;
+  }
   buildMemberNameMap(roomMembers);
   return roomMembers;
 }
