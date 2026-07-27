@@ -54,7 +54,7 @@ class ChatTest {
 
 		when(memberProfileCardRepository.findByUserIdAndRoomId(1L, 2L))
 				.thenReturn(Optional.of(new MemberProfileCard()));
-		when(memberProfileCardRepository.findNameByRoomIdAndUserUserId(2L, 1L)).thenReturn("TestUser");
+		when(memberProfileCardRepository.findNameByRoomIdAndUserId(2L, 1L)).thenReturn("TestUser");
 
 		Chat chatEntity = Chat.builder()
 				.id(1L)

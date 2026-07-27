@@ -342,14 +342,22 @@ async function apiFetch(path, opts={}){
 
   let res = await fetch(API_BASE + path, opts);
 
-  // 401이면 refreshToken으로 재발급 시도 후 1회 재요청
-  if(res.status===401 && state.refreshToken){
-    const refreshed = await tryRefresh();
-    if(refreshed){
-      opts.headers['Authorization'] = 'Bearer ' + state.accessToken;
-      res = await fetch(API_BASE + path, opts);
+  if (res.status === 401) {
+    if (state.refreshToken) {
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        opts.headers['Authorization'] = 'Bearer ' + state.accessToken;
+        res = await fetch(API_BASE + path, opts);
+      } else {
+        // 리프레시 실패 (tryRefresh 안에서 이미 로그인 화면으로 이동됨)
+        throw new Error('세션이 만료되었습니다.');
+      }
+    } else {
+      // 리프레시 토큰이 아예 없는 경우 (로그아웃 후 뒤로가기 등) 바로 강제 이동
+      doLogout(true);
+      throw new Error('로그인이 필요합니다.');
     }
-  }
+ }
 
   let json = null;
   try{ json = await res.json(); }catch(e){ /* 204 No Content 등 */ }

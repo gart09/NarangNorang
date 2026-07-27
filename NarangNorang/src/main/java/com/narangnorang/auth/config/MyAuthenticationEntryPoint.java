@@ -19,11 +19,15 @@ public class MyAuthenticationEntryPoint implements AuthenticationEntryPoint{
 			HttpServletResponse response,
 			AuthenticationException authException) throws IOException, ServletException {
 		// data 요청에 대한 로그인이 필요한 상황을 프론트에게 전달
-		response.setContentType("application/json");
+		response.setContentType("application/json;charset=UTF-8");
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 		String jsonStr = """
-				{"result":"fail"}
-				""";
+            {
+              "success": false,
+              "code": 401,
+              "message": "인증이 필요하거나 토큰이 만료되었습니다."
+            }
+            """;
 		response.getWriter().write(jsonStr);
 
 	}
