@@ -2060,8 +2060,15 @@ function onUpdateProfileCard(cardId, roomId){
     await apiFetch('/memberProfileCard/update', { method:'PATCH', body: JSON.stringify({ memberProfileCardId: Number(cardId), name, isMemberProfileCardUpdated:true, answers }) });
     showToast('카드를 수정했어요.');
     state.cache.roomMembers = null; state.cache.memberNames = {};
+    // 새 필수 항목을 저장한 뒤에는 강제 수정 모달의 닫기 제한을 해제한다.
+    if(state.modal?.type==='profile-card') state.modal.payload.requiredUpdate = false;
     closeModal();
     await loadRoomMembers(roomId);
+    if(!openRequiredProfileUpdateIfNeeded(roomId)) {
+      // 채팅 DOM과 스크롤은 render()가 보존하므로, 멤버 목록의 카드 데이터만 최신으로 바꾼다.
+      render();
+      initRoomChat(roomId);
+    }
   }).catch(e=>{
     showToast(e.message || '프로필 카드 수정에 실패했습니다.');
   });
