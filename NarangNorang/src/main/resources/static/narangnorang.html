@@ -1587,7 +1587,7 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
   const spaces = state.cache.spaces || [];
   const extraBtns = `
     ${canManageSpace ? `<button class="btn btn-sm" onclick="openModal('space-edit',{})">✏️ 카드수정</button>` : ''}
-    ${s.isOwner ? `<button class="btn btn-sm" onclick="openSpaceInviteModal()">➕ 초대</button><button class="btn btn-sm" onclick="openModal('space-invite-list',{})">📋 신청확인</button>` : ''}
+    ${s.isOwner ? `<span data-space-owner-only><button class="btn btn-sm" onclick="openSpaceInviteModal()">➕ 초대</button><button class="btn btn-sm" onclick="openModal('space-invite-list',{})">📋 신청확인</button></span>` : ''}
     <button class="btn btn-sm btn-danger" onclick="onLeaveSpace('${roomId}','${spaceId}')">탈퇴</button>
   `;
   const start = formatTimeOnly(s.preferredStartTime);
@@ -1598,7 +1598,7 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
     <h2>${esc(s.name)}</h2>
     <div class="chip-row" style="margin:8px 0;">${(s.tags||[]).length ? s.tags.map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 태그가 없어요</span>`}</div>
     <div class="meta-row" style="margin:0 0 10px;padding:0;border:none;">
-      <span>👑 오너 <b>${esc(s.owner)}</b></span>
+      <span>👑 오너 <b data-space-owner>${esc(s.owner)}</b></span>
       <span>👥 멤버 <b>${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</b></span>
     </div>
     ${customEntries.length ? customEntries.map(([k,v])=>`
@@ -1625,7 +1625,7 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
             <div style="margin-top:6px; display:flex; gap:4px; align-items:center;">
               <span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e8f0fe; color:#1967d2;">👥 ${sp.currentMemberCount}${sp.maxMemberCount?'/'+sp.maxMemberCount:''}명</span>
               ${sp.isMember ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e6f4ea; color:#137333;">참여중</span>` : `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#f1f3f4; color:#5f6368;">미참여</span>`}
-              ${sp.ownerId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+              ${sp.ownerId === state.me?.id ? `<span data-space-list-owner-badge style="font-size:10px; padding:2px 4px; border-radius:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
             </div>
             <div class="chip-row" style="margin-top:8px;">${(sp.tags||[]).length ? sp.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
           </div>`).join('')}
@@ -1671,7 +1671,7 @@ function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
         ${(s.tags||[]).length ? (s.tags||[]).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 태그가 없어요</span>`}
       </div>
       <div class="meta-row">
-        <span>👑 오너 <b>${esc(s.owner)}</b></span>
+        <span>👑 오너 <b data-space-owner>${esc(s.owner)}</b></span>
         <span>👥 멤버 <b>${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</b></span>
       </div>
     </div>
@@ -1982,24 +1982,57 @@ async function onSendSpaceInvite(){
 async function loadSpacePendingInvites(spaceId){
   return apiFetch('/invites/spaces/' + spaceId, { method:'GET' });
 }
+function refreshSpaceOwnerDisplay(ownerId, ownerName){
+  document.querySelectorAll('[data-space-owner]').forEach(el=>{
+    el.textContent = ownerName;
+  });
+  document.querySelectorAll('[data-space-owner-only]').forEach(el=>{
+    el.remove();
+  });
+  document.querySelectorAll('[data-space-list-owner-badge]').forEach(el=>{
+    el.remove();
+  });
+  const ownerBadgeStyle = 'font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;';
+  const members = state.cache.spaceMembers || [];
+  const newOwner = members.find(member=>Number(member.userId)===Number(ownerId));
+  document.querySelectorAll('.side-item, .custom-field-row').forEach(row=>{
+    if(!row.getAttribute('onclick')?.includes("openModal('profile-card'")) return;
+    row.querySelectorAll('span').forEach(span=>{
+      if(span.textContent.trim()==='오너') span.remove();
+    });
+    if(!newOwner || !row.textContent.includes(newOwner.name)) return;
+    const badge = document.createElement('span');
+    badge.style.cssText = ownerBadgeStyle;
+    badge.textContent = '오너';
+    (row.querySelector('.cf-value') || row).append(badge);
+  });
+}
 function onTransferOwner(){
   const roomId = state.params.roomId;
   const spaceId = state.modal?.payload?.spaceId
     || state.params.spaceId
     || state.cache.spaceDetail?._id;
-  const newOwnerId = document.getElementById('to-userid').value.trim();
+  const ownerSelect = document.getElementById('to-userid');
+  const newOwnerId = ownerSelect.value.trim();
+  const newOwnerName = ownerSelect.options[ownerSelect.selectedIndex]?.textContent?.trim() || '';
   if(!newOwnerId){ showToast('위임할 멤버를 선택해주세요.'); return; }
   if(!confirm('오너를 위임할까요?')) return;
   withLoading(async ()=>{
     await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/owner`, { method:'PATCH', body: JSON.stringify({ newOwnerId: Number(newOwnerId) }) });
+    const updatedDetail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+    updatedDetail._id = String(spaceId);
+    updatedDetail.isOwner = Number(updatedDetail.ownerId) === Number(state.me?.id);
+    updatedDetail.isMember = state.cache.spaceDetail?.isMember ?? true;
     showToast('오너를 위임했어요.');
-    if(state.cache.spaceDetail?._id === String(spaceId)) {
-      state.cache.spaceDetail = {
-        ...state.cache.spaceDetail,
-        ownerId: Number(newOwnerId),
-        isOwner: Number(newOwnerId) === Number(state.me?.id)
-      };
+    state.cache.spaceDetail = updatedDetail;
+    if(state.cache.spaces) {
+      state.cache.spaces = state.cache.spaces.map(space=>
+        String(space.id) === String(spaceId)
+          ? { ...space, ownerId: Number(updatedDetail.ownerId), owner: updatedDetail.owner || newOwnerName || space.owner }
+          : space
+      );
     }
+    refreshSpaceOwnerDisplay(updatedDetail.ownerId, updatedDetail.owner || newOwnerName);
     closeModal();
   }).catch(()=>{});
 }
