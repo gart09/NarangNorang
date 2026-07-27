@@ -1176,7 +1176,12 @@ function renderRoom(){
       <div class="side-list">
         ${spaces.length ? spaces.map(s=>`
           <div class="space-card-btn" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
-            <div class="space-card-btn-name">${esc(s.name)}</div>
+            <div class="space-card-btn-name">
+              ${esc(s.name)}
+              <span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:6px; background:${s.isMember?'#e6f4ea':'#f1f3f4'}; color:${s.isMember?'#137333':'#5f6368'};">${s.isMember?'참여중':'미참여'}</span>
+              ${s.ownerId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+              <span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#e8f0fe; color:#1967d2;">${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</span>
+            </div>
             <div class="chip-row">${(s.tags||[]).length ? s.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
           </div>`).join('') : `<div class="empty-inline" style="padding:8px;">${active.length?'해당 태그의 스페이스가 없어요':'아직 스페이스가 없어요'}</div>`}
       </div>
@@ -1207,6 +1212,8 @@ function renderRoom(){
         ${filteredMembers.length ? filteredMembers.map(m=>`
           <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
             <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
+            ${m.userId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:6px; background:#e6f4ea; color:#137333;">나</span>` : ''}
+            ${m.userId === room.ownerId ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
           </div>`).join('') : `<div class="empty-inline" style="padding:8px;">조건에 맞는 멤버가 없어요</div>`}
       </div>
       ${renderMemberFilterUI(room)}
@@ -1371,6 +1378,15 @@ async function loadSpaces(roomId, tags){
   if(tags && tags.length) path += '?' + tags.map(t=>'tags=' + encodeURIComponent(t)).join('&');
   const spaces = await apiFetch(path, { method:'GET' });
   if(!isCurrentRoomContext(roomId)) return [];
+  
+  const meId = state.me?.id;
+  if (meId) {
+    await Promise.all(spaces.map(async s => {
+      const members = await apiFetch(`/rooms/${roomId}/spaces/${s.id}/spaceMembers`, { method:'GET' }).catch(()=>[]);
+      s.isMember = members.some(m => m.userId === meId);
+    }));
+  }
+
   state.cache.spaces = spaces;
   return spaces;
 }
@@ -1593,6 +1609,8 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
             ${filtered.length ? filtered.map(m=>`
               <div class="side-item" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
                 <span class="member-mini-avatar">${esc(initials(m.name))}</span>${esc(m.name)}
+                ${m.userId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:6px; background:#e6f4ea; color:#137333;">나</span>` : ''}
+                ${m.userId === s.ownerId ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
               </div>`).join('') : `<div class="empty-inline" style="padding:8px;">조건에 맞는 멤버가 없어요</div>`}
           </div>
         `;
@@ -1632,7 +1650,11 @@ function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
         <h3>멤버</h3>
         ${(state.cache.spaceMembers||[]).length ? (state.cache.spaceMembers||[]).map(m=>`
           <div class="custom-field-row" style="cursor:pointer;" onclick="openModal('profile-card',{card:'${esc(JSON.stringify(m)).replace(/"/g,'&quot;')}'})">
-            <div class="cf-value">${esc(m.name)}</div>
+            <div class="cf-value">
+              ${esc(m.name)}
+              ${m.userId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:6px; background:#e6f4ea; color:#137333;">나</span>` : ''}
+              ${m.userId === s.ownerId ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+            </div>
           </div>`).join('') : `<span class="empty-inline">멤버가 없어요</span>`}
       </div>
     </div>
