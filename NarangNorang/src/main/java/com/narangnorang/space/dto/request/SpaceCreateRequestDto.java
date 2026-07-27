@@ -1,17 +1,16 @@
 package com.narangnorang.space.dto.request;
 
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
+
 import com.narangnorang.space.entity.Space;
 import com.narangnorang.space.entity.SpaceProfileCard;
-import com.narangnorang.space.entity.Tag;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 
 @Getter
 @NoArgsConstructor
@@ -27,9 +26,9 @@ public class SpaceCreateRequestDto {
 
     private List<String> techStack;
 
-    private LocalDateTime preferredStartTime;
+    private LocalTime preferredStartTime;
 
-    private LocalDateTime preferredEndTime;
+    private LocalTime preferredEndTime;
 
     private Map<String, List<String>> customField;
 
