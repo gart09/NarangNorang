@@ -1152,17 +1152,21 @@ function renderRoom(){
       || state.cache.spaces===null
       || state.cache.roomTags===null;
   if(roomDataMissing){
-    withLoading(async ()=>{
-      if(!state.cache.room || String(state.cache.room.id)!==String(roomId)){
-        await loadRoom(roomId);
+    (async ()=>{
+      try {
+        if(!state.cache.room || String(state.cache.room.id)!==String(roomId)){
+          await loadRoom(roomId);
+        }
+        await Promise.all([loadRoomMembers(roomId), loadSpaces(roomId), loadRoomTags(roomId)]);
+        if(!isCurrentRoomContext(roomId)) return;
+        render();
+        if(!openRequiredProfileUpdateIfNeeded(roomId)){
+          initRoomChat(roomId);
+        }
+      } catch(e) {
+        showToast(e.message || '오류가 발생했어요.');
       }
-      await Promise.all([loadRoomMembers(roomId), loadSpaces(roomId), loadRoomTags(roomId)]);
-    }).then(()=>{
-      if(!isCurrentRoomContext(roomId)) return;
-      if(!openRequiredProfileUpdateIfNeeded(roomId)){
-        initRoomChat(roomId);
-      }
-    }).catch(()=>{});
+    })();
     return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
   }
   const room = state.cache.room;
@@ -1553,21 +1557,25 @@ function onCreateSpace(){
 function renderSpace(){
   const { roomId, spaceId } = state.params;
   if(!state.cache.spaceDetail || String(state.cache.spaceDetail._id)!==String(spaceId)){
-    withLoading(async ()=>{
-      const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
-      if(!isCurrentSpaceContext(roomId, spaceId)) return;
-      detail._id = spaceId;
-      if(!state.cache.room || String(state.cache.room.id)!==String(roomId)) await loadRoom(roomId);
-      await ensureMemberNames(roomId).catch(()=>{});
-      if(!state.cache.spaces) await loadSpaces(roomId).catch(()=>{});
-      // ownerId 필드가 추가되어 정확한 오너 판별 가능
-      detail.isOwner = detail.ownerId === state.me?.id;
-      // 스페이스 멤버 조회 API로 멤버 목록 확보 + 내가 멤버인지 판별
-      const spaceMembers = await loadSpaceMembers(roomId, spaceId).catch(()=>[]);
-      detail.isMember = spaceMembers.some(m=>m.userId===state.me?.id);
-      if(!isCurrentSpaceContext(roomId, spaceId)) return;
-      state.cache.spaceDetail = detail;
-    }).then(()=> initSpaceChatIfMember(roomId, spaceId)).catch(()=>{});
+    (async ()=>{
+      try {
+        const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
+        if(!isCurrentSpaceContext(roomId, spaceId)) return;
+        detail._id = spaceId;
+        if(!state.cache.room || String(state.cache.room.id)!==String(roomId)) await loadRoom(roomId);
+        await ensureMemberNames(roomId).catch(()=>{});
+        if(!state.cache.spaces) await loadSpaces(roomId).catch(()=>{});
+        detail.isOwner = detail.ownerId === state.me?.id;
+        const spaceMembers = await loadSpaceMembers(roomId, spaceId).catch(()=>[]);
+        detail.isMember = spaceMembers.some(m=>m.userId===state.me?.id);
+        if(!isCurrentSpaceContext(roomId, spaceId)) return;
+        state.cache.spaceDetail = detail;
+        render();
+        initSpaceChatIfMember(roomId, spaceId);
+      } catch (e) {
+        showToast(e.message || '오류가 발생했어요.');
+      }
+    })();
     return `<div class="page" style="text-align:center;padding-top:120px;"><span class="spinner"></span></div>`;
   }
   const s = state.cache.spaceDetail;
@@ -1818,7 +1826,7 @@ function onInviteAction(inviteId, action){
       if(state.page === 'room' && state.params.roomId) {
         await loadSpaces(state.params.roomId, state.params.activeTags);
       } else if(state.page === 'space' && state.params.spaceId) {
-        await loadSpaceMembers(state.params.spaceId);
+        await loadSpaceMembers(state.params.roomId, state.params.spaceId);
         await loadSpaces(state.params.roomId, state.params.activeTags);
       }
       render();
