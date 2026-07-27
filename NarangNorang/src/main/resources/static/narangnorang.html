@@ -1290,39 +1290,44 @@ function clearSpaceSearch(){
   withLoading(async ()=> loadSpaces(state.params.roomId, [])).catch(()=>{});
 }
 function openSpaceManageModal(){
-  state.modal = {type:'space-manage', payload:{tags:[], searchOpen:false}};
-  render();
+  openModal('space-manage', {tags:[], searchOpen:false});
 }
 function toggleManageSpaceSearch(){
   const payload = state.modal.payload;
   payload.searchOpen = !payload.searchOpen;
   if(!payload.searchOpen) payload.tags = [];
-  render();
+  renderModalLayer();
 }
 function toggleManageTag(tag){
   const list = state.modal.payload.tags;
   const i = list.indexOf(tag);
   if(i>-1) list.splice(i,1); else list.push(tag);
-  render();
+  renderModalLayer();
 }
-function manageEditSpace(spaceId){
+async function manageEditSpace(spaceId){
   const roomId = state.params.roomId;
-  withLoading(async ()=>{
+  try{
     const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
     detail._id = String(spaceId);
     detail.isOwner = detail.ownerId === state.me?.id;
     state.cache.spaceDetail = detail;
-  }).then(()=> openModal('space-edit', {})).catch(()=>{});
+    openModal('space-edit', {});
+  }catch(e){
+    showToast(e.message || '스페이스 정보를 불러오지 못했어요.');
+  }
 }
-function manageTransferSpace(spaceId){
+async function manageTransferSpace(spaceId){
   const roomId = state.params.roomId;
-  withLoading(async ()=>{
+  try{
     const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
     detail._id = String(spaceId);
     detail.isOwner = detail.ownerId === state.me?.id;
     state.cache.spaceDetail = detail;
-    await loadSpaceMembers(roomId, spaceId).catch(()=>{});
-  }).then(()=> openModal('space-transfer', {})).catch(()=>{});
+    state.cache.spaceMembers = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/spaceMembers`, { method:'GET' });
+    openModal('space-transfer', {});
+  }catch(e){
+    showToast(e.message || '스페이스 멤버 정보를 불러오지 못했어요.');
+  }
 }
 function manageDeleteSpace(spaceId){
   if(!confirm('스페이스를 삭제할까요? 되돌릴 수 없어요.')) return;
@@ -1671,13 +1676,16 @@ function chatBodyHtml(targetType, targetId, extraButtons){
     </div>
   </div>`;
 }
-function openSpaceInviteModal(){
+async function openSpaceInviteModal(){
   state.params.inviteChecked = new Set();
   state.params.memberFilter = {};
-  withLoading(async ()=>{
+  try{
     // 초대 후보 = 룸 멤버 (스페이스 멤버 목록 API가 없어 "이미 스페이스에 있는지"는 걸러내지 못함)
     await loadRoomMembers(state.params.roomId);
-  }).then(()=> openModal('space-invite', {})).catch(()=>{});
+    openModal('space-invite', {});
+  }catch(e){
+    showToast(e.message || '룸 멤버 정보를 불러오지 못했어요.');
+  }
 }
 function toggleInviteCheck(userId, checked){
   if(!state.params.inviteChecked) state.params.inviteChecked = new Set();
