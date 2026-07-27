@@ -988,7 +988,7 @@ function renderRoomJoinCard(){
       <div class="field"><label>이름</label><input id="jc-name" type="text" value="${esc(state.me?.name||state.me?.email||'')}"></div>
       ${(room.customFields||[]).map(f=>`
         <div class="field">
-          <label>${esc(f.fieldName)}${f.required?' *':''}</label>
+          <label style="display:flex; align-items:center;">${esc(f.fieldName)}${f.required?' <span style="color:#c5221f; font-size:11px; margin-left:4px; font-weight:700;">필수</span>':''}</label>
           ${renderCustomFieldInput(f, 'jc-field-'+f.id)}
         </div>`).join('')}
       <button class="btn btn-primary btn-block" onclick="onSubmitJoinCard()">카드 저장하고 시작하기</button>
@@ -1183,13 +1183,13 @@ function renderRoom(){
       <div class="side-list">
         ${spaces.length ? spaces.map(s=>`
           <div class="space-card-btn" onclick="navigate('space',{roomId:'${room.id}',spaceId:'${s.id}'})">
-            <div class="space-card-btn-name">
-              ${esc(s.name)}
-              <span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:6px; background:${s.isMember?'#e6f4ea':'#f1f3f4'}; color:${s.isMember?'#137333':'#5f6368'};">${s.isMember?'참여중':'미참여'}</span>
-              ${s.ownerId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
-              <span style="font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px; background:#e8f0fe; color:#1967d2;">${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</span>
+            <div class="space-card-btn-name">${esc(s.name)}</div>
+            <div style="margin-top:6px; display:flex; gap:4px; align-items:center;">
+              <span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e8f0fe; color:#1967d2;">👥 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</span>
+              <span style="font-size:10px; padding:2px 4px; border-radius:4px; background:${s.isMember?'#e6f4ea':'#f1f3f4'}; color:${s.isMember?'#137333':'#5f6368'};">${s.isMember?'참여중':'미참여'}</span>
+              ${s.ownerId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
             </div>
-            <div class="chip-row">${(s.tags||[]).length ? s.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
+            <div class="chip-row" style="margin-top:8px;">${(s.tags||[]).length ? s.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
           </div>`).join('') : `<div class="empty-inline" style="padding:8px;">${active.length?'해당 태그의 스페이스가 없어요':'아직 스페이스가 없어요'}</div>`}
       </div>
       <button class="btn btn-sm btn-block" style="margin-top:10px;" onclick="navigate('space-create',{roomId:'${room.id}'})">+ 스페이스 만들기</button>
@@ -1244,7 +1244,7 @@ function renderRoomChatPanel(room){
     </div>
     ${(room.customFields||[]).length ? `
       <div class="side-section-title" style="margin:12px 0 6px;">멤버 카드 항목</div>
-      <div class="chip-row">${room.customFields.map(f=>`<span class="chip-static tech-c">${esc(f.fieldName)}${f.required?' *':''}</span>`).join('')}</div>
+      <div class="chip-row">${room.customFields.map(f=>`<span class="chip-static tech-c">${esc(f.fieldName)}${f.required?' <span style="color:#c5221f; font-size:10px; margin-left:2px; font-weight:700;">필수</span>':''}</span>`).join('')}</div>
     ` : ''}
   </div>
   ${chatBodyHtml('room', room.id)}`;
@@ -1276,6 +1276,10 @@ function renderRoomSpacesBrowser(room, spaces, tags, active){
           <span class="card-tag-space">SPACE</span>
           <div class="space-browse-member">👥 멤버 ${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</div>
           <div class="card-name">${esc(s.name)}</div>
+          <div style="margin-top:6px; display:flex; gap:4px; align-items:center;">
+            ${s.isMember ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e6f4ea; color:#137333;">참여중</span>` : `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#f1f3f4; color:#5f6368;">미참여</span>`}
+            ${s.ownerId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+          </div>
           <div class="rule"></div>
           <div class="card-tags">${(s.tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join('') || `<span class="empty-inline">태그 없음</span>`}</div>
         </div>`).join('')}</div>` : `<div class="empty">${active.length?'해당 태그의 스페이스가 없어요.':'아직 만들어진 스페이스가 없어요.'}</div>`}
@@ -1416,13 +1420,13 @@ async function openMyProfileCard(){
   const roomId = state.params.roomId;
   const found = (state.cache.roomMembers||[]).find(m=>m.userId===state.me?.id);
   if(found){
-    openModal('profile-card', {card: JSON.stringify(found)});
+    openModal('profile-card', {card: JSON.stringify(found), editMode: true});
     return;
   }
   try{
     await loadRoomMembers(roomId);
     const m = (state.cache.roomMembers||[]).find(m=>m.userId===state.me?.id);
-    if(m) openModal('profile-card', {card: JSON.stringify(m)});
+    if(m) openModal('profile-card', {card: JSON.stringify(m), editMode: true});
     else showToast('아직 이 룸의 프로필 카드가 없어요.');
   }catch(e){
     showToast(e.message || '프로필 카드를 불러오지 못했어요.');
@@ -1602,7 +1606,12 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
         ${spaces.map(sp=>`
           <div class="space-card-btn ${String(sp.id)===String(spaceId)?'active':''}" onclick="navigate('space',{roomId:'${roomId}',spaceId:'${sp.id}'})">
             <div class="space-card-btn-name">${esc(sp.name)}</div>
-            <div class="chip-row">${(sp.tags||[]).length ? sp.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
+            <div style="margin-top:6px; display:flex; gap:4px; align-items:center;">
+              <span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e8f0fe; color:#1967d2;">👥 ${sp.currentMemberCount}${sp.maxMemberCount?'/'+sp.maxMemberCount:''}명</span>
+              ${sp.isMember ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#e6f4ea; color:#137333;">참여중</span>` : `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#f1f3f4; color:#5f6368;">미참여</span>`}
+              ${sp.ownerId === state.me?.id ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:#fce8e6; color:#c5221f;">오너</span>` : ''}
+            </div>
+            <div class="chip-row" style="margin-top:8px;">${(sp.tags||[]).length ? sp.tags.slice(0,4).map(t=>`<span class="chip-static tag-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">태그 없음</span>`}</div>
           </div>`).join('')}
       </div>
     </aside>
@@ -2133,7 +2142,7 @@ function renderModal(){
         <div class="field"><label>이름</label><input id="pc-edit-name" type="text" value="${esc(m.name)}"></div>
         ${(room?.customFields||[]).map(f=>{
           const cur = (m.answers||[]).find(a=>a.fieldId===f.id);
-          return `<div class="field"><label>${esc(f.fieldName)}${f.required?' *':''}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
+          return `<div class="field"><label style="display:flex; align-items:center;">${esc(f.fieldName)}${f.required?' <span style="color:#c5221f; font-size:11px; margin-left:4px; font-weight:700;">필수</span>':''}</label>${renderCustomFieldInput(f, 'pc-answer-'+f.id, cur?cur.value:'')}</div>`;
         }).join('')}
         <button class="btn btn-primary btn-block" onclick="onUpdateProfileCard('${m.id}','${room?.id}')">카드 저장</button>
         ${requiredUpdate ? '' : `<button class="btn" style="margin-top:8px;" onclick="disableProfileCardEdit()">취소</button>`}
@@ -2145,8 +2154,10 @@ function renderModal(){
         <div class="card-name">${esc(m.name)}</div>
         <div class="rule"></div>
         ${(m.answers||[]).map(a=>{
-          const fieldName = room?.customFields?.find(f=>f.id===a.fieldId)?.fieldName || `필드 #${a.fieldId}`;
-          return `<div style="margin-bottom:8px;"><div class="field-hint" style="margin:0;">${esc(fieldName)}</div><div style="font-size:13.5px;font-weight:600;">${esc(a.value)}</div></div>`;
+          const f = room?.customFields?.find(f=>f.id===a.fieldId);
+          const fieldName = f?.fieldName || `필드 #${a.fieldId}`;
+          const reqBadge = f?.required ? ` <span style="color:#c5221f; font-size:11px; margin-left:4px; font-weight:700;">필수</span>` : '';
+          return `<div style="margin-bottom:8px;"><div class="field-hint" style="margin:0; display:flex; align-items:center;">${esc(fieldName)}${reqBadge}</div><div style="font-size:13.5px;font-weight:600;">${esc(a.value)}</div></div>`;
         }).join('') || '<div class="field-hint">등록된 항목이 없어요.</div>'}
       </div>
       ${mine ? `<button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="enableProfileCardEdit()">✏️ 수정</button>` : ''}`;
