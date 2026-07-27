@@ -19,6 +19,7 @@ public class SpaceSummaryResponseDto {
  private String name;
  private Long currentMemberCount;
  private Long maxMemberCount;
+ private Long ownerId;
  private List<String> tags;
 
  public static SpaceSummaryResponseDto from(Space space) {
@@ -27,6 +28,7 @@ public class SpaceSummaryResponseDto {
              .name(space.getName())
              .currentMemberCount(space.getCurrentMemberCount())
              .maxMemberCount(space.getMaxMemberCount())
+             .ownerId(space.getOwnerId())
              .tags(space.getTags().stream().map(Tag::getName).toList())
              .build();
  }

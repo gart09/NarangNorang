@@ -1,6 +1,7 @@
 package com.narangnorang.space.entity;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -41,17 +42,15 @@ public class SpaceProfileCard {
 
     private String name;
 
-    private String owner;
-
     @Convert(converter = TechStackConverter.class)
     @Column(name = "tech_stack", columnDefinition = "json")
     private List<String> techStack;
 
     @Column(name = "preferred_start_time")
-    private LocalDateTime preferredStartTime;
+    private LocalTime preferredStartTime;
 
     @Column(name = "preferred_end_time")
-    private LocalDateTime preferredEndTime;
+    private LocalTime preferredEndTime;
 
     @Convert(converter = CustomFieldConverter.class)
     @Column(name = "custom_field", columnDefinition = "json")
@@ -66,7 +65,7 @@ public class SpaceProfileCard {
     private LocalDateTime updatedAt;
 
     
-    public void updateProfileCard(List<String> techStack, LocalDateTime preferredStartTime, LocalDateTime preferredEndTime) {
+    public void updateProfileCard(List<String> techStack, LocalTime preferredStartTime, LocalTime preferredEndTime) {
         this.techStack = techStack;
         this.preferredStartTime = preferredStartTime;
         this.preferredEndTime = preferredEndTime;
