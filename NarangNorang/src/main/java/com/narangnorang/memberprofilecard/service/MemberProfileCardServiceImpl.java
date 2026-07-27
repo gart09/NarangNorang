@@ -18,6 +18,8 @@ import com.narangnorang.room.entity.Room;
 import com.narangnorang.room.entity.RoomProfileCustomField;
 import com.narangnorang.room.repository.RoomProfileCustomFieldRepository;
 import com.narangnorang.room.repository.RoomRepository;
+import com.narangnorang.space.dto.response.SpaceSummaryResponseDto;
+import com.narangnorang.space.service.SpaceService;
 import com.narangnorang.user.entity.User;
 import com.narangnorang.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 	private final RoomRepository roomRepository;
 	private final MemberProfileCardRepository memberProfileCardRepository;
 	private final RoomProfileCustomFieldRepository roomProfileCustomFieldRepository;
+	private final SpaceService spaceService;
 
 	@Override
 	public MemberProfileCardCreateResponseDto createMemberProfileCard(Long userId, MemberProfileCardCreateRequestDto requestDto) {
@@ -122,6 +125,15 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 	public void deleteMemberProfileCard(Long userId, Long memberProfileCardId) {
 		MemberProfileCard memberProfileCard = memberProfileCardRepository.findById(memberProfileCardId).orElseThrow(() -> new MemberProfileCardException(MemberProfileCardErrorCode.MEMBER_PROFILE_CARD_NOT_FOUND));
 
+		Room room = memberProfileCardRepository.findRoomByMemberProfileCardId(memberProfileCardId).orElseThrow(() ->
+				new MemberProfileCardException(MemberProfileCardErrorCode.ROOM_NOT_FOUND));
+
+		List<SpaceSummaryResponseDto> spaceList = spaceService.getSpaceList(room.getId(), userId, null);
+		for(SpaceSummaryResponseDto responseDto : spaceList){
+			if(responseDto.getOwnerId().equals(userId)){
+				throw new MemberProfileCardException(MemberProfileCardErrorCode.SPACE_OWNER_CANT_DELETE);
+			}
+		}
 		if(memberProfileCard.getUser().getId().equals(userId) == false){
 			throw new MemberProfileCardException(MemberProfileCardErrorCode.USER_NOT_PERMITTED);
 		}
