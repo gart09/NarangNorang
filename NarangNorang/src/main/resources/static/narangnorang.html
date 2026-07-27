@@ -1290,7 +1290,13 @@ function clearSpaceSearch(){
   withLoading(async ()=> loadSpaces(state.params.roomId, [])).catch(()=>{});
 }
 function openSpaceManageModal(){
-  state.modal = {type:'space-manage', payload:{tags:[]}};
+  state.modal = {type:'space-manage', payload:{tags:[], searchOpen:false}};
+  render();
+}
+function toggleManageSpaceSearch(){
+  const payload = state.modal.payload;
+  payload.searchOpen = !payload.searchOpen;
+  if(!payload.searchOpen) payload.tags = [];
   render();
 }
 function toggleManageTag(tag){
@@ -2137,11 +2143,16 @@ function renderModal(){
     const spaces = state.cache.spaces || [];
     const tags = state.cache.roomTags || [];
     const activeTags = payload.tags || [];
+    const searchOpen = !!payload.searchOpen;
     const filtered = activeTags.length ? spaces.filter(s=>(s.tags||[]).some(t=>activeTags.includes(t))) : spaces;
     inner = `
     <h3>스페이스 관리</h3>
     <p class="page-desc" style="margin:8px 0 14px;">룸 안의 모든 스페이스를 한 곳에서 관리할 수 있어요.</p>
-    ${tags.length ? `<div class="chip-row" style="margin-bottom:14px;">${tags.map(t=>`<span class="chip-static ${activeTags.includes(t)?'tech-c':'tag-c'}" style="cursor:pointer;" onclick="toggleManageTag('${esc(t)}')">#${esc(t)}</span>`).join('')}</div>` : ''}
+    <label class="search-toggle" style="margin-bottom:14px;">
+      <span>태그 검색${activeTags.length?` (${activeTags.length})`:''}</span>
+      <span class="toggle-switch ${searchOpen?'on':''}" onclick="toggleManageSpaceSearch()"><span class="toggle-knob"></span></span>
+    </label>
+    ${searchOpen && tags.length ? `<div class="chip-row" style="margin-bottom:14px;">${tags.map(t=>`<span class="chip-static ${activeTags.includes(t)?'tech-c':'tag-c'}" style="cursor:pointer;" onclick="toggleManageTag('${esc(t)}')">#${esc(t)}</span>`).join('')}</div>` : ''}
     ${filtered.length ? filtered.map(s=>`
       <div class="member-row">
         <div class="info">
