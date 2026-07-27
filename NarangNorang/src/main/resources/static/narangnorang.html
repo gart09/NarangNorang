@@ -634,15 +634,18 @@ async function withLoading(fn){
 function render(){
   const app = document.getElementById('app');
   const currentChat = document.getElementById('chatScroll');
-  const chatSnapshot = currentChat ? {
-    key: state.page==='room'
-        ? `room:${state.params.roomId}`
-        : state.page==='space'
-            ? `space:${state.params.spaceId}`
-            : null,
-    html: currentChat.innerHTML,
-    scrollTop: currentChat.scrollTop
-  } : null;
+  
+  if(currentChat){
+    state.cache.chatSnapshot = {
+      key: state.page==='room'
+          ? `room:${state.params.roomId}`
+          : state.page==='space'
+              ? `space:${state.params.spaceId}`
+              : null,
+      html: currentChat.innerHTML,
+      scrollTop: currentChat.scrollTop
+    };
+  }
 
   app.innerHTML = `
     ${state.page!=='login' && state.page!=='signup' ? renderTopbar() : ''}
@@ -655,9 +658,10 @@ function render(){
       : state.page==='space'
           ? `space:${state.params.spaceId}`
           : null;
-  if(nextChat && chatSnapshot?.key && chatSnapshot.key===nextChatKey){
-    nextChat.innerHTML = chatSnapshot.html;
-    nextChat.scrollTop = chatSnapshot.scrollTop;
+          
+  if(nextChat && state.cache.chatSnapshot?.key && state.cache.chatSnapshot.key===nextChatKey){
+    nextChat.innerHTML = state.cache.chatSnapshot.html;
+    nextChat.scrollTop = state.cache.chatSnapshot.scrollTop;
   }
 
   renderModalLayer();
@@ -1801,13 +1805,23 @@ function renderInvitesInboxBody(list){
 }
 function onInviteAction(inviteId, action){
   apiFetch(`/invites/${inviteId}/${action}`, { method:'POST' })
-    .then(()=>{
+    .then(async ()=>{
       state.cache.spaceDetail = null;
+      state.cache.spaces = null;
+      state.cache.spaceMembers = null;
       showToast(action==='accept' ? '수락했어요.' : '거절했어요.');
       const tasks = [];
       if(document.getElementById('invites-inbox-body')) tasks.push(loadInvitesInboxBody());
       if(document.getElementById('space-invite-list-body')) tasks.push(loadSpaceInviteListBody());
-      return Promise.all(tasks);
+      await Promise.all(tasks);
+
+      if(state.page === 'room' && state.params.roomId) {
+        await loadSpaces(state.params.roomId, state.params.activeTags);
+      } else if(state.page === 'space' && state.params.spaceId) {
+        await loadSpaceMembers(state.params.spaceId);
+        await loadSpaces(state.params.roomId, state.params.activeTags);
+      }
+      render();
     })
     .catch(e=> showToast(e.message));
 }
