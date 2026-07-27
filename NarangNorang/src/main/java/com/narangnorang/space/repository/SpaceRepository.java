@@ -34,4 +34,6 @@ public interface SpaceRepository extends JpaRepository<Space, Long> {
             WHERE s.id = :spaceId
             """)
     Optional<Space> findByIdWithProfileCard(@Param("spaceId") Long spaceId);
+    
+    boolean existsByOwnerId(Long userId);
 }
