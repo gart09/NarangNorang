@@ -1311,8 +1311,8 @@ function manageEditSpace(spaceId){
     const detail = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'GET' });
     detail._id = String(spaceId);
     detail.isOwner = detail.ownerId === state.me?.id;
-    state.cache.spaceDetail = detail;
-  }).then(()=> openModal('space-edit', {})).catch(()=>{});
+    return detail;
+  }).then(detail => openModal('space-edit', { detail })).catch(()=>{});
 }
 function manageTransferSpace(spaceId){
   const roomId = state.params.roomId;
@@ -1447,29 +1447,39 @@ function renderSpaceCreate(){
     <div class="form-card">
       <div class="field"><label>스페이스 이름</label><input id="sc-name" type="text"></div>
       <div class="field"><label>최대 인원</label><input id="sc-max" type="number"></div>
-      <div class="field"><label>필요 기술</label>${textListHtml('sc-tech-list', [], '예: Java')}</div>
       <div class="field"><label>태그</label>${chipInputHtml('sc-tags-chips', [], '#태그 입력 후 스페이스바', {hash:true})}</div>
-      <div class="field"><label>선호 시작 시간</label><input id="sc-start" type="time"></div>
-      <div class="field"><label>선호 종료 시간</label><input id="sc-end" type="time"></div>
-      <div class="field"><label>커스텀 필드 (한 줄에 하나, "항목명: 값1, 값2" 형식)</label><textarea id="sc-custom" rows="3" placeholder="예: 선호 요일: 월, 수, 금"></textarea></div>
+      <div class="field">
+        <label>커스텀 필드</label>
+        <div id="sc-custom-rows"></div>
+        <button type="button" class="btn btn-sm" onclick="addSpaceCustomFieldRow('sc-custom-rows')">+ 항목 추가</button>
+      </div>
       <button class="btn btn-primary btn-block" onclick="onCreateSpace()">만들기</button>
     </div>
   </div>`;
 }
-// "항목명: 값1, 값2" 줄 단위 텍스트 <-> Map<String, List<String>> 변환
-function parseCustomFieldText(text){
+// 스페이스 커스텀 필드 동적 UI 헬퍼
+function spaceCustomFieldRowHtml(k='', v=''){
+  return `
+  <div class="scf-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+    <input type="text" class="scf-key" placeholder="항목명" value="${esc(k)}" style="flex:1;">
+    <input type="text" class="scf-val" placeholder="값" value="${esc(v)}" style="flex:2;">
+    <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.scf-row').remove()">삭제</button>
+  </div>`;
+}
+function addSpaceCustomFieldRow(containerId){
+  document.getElementById(containerId).insertAdjacentHTML('beforeend', spaceCustomFieldRowHtml());
+}
+function getSpaceCustomFields(containerId){
   const map = {};
-  (text||'').split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
-    const idx = line.indexOf(':');
-    if(idx<0) return;
-    const key = line.slice(0,idx).trim();
-    const values = line.slice(idx+1).split(',').map(v=>v.trim()).filter(Boolean);
-    if(key) map[key] = values;
+  document.querySelectorAll(`#${containerId} .scf-row`).forEach(row=>{
+    const k = row.querySelector('.scf-key').value.trim();
+    const v = row.querySelector('.scf-val').value.trim();
+    if(k) {
+      if(!map[k]) map[k] = [];
+      map[k].push(...v.split(',').map(s=>s.trim()).filter(Boolean));
+    }
   });
   return map;
-}
-function customFieldToText(map){
-  return Object.entries(map||{}).map(([k,vs])=> `${k}: ${(vs||[]).join(', ')}`).join('\n');
 }
 function onCreateSpace(){
   const name = document.getElementById('sc-name').value.trim();
@@ -1478,11 +1488,11 @@ function onCreateSpace(){
   const body = {
     name,
     maxMemberCount: parseInt(document.getElementById('sc-max').value) || null,
-    techStack: getTextListValues('sc-tech-list'),
+    techStack: [],
     tags: getChipValues('sc-tags-chips'),
-    preferredStartTime: timeToIsoDateTime(document.getElementById('sc-start').value),
-    preferredEndTime: timeToIsoDateTime(document.getElementById('sc-end').value),
-    customField: parseCustomFieldText(document.getElementById('sc-custom').value),
+    preferredStartTime: null,
+    preferredEndTime: null,
+    customField: getSpaceCustomFields('sc-custom-rows'),
   };
   withLoading(async ()=>{
     await apiFetch('/rooms/' + roomId + '/spaces', { method:'POST', body: JSON.stringify(body) });
@@ -1546,14 +1556,10 @@ function renderSpaceChatView(s, roomId, spaceId, canManageSpace){
       <span>👑 오너 <b>${esc(s.owner)}</b></span>
       <span>👥 멤버 <b>${s.currentMemberCount}${s.maxMemberCount?'/'+s.maxMemberCount:''}명</b></span>
     </div>
-    <div class="side-section-title" style="margin:6px 0;">필요 기술</div>
-    <div class="chip-row">${(s.techStack||[]).length ? s.techStack.map(t=>`<span class="chip-static tech-c">${esc(t)}</span>`).join('') : `<span class="empty-inline">없음</span>`}</div>
-    <div class="side-section-title" style="margin:10px 0 4px;">선호 시간</div>
-    <div class="cf-value">${(start||end) ? `${esc(start||'미정')} ~ ${esc(end||'미정')}` : `<span class="empty-inline">등록된 선호 시간이 없어요</span>`}</div>
-    ${customEntries.length ? `
-      <div class="side-section-title" style="margin:10px 0 4px;">추가 정보</div>
-      ${customEntries.map(([k,v])=>`<div class="custom-field-row"><div class="cf-label">${esc(k)}</div><div class="cf-value">${esc((v||[]).join(', '))}</div></div>`).join('')}
-    ` : ''}
+    ${customEntries.length ? customEntries.map(([k,v])=>`
+      <div class="side-section-title" style="margin:10px 0 4px;">${esc(k)}</div>
+      <div class="cf-value">${esc((v||[]).join(', '))}</div>
+    `).join('') : ''}
   </div>`;
   return `
   <div class="discord-layout space-tone">
@@ -1615,24 +1621,13 @@ function renderSpaceInfoView(s, roomId, spaceId, canManageSpace){
     </div>
 
     <div class="detail-grid">
-      <div class="detail-card">
-        <h3>필요 기술</h3>
-        <div class="chip-row">
-          ${(s.techStack||[]).length ? (s.techStack||[]).map(t=>`<span class="chip-static tech-c">#${esc(t)}</span>`).join('') : `<span class="empty-inline">등록된 필요 기술이 없어요</span>`}
-        </div>
-      </div>
-      <div class="detail-card">
-        <h3>선호 시간</h3>
-        ${(start||end) ? `<div class="custom-field-row"><div class="cf-value">${esc(start||'미정')} ~ ${esc(end||'미정')}</div></div>` : `<span class="empty-inline">등록된 선호 시간이 없어요</span>`}
-      </div>
-      <div class="detail-card">
-        <h3>추가 정보</h3>
-        ${customEntries.length ? customEntries.map(([k,v])=>`
+      ${customEntries.length ? customEntries.map(([k,v])=>`
+        <div class="detail-card">
+          <h3>${esc(k)}</h3>
           <div class="custom-field-row">
-            <div class="cf-label">${esc(k)}</div>
             <div class="cf-value">${esc((v||[]).join(', '))}</div>
-          </div>`).join('') : `<span class="empty-inline">등록된 항목이 없어요</span>`}
-      </div>
+          </div>
+        </div>`).join('') : ''}
       <div class="detail-card">
         <h3>멤버</h3>
         ${(state.cache.spaceMembers||[]).length ? (state.cache.spaceMembers||[]).map(m=>`
@@ -1870,15 +1865,16 @@ function customFieldRowHtml(f){
    Space 관리 (수정/초대/신청확인/위임) API
 ===================================================================== */
 function onSaveSpaceEdit(){
-  const { roomId, spaceId } = state.params;
+  const roomId = state.params.roomId;
+  const spaceId = state.modal?.payload?.detail?._id || state.modal?.payload?.detail?.id || state.params.spaceId || state.cache.spaceDetail?._id || state.cache.spaceDetail?.id;
   const body = {
     name: document.getElementById('se-name').value.trim(),
     maxMemberCount: parseInt(document.getElementById('se-max').value) || null,
-    techStack: getTextListValues('se-tech-list'),
+    techStack: [],
     tags: getChipValues('se-tags-chips'),
-    preferredStartTime: timeToIsoDateTime(document.getElementById('se-start').value),
-    preferredEndTime: timeToIsoDateTime(document.getElementById('se-end').value),
-    customField: parseCustomFieldText(document.getElementById('se-custom').value),
+    preferredStartTime: null,
+    preferredEndTime: null,
+    customField: getSpaceCustomFields('se-custom-rows'),
   };
   withLoading(async ()=>{
     await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'PATCH', body: JSON.stringify(body) });
@@ -2185,16 +2181,18 @@ function renderModal(){
     <button class="btn btn-primary btn-block" onclick="onSaveCustomFields()">저장</button>`;
   }
   if(type==='space-edit'){
-    const s = state.cache.spaceDetail;
+    const s = payload.detail || state.cache.spaceDetail;
+    const customFieldsHtml = Object.entries(s.customField||{}).map(([k,vs])=> spaceCustomFieldRowHtml(k, (vs||[]).join(', '))).join('');
     inner = `
     <h3>스페이스 카드 수정</h3>
     <div class="field" style="margin-top:16px;"><label>이름</label><input id="se-name" type="text" value="${esc(s.name)}"></div>
     <div class="field"><label>최대 인원</label><input id="se-max" type="number" value="${s.maxMemberCount||''}"></div>
-    <div class="field"><label>필요 기술</label>${textListHtml('se-tech-list', s.techStack||[], '예: Java')}</div>
     <div class="field"><label>태그</label>${chipInputHtml('se-tags-chips', s.tags||[], '#태그 입력 후 스페이스바', {hash:true})}</div>
-    <div class="field"><label>선호 시작 시간</label><input id="se-start" type="time" value="${esc(extractTimeValue(s.preferredStartTime))}"></div>
-    <div class="field"><label>선호 종료 시간</label><input id="se-end" type="time" value="${esc(extractTimeValue(s.preferredEndTime))}"></div>
-    <div class="field"><label>커스텀 필드 (한 줄에 하나, "항목명: 값1, 값2" 형식)</label><textarea id="se-custom" rows="3">${esc(customFieldToText(s.customField))}</textarea></div>
+    <div class="field">
+      <label>커스텀 필드</label>
+      <div id="se-custom-rows">${customFieldsHtml}</div>
+      <button type="button" class="btn btn-sm" onclick="addSpaceCustomFieldRow('se-custom-rows')">+ 항목 추가</button>
+    </div>
     <button class="btn btn-primary btn-block" onclick="onSaveSpaceEdit()">저장</button>`;
   }
   if(type==='space-invite'){
