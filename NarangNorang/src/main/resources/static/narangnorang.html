@@ -618,10 +618,17 @@ function timeToIsoDateTime(timeStr){
 }
 
 async function withLoading(fn){
-  state.loading = true; render();
+  const modalAction = !!state.modal;
+  state.loading = true;
+  if(modalAction) renderModalLayer();
+  else render();
   try{ await fn(); }
   catch(e){ showToast(e.message || '오류가 발생했어요.'); }
-  finally{ state.loading = false; render(); }
+  finally{
+    state.loading = false;
+    if(modalAction) renderModalLayer();
+    else render();
+  }
 }
 
 function render(){
@@ -1405,20 +1412,21 @@ async function initRoomChat(roomId){
   await ensureMemberNames(roomId).catch(()=>{});
   await initChatCore('room', roomId);
 }
-function openMyProfileCard(){
+async function openMyProfileCard(){
   const roomId = state.params.roomId;
   const found = (state.cache.roomMembers||[]).find(m=>m.userId===state.me?.id);
   if(found){
     openModal('profile-card', {card: JSON.stringify(found)});
     return;
   }
-  withLoading(async ()=>{
+  try{
     await loadRoomMembers(roomId);
-  }).then(()=>{
     const m = (state.cache.roomMembers||[]).find(m=>m.userId===state.me?.id);
     if(m) openModal('profile-card', {card: JSON.stringify(m)});
     else showToast('아직 이 룸의 프로필 카드가 없어요.');
-  }).catch(()=>{});
+  }catch(e){
+    showToast(e.message || '프로필 카드를 불러오지 못했어요.');
+  }
 }
 function findMissingRequiredFields(room, memberProfileCard){
   const answerMap = new Map(
@@ -1907,15 +1915,14 @@ function onSaveSpaceEdit(){
     customField: getSpaceCustomFields('se-custom-rows'),
   };
   withLoading(async ()=>{
-    await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'PATCH', body: JSON.stringify(body) });
+    const updated = await apiFetch(`/rooms/${roomId}/spaces/${spaceId}`, { method:'PATCH', body: JSON.stringify(body) });
     showToast('스페이스 카드를 수정했어요.');
-    state.cache.spaceDetail = null;
+    state.cache.spaceDetail = { ...state.cache.spaceDetail, ...updated, _id:String(spaceId) };
     await loadSpaces(roomId, state.params.activeTags).catch(()=>{});
     closeModal();
-    navigate('space', {roomId, spaceId});
   }).catch(()=>{});
 }
-function onSendSpaceInvite(){
+async function onSendSpaceInvite(){
   const { roomId, spaceId } = state.params;
   const checkedIds = state.params.inviteChecked ? Array.from(state.params.inviteChecked) : [];
   
@@ -1926,14 +1933,16 @@ function onSendSpaceInvite(){
 
   if(!checkedIds.length){ showToast('초대할 멤버를 1명 이상 선택해주세요.'); return; }
   
-  withLoading(async ()=>{
+  try{
     const promises = checkedIds.map(uid => 
       apiFetch('/invites/invite', { method:'POST', body: JSON.stringify({ spaceId: Number(spaceId), targetUserId: Number(uid) }) })
     );
     await Promise.all(promises);
     showToast(`${promises.length}명에게 초대를 보냈어요.`);
     closeModal();
-  }).catch(()=>{});
+  }catch(e){
+    showToast(e.message || '초대 전송에 실패했어요.');
+  }
 }
 async function loadSpacePendingInvites(spaceId){
   return apiFetch('/invites/spaces/' + spaceId, { method:'GET' });
@@ -1948,11 +1957,13 @@ function onTransferOwner(){
     await apiFetch(`/rooms/${roomId}/spaces/${spaceId}/owner`, { method:'PATCH', body: JSON.stringify({ newOwnerId: Number(newOwnerId) }) });
     showToast('오너를 위임했어요.');
     if(state.cache.spaceDetail?._id === String(spaceId)) {
-      state.cache.spaceDetail = null;
-      state.cache.spaceMembers = null;
+      state.cache.spaceDetail = {
+        ...state.cache.spaceDetail,
+        ownerId: Number(newOwnerId),
+        isOwner: Number(newOwnerId) === Number(state.me?.id)
+      };
     }
     closeModal();
-    if(state.params.spaceId) navigate('space', {roomId, spaceId});
   }).catch(()=>{});
 }
 
@@ -1971,12 +1982,8 @@ function onUpdateProfileCard(cardId, roomId){
     await apiFetch('/memberProfileCard/update', { method:'PATCH', body: JSON.stringify({ memberProfileCardId: Number(cardId), name, isMemberProfileCardUpdated:true, answers }) });
     showToast('카드를 수정했어요.');
     state.cache.roomMembers = null; state.cache.memberNames = {};
-    state.modal = null;
+    closeModal();
     await loadRoomMembers(roomId);
-    render();
-    if(state.page==='room' && (state.params.centerTab||'chat')==='chat'){
-      initRoomChat(roomId);
-    }
   }).catch(e=>{
     showToast(e.message || '프로필 카드 수정에 실패했습니다.');
   });
