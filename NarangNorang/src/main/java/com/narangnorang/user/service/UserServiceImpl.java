@@ -15,6 +15,10 @@ import com.narangnorang.user.exception.UserException;
 import com.narangnorang.user.exception.errorcode.UserErrorCode;
 import com.narangnorang.user.repository.UserRepository;
 import com.narangnorang.user.repository.UserRoleRepository;
+import com.narangnorang.memberprofilecard.entity.MemberProfileCard;
+import com.narangnorang.memberprofilecard.repository.MemberProfileCardRepository;
+import com.narangnorang.room.repository.RoomRepository;
+import com.narangnorang.space.repository.SpaceRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,9 @@ public class UserServiceImpl implements UserService{
 
 	private final UserRepository userRepository;
 	private final UserRoleRepository userRoleRepository;
+	private final MemberProfileCardRepository memberProfileCardRepository;
+	private final SpaceRepository spaceRepository;
+	private final RoomRepository roomRepository;
 
 	// 사용자 입력 패스워드 (일반 텍스트) 암호화 후 저장
 	// 내맘대로 암호화가 아니라 현재 프로젝트에 설정된 암호화 객체를 이용
@@ -87,10 +94,10 @@ public class UserServiceImpl implements UserService{
 	    String password = resolvePassword(userRequestDto.getPassword(), user.getPassword());
 	    String name = resolveName(userRequestDto.getName(), user.getName());
 
-	    User updatedUser = userRequestDto.toEntity(name, password, user.getUserRoles());
-	    userRepository.save(updatedUser);
+	    user.updateName(name);
+	    user.updatePassword(password);
 
-	    return UserResponseDto.from(updatedUser);
+	    return UserResponseDto.from(user);
 	}
 
 	@Override
@@ -99,6 +106,18 @@ public class UserServiceImpl implements UserService{
 
 	    User user = getUser(userId);
 	    validateOwner(user, email);
+
+	    if (spaceRepository.existsByOwnerId(userId)) {
+	    	throw new UserException(UserErrorCode.SPACE_OWNER_EXISTS);
+	    }
+
+	    if (roomRepository.existsByOwner_Id(userId)) {
+	    	throw new UserException(UserErrorCode.ROOM_OWNER_EXISTS);
+	    }
+
+	    List<MemberProfileCard> profileCards = memberProfileCardRepository.findAllByUserId(userId);
+	    memberProfileCardRepository.deleteAll(profileCards);
+	    memberProfileCardRepository.flush();
 
 	    userRepository.delete(user);
 	}
