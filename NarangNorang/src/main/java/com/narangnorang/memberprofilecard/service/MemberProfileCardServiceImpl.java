@@ -144,14 +144,11 @@ public class MemberProfileCardServiceImpl implements MemberProfileCardService{
 	@Transactional(readOnly = true)
 	public RoomsListResponseDto getRoomsList(Long userId) {
 		userRepository.findById(userId).orElseThrow(() -> new MemberProfileCardException(MemberProfileCardErrorCode.USER_NOT_FOUND));
-		List<Room> roomsList = memberProfileCardRepository.findRoomsByUserId(userId);
+		List<Object[]> roomsWithMemberCount = memberProfileCardRepository.findRoomsWithMemberCountByUserId(userId);
 
 		return RoomsListResponseDto.builder()
-				.rooms(roomsList.stream()
-						.map(room -> {
-							long currentMemberCount = memberProfileCardRepository.countByRoomId(room.getId());
-							return RoomResponseDto.from(room, currentMemberCount);
-						})
+				.rooms(roomsWithMemberCount.stream()
+						.map(row -> RoomResponseDto.from((Room) row[0], (long) (Long) row[1]))
 						.toList())
 				.build();
 	}

@@ -34,8 +34,10 @@ public interface MemberProfileCardRepository extends JpaRepository<MemberProfile
 
     long countByRoomId(Long roomId);
 
-	@Query("select m.room from MemberProfileCard m where m.user.id = :userId")
-	List<Room> findRoomsByUserId(@Param("userId")Long userId);
+	@Query("select m.room, count(m) from MemberProfileCard m " +
+			"where m.room in (select m2.room from MemberProfileCard m2 where m2.user.id = :userId) " +
+			"group by m.room")
+	List<Object[]> findRoomsWithMemberCountByUserId(@Param("userId") Long userId);
 
 	@Query("select m.room from MemberProfileCard m where m.id = :memberProfileCardId")
 	Optional<Room> findRoomByMemberProfileCardId(@Param("memberProfileCardId") Long memberProfileCardId);

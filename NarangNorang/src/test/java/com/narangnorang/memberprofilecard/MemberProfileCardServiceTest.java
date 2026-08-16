@@ -391,9 +391,8 @@ class MemberProfileCardServiceTest {
         User user = User.builder().id(userId).build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(memberProfileCardRepository.findRoomsByUserId(userId)).thenReturn(List.of(room1, room2));
-        when(memberProfileCardRepository.countByRoomId(10L)).thenReturn(5L);
-        when(memberProfileCardRepository.countByRoomId(20L)).thenReturn(10L);
+        when(memberProfileCardRepository.findRoomsWithMemberCountByUserId(userId))
+                .thenReturn(List.of(new Object[]{room1, 5L}, new Object[]{room2, 10L}));
 
         RoomsListResponseDto response = memberProfileCardService.getRoomsList(userId);
         assertEquals(2, response.getRooms().size());
